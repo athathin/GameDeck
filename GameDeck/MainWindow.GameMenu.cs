@@ -268,6 +268,7 @@ public partial class MainWindow
             _userData.SetStatus(game, status);
             Refresh();
         },
+        SetNotes: (game, notes) => _userData.SetNotes(game, notes),
         ToggleHidden: ToggleHidden,
         AddCover: AddCover,
         RemoveCover: game => CoverService.RemoveCustomCoverAsync(game),

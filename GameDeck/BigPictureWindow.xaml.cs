@@ -35,6 +35,7 @@ public record BigPictureGameActions(
     Action<Game, Window> EditRoutine,
     Func<IReadOnlyList<string>> AllCategories,
     Action<Game, string> ToggleCategory,
+    Action<Game, string?> SetNotes,
     Action<Game, Window> NewCategory,
     Action<Window> ManageCategories,
     Action<Game, GameStatus> SetStatus,
@@ -53,7 +54,7 @@ public partial class BigPictureWindow : Window
     private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];
     private const int StatsTab = 3;
 
-    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse }
+    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots }
 
     private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right,
                                 string Select, string Start, string Trigger, string Home);

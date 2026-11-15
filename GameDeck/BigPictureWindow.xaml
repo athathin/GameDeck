@@ -424,6 +424,14 @@
             </Border>
         </Grid>
 
+        <!-- ======================= a screenshot, full screen (from the game's page) ======================= -->
+        <Grid x:Name="ShotOverlay" Visibility="Collapsed" Background="#F0000000">
+            <Image x:Name="ShotImage" Margin="48,40,48,110" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <TextBlock x:Name="ShotCaption" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,66"
+                       Foreground="#C8D0DC" FontSize="18"/>
+            <StackPanel x:Name="ShotHints" VerticalAlignment="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,22"/>
+        </Grid>
+
         <!-- ======================= a game's page: Play has to be chosen here ======================= -->
         <Grid x:Name="DetailsOverlay" Visibility="Collapsed" Background="{DynamicResource AppBg}">
             <DockPanel Margin="56,36,56,32">
@@ -431,7 +439,8 @@
                             HorizontalAlignment="Center" Margin="0,16,0,0"/>
                 <!-- the very same page the desktop library opens for a game -->
                 <views:GameDetailsView x:Name="DetailsView" HorizontalAlignment="Center"
-                                       BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"/>
+                                       BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
+                                       ScreenshotRequested="DetailsView_ScreenshotRequested"/>
             </DockPanel>
         </Grid>
 

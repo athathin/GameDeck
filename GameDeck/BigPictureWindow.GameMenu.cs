@@ -149,6 +149,8 @@ public partial class BigPictureWindow
                 CloseGameMenu();
             }),
             new("Edit game…", Activate: () => GameAction(() => actions.Edit(game, this))),
+            new(game.HasNotes ? "Edit notes…  (type with the on-screen keyboard)" : "Add a note…  (type with the on-screen keyboard)",
+                Activate: () => { CloseGameMenu(); OpenNote(game); }),
             new("Launch routine…", Activate: () => GameAction(() => actions.EditRoutine(game, this))),
             new("Categories  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
             new("Status  ›", Activate: () => OpenSubmenu("Status", () => StatusRows(game))),

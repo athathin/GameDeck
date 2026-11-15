@@ -1,7 +1,10 @@
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -15,6 +18,12 @@ public partial class GameDetailsView : UserControl
 {
     public event EventHandler? BackRequested;
     public event EventHandler<Game>? PlayRequested;
+
+    /// <summary>A screenshot was clicked: all of the game's screenshots, and the index of the one.</summary>
+    public event EventHandler<(IReadOnlyList<string> Files, int Index)>? ScreenshotRequested;
+
+    /// <summary>The screenshots shown now (the controller screen opens them full size).</summary>
+    public IReadOnlyList<string> Shots { get; private set; } = [];
 
     public GameDetailsView()
     {
@@ -40,8 +49,72 @@ public partial class GameDetailsView : UserControl
         NotesText.Text = game.Notes ?? "";
         NotesPanel.Visibility = game.HasNotes ? Visibility.Visible : Visibility.Collapsed;
 
+        LoadShots(game);
+
         CategoriesText.Text = game.Tags.Count > 0 ? "Categories: " + string.Join(", ", game.Tags) : "";
         CategoriesText.Visibility = game.Tags.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ---- screenshots ----
+
+    private void LoadShots(Game game)
+    {
+        Shots = ScreenshotService.Find(game);
+
+        ShotsWrap.Children.Clear();
+        for (var i = 0; i < Shots.Count; i++)
+        {
+            var thumbnail = Thumbnail(Shots[i]);
+            if (thumbnail is null) continue;
+
+            var index = i;
+            var border = new RoundedClipBorder
+            {
+                Width = 176, Height = 99, CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 0, 10, 10),
+                Cursor = System.Windows.Input.Cursors.Hand, Background = (Brush)FindResource("PanelBg"),
+                ToolTip = Path.GetFileName(Shots[i]),
+                Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
+            };
+            border.MouseLeftButtonUp += (_, _) => ScreenshotRequested?.Invoke(this, (Shots, index));
+            ShotsWrap.Children.Add(border);
+        }
+
+        ShotsHint.Visibility = ShotsWrap.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>
+    private static BitmapImage? Thumbnail(string file)
+    {
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(file);
+            image.DecodePixelWidth = 352;
+            image.CacheOption = BitmapCacheOption.OnLoad;   // read now, so the file isn't kept open
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or FileFormatException)
+        {
+            return null;
+        }
+    }
+
+    private void AddShots_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not Game game) return;
+
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select screenshots for " + game.DisplayName,
+            Filter = "Pictures (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp",
+            Multiselect = true
+        };
+
+        if (dialog.ShowDialog(Window.GetWindow(this)) == true && ScreenshotService.Add(game, dialog.FileNames) > 0)
+            LoadShots(game);
     }
 
     // ---- controller look (Big Picture): nobody can hover or focus the button, so it shows it is selected / pressed itself ----

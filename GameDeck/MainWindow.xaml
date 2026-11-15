@@ -571,7 +571,8 @@
         <!-- ======================= a game's page (click a tile) ======================= -->
         <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed"
                                BackRequested="DetailsPanel_BackRequested"
-                               PlayRequested="DetailsPanel_PlayRequested"/>
+                               PlayRequested="DetailsPanel_PlayRequested"
+                               ScreenshotRequested="DetailsPanel_ScreenshotRequested"/>
 
         <!-- ======================= the settings screen (the gear) ======================= -->
         <views:SettingsView x:Name="SettingsPanel" Visibility="Collapsed"

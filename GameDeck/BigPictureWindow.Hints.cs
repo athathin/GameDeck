@@ -181,7 +181,8 @@ public partial class BigPictureWindow
     {
         var l = Labels();
 
-        FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, "Done"), (l.Back, "Close"));
+        var note = _noteGame is not null;
+        FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, note ? "Save" : "Done"), (l.Back, note ? "Cancel" : "Close"));
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 

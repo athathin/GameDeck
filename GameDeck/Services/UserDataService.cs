@@ -113,6 +113,15 @@ public class UserDataService
         Apply(game);
     }
 
+    /// <summary>Replaces only the game's notes (Big Picture's "Notes…").</summary>
+    public void SetNotes(Game game, string? notes)
+    {
+        GetEntry(game).Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+        Save();
+        Apply(game);
+    }
+
     /// <summary>Replaces the game's categories (used by the right-click Categories menu).</summary>
     public void SetTags(Game game, List<string> tags)
     {

@@ -70,6 +70,7 @@ public partial class BigPictureWindow
             case Overlay.Settings: HandleSettings(button); break;
             case Overlay.GameMenu: HandleGameMenu(button); break;
             case Overlay.Browse: HandleBrowse(button); break;
+            case Overlay.Shots: HandleShots(button); break;
         }
     }
 
@@ -78,6 +79,7 @@ public partial class BigPictureWindow
         switch (button)
         {
             case PadButton.Confirm: _ = PressPlayThenLaunch(); break;
+            case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
     }
@@ -113,7 +115,10 @@ public partial class BigPictureWindow
     private void FillDetailsHints()
     {
         var l = Labels();
-        FillHints(DetailsHints, (l.Confirm, "Play"), (l.Back, "Back"));
+        if (DetailsView.Shots.Count > 0)
+            FillHints(DetailsHints, (l.Confirm, "Play"), (l.Y, "Screenshots"), (l.Back, "Back"));
+        else
+            FillHints(DetailsHints, (l.Confirm, "Play"), (l.Back, "Back"));
     }
 
     /// <summary>The input device changed while a panel was open: its hints show the other device's buttons now.</summary>
@@ -125,6 +130,7 @@ public partial class BigPictureWindow
             case Overlay.GameMenu when _menuPages.Count > 0: FillGameMenuHints(); break;
             case Overlay.Details: FillDetailsHints(); break;
             case Overlay.Browse: FillBrowseHints(); break;
+            case Overlay.Shots: FillShotHints(); break;
         }
     }
 
@@ -154,6 +160,7 @@ public partial class BigPictureWindow
             Key.Enter => PadButton.Confirm,
             Key.Escape => PadButton.Back,
             Key.Space when _overlay != Overlay.Search => PadButton.Confirm,
+            Key.S when _overlay == Overlay.Details => PadButton.Y,      // the game's screenshots
             Key.Back when _overlay == Overlay.Search => PadButton.X,    // backspace
             Key.Tab => PadButton.Select,
             _ => null
@@ -189,7 +196,7 @@ public partial class BigPictureWindow
         foreach (var c in e.Text)
         {
             if (char.IsLetterOrDigit(c) || " '-.,:".Contains(c))
-                TypeText(char.ToLowerInvariant(c).ToString());
+                TypeText(_noteGame is not null ? c.ToString() : char.ToLowerInvariant(c).ToString());   // (a note keeps the capitals typed)
         }
 
         e.Handled = true;

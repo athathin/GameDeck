@@ -17,10 +17,39 @@ public partial class BigPictureWindow
     {
         if (_tab == StatsTab) return;   // nothing to search there
 
+        _noteGame = null;
         ShowOverlay(Overlay.Search);
         UpdateQueryUi();
         UpdateKeyboardSelection();
         BuildOverlayHints();
+    }
+
+    // the same keyboard types a game's note (Game menu > Notes…): _noteGame is set while that is going on
+    private Game? _noteGame;
+    private string _noteText = "";
+    private const int NoteLimit = 300;
+
+    private void OpenNote(Game game)
+    {
+        _noteGame = game;
+        _noteText = game.Notes ?? "";
+        ShowOverlay(Overlay.Search);
+        UpdateQueryUi();
+        UpdateKeyboardSelection();
+        BuildOverlayHints();
+    }
+
+    /// <summary>Done (save the note) or Back (leave it as it was) while typing a note; closes the keyboard either way.</summary>
+    private void FinishNote(bool save)
+    {
+        var game = _noteGame;
+        var text = _noteText;
+        _noteGame = null;
+
+        if (save && game is not null)
+            _gameActions.SetNotes(game, text);
+
+        CloseOverlay();
     }
 
     private void BuildKeyboard()
@@ -103,7 +132,8 @@ public partial class BigPictureWindow
             case PadButton.Confirm: PressKey(); break;
             case PadButton.X: Backspace(); break;
             case PadButton.Y: TypeText(" "); break;
-            case PadButton.Back or PadButton.Start: CloseOverlay(); break;
+            case PadButton.Start: if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
+            case PadButton.Back: if (_noteGame is not null) FinishNote(save: false); else CloseOverlay(); break;
         }
     }
 
@@ -137,14 +167,29 @@ public partial class BigPictureWindow
         {
             case "Space": TypeText(" "); break;
             case "⌫ Delete": Backspace(); break;
-            case "Clear": SetQuery(""); break;
-            case "Done": CloseOverlay(); break;
+            case "Clear": if (_noteGame is not null) { _noteText = ""; UpdateQueryUi(); } else SetQuery(""); break;
+            case "Done": if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
             default: TypeText(key.ToLowerInvariant()); break;
         }
     }
 
     private void TypeText(string text)
     {
+        if (_noteGame is not null)
+        {
+            if (_noteText.Length + text.Length > NoteLimit) return;
+            if (text == " " && (_noteText.Length == 0 || _noteText.EndsWith(' '))) return;
+
+            // a capital at the start and after a full stop (the on-screen keys are lowercase)
+            if (text.Length == 1 && char.IsLower(text[0]) &&
+                (_noteText.Length == 0 || _noteText.EndsWith(". ") || _noteText.EndsWith("! ") || _noteText.EndsWith("? ")))
+                text = text.ToUpperInvariant();
+
+            _noteText += text;
+            UpdateQueryUi();
+            return;
+        }
+
         if (_query.Length + text.Length > 40) return;
         if (text == " " && (_query.Length == 0 || _query.EndsWith(' '))) return;   // no leading or double spaces
 
@@ -153,6 +198,17 @@ public partial class BigPictureWindow
 
     private void Backspace()
     {
+        if (_noteGame is not null)
+        {
+            if (_noteText.Length > 0)
+            {
+                _noteText = _noteText[..^1];
+                UpdateQueryUi();
+            }
+
+            return;
+        }
+
         if (_query.Length > 0)
             SetQuery(_query[..^1]);
     }
@@ -167,6 +223,16 @@ public partial class BigPictureWindow
 
     private void UpdateQueryUi()
     {
+        if (_noteGame is not null)
+        {
+            QueryText.Text = _noteText;
+            QueryHint.Text = "Type a note about " + _noteGame.DisplayName;
+            QueryHint.Visibility = _noteText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ResultCountText.Text = $"{_noteText.Length} / {NoteLimit}";
+            return;
+        }
+
+        QueryHint.Text = "Type to search your games";
         QueryText.Text = _query;
         QueryHint.Visibility = _query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         ResultCountText.Text = _items.Count == 1 ? "1 game" : $"{_items.Count} games";
@@ -402,6 +468,7 @@ public partial class BigPictureWindow
         SettingsOverlay.Visibility = overlay == Overlay.Settings ? Visibility.Visible : Visibility.Collapsed;
         GameMenuOverlay.Visibility = overlay == Overlay.GameMenu ? Visibility.Visible : Visibility.Collapsed;
         BrowseOverlay.Visibility = overlay == Overlay.Browse ? Visibility.Visible : Visibility.Collapsed;
+        ShotOverlay.Visibility = overlay == Overlay.Shots ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CloseOverlay()

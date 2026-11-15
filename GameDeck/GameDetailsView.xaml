@@ -104,6 +104,18 @@
                                    Margin="2,0,0,0"/>
                     </StackPanel>
 
+                    <StackPanel x:Name="ShotsPanel" Margin="0,22,0,0">
+                        <DockPanel Margin="2,0,0,10">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource PillButton}" Padding="12,6" FontSize="13"
+                                    Content="＋  Add screenshots…" Click="AddShots_Click"/>
+                            <TextBlock Text="SCREENSHOTS" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <WrapPanel x:Name="ShotsWrap"/>
+                        <TextBlock x:Name="ShotsHint" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,0"
+                                   Text="None yet. Game Bar captures (Win + Alt + PrtScn) of this game show up here by themselves, or add your own."/>
+                    </StackPanel>
+
                     <StackPanel x:Name="SessionsPanel" Margin="0,22,0,0">
                         <TextBlock Text="RECENT SESSIONS" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
                                    Margin="2,0,0,10"/>

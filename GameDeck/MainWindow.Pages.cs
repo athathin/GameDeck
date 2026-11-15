@@ -462,6 +462,18 @@ public partial class MainWindow
 
     private void DetailsPanel_BackRequested(object? sender, EventArgs e) => CloseDetails();
 
+    private void DetailsPanel_ScreenshotRequested(object? sender, (IReadOnlyList<string> Files, int Index) e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Files[e.Index]) { UseShellExecute = true });   // the picture viewer Windows uses for it
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or FileNotFoundException or InvalidOperationException)
+        {
+            StatusText.Text = "Couldn't open that picture.";
+        }
+    }
+
     private async void DetailsPanel_PlayRequested(object? sender, Game game) => await LaunchGameAsync(game);
 
     private async Task LaunchGameAsync(Game game, ResumeMode? from = null)
