@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using GameDeck.Services;
 
 namespace GameDeck.Tests;
@@ -9,6 +9,7 @@ public class NavSoundsTests
     [InlineData(NavSound.Move)]
     [InlineData(NavSound.Select)]
     [InlineData(NavSound.Back)]
+    [InlineData(NavSound.Launch)]
     public void Each_sound_is_a_valid_wav_file(NavSound sound)
     {
         var wav = NavSounds.Build(sound);
@@ -20,7 +21,7 @@ public class NavSoundsTests
         var dataBytes = BitConverter.ToInt32(wav, 40);
         Assert.Equal(wav.Length - 44, dataBytes);                  // the header's length matches the samples
         Assert.Equal(wav.Length - 8, BitConverter.ToInt32(wav, 4)); // and so does the RIFF size
-        Assert.InRange(dataBytes, 1000, 20000);                    // a short blip, not silence and not a long tone
+        Assert.InRange(dataBytes, 1000, 40000);                    // a short blip, not silence and not a long tune
     }
 
     [Fact]

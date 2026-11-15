@@ -380,6 +380,7 @@ public partial class BigPictureWindow
         if (_closing || Carousel.SelectedItem is not Game game) return;
 
         LaunchedGame = true;
+        NavSounds.Play(NavSound.Launch);
         CloseScreen();
         _launch(game);   // after closing, so the game isn't started behind a full-screen window
     }
