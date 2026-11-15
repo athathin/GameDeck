@@ -101,6 +101,8 @@ public partial class MainWindow : Window
 
         Closing += MainWindow_Closing;
 
+        ThemeService.Changed += UpdateFilterButtons;   // the filter icon is colored in code
+
         // the quick launch shortcut (Ctrl+Alt+G unless changed in Settings)
         _hotkey.Pressed += ToggleQuickLaunch;
         ApplyQuickLaunchHotkey();

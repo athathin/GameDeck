@@ -74,6 +74,9 @@ public partial class BigPictureWindow
                 IsOn: () => SettingsService.AutoUpdate,
                 Activate: () => SettingsService.AutoUpdate = !SettingsService.AutoUpdate),
 
+            new("Check for updates", Activate: () => RunSettingsAction(() => _actions.CheckForUpdates(ShowSettingsStatus),
+                                                                       changesLibrary: false)),
+
             new("QUICK LAUNCH", IsHeader: true),
             new("Open a quick launch box with a keyboard shortcut", IsOn: () => SettingsService.QuickLaunchEnabled,
                 Activate: () =>

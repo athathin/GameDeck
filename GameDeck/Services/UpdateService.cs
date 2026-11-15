@@ -69,24 +69,31 @@ public static class UpdateService
         }
     }
 
+    /// <summary>The answer of a check: a newer version, or none (<see cref="Failed"/> says whether GitHub couldn't be reached).</summary>
+    public record CheckResult(UpdateInfo? Update, bool Failed);
+
     /// <summary>Asks GitHub for the latest release. Null when this version is the newest, or when it can't be checked (offline...).</summary>
-    public static async Task<UpdateInfo?> CheckAsync(TimeSpan timeout)
+    public static async Task<UpdateInfo?> CheckAsync(TimeSpan timeout) => (await CheckDetailedAsync(timeout)).Update;
+
+    /// <summary>The same check, but telling "this is the newest version" apart from "couldn't check" (for the Settings button).</summary>
+    public static async Task<CheckResult> CheckDetailedAsync(TimeSpan timeout)
     {
         try
         {
             using var cancel = new CancellationTokenSource(timeout);
 
             using var response = await Http.GetAsync($"https://api.github.com/repos/{Repo}/releases/latest", cancel.Token);
-            if (!response.IsSuccessStatusCode) return null;
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return new CheckResult(null, false);   // no release yet
+            if (!response.IsSuccessStatusCode) return new CheckResult(null, true);
 
             using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancel.Token), cancellationToken: cancel.Token);
             var root = json.RootElement;
 
-            if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return null;
-            if (root.TryGetProperty("prerelease", out var pre) && pre.GetBoolean()) return null;
+            if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return new CheckResult(null, false);
+            if (root.TryGetProperty("prerelease", out var pre) && pre.GetBoolean()) return new CheckResult(null, false);
 
             var tag = root.GetProperty("tag_name").GetString()?.TrimStart('v', 'V');
-            if (!Version.TryParse(tag, out var latest) || Normalize(latest) <= CurrentVersion) return null;
+            if (!Version.TryParse(tag, out var latest) || Normalize(latest) <= CurrentVersion) return new CheckResult(null, false);
 
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
@@ -94,22 +101,23 @@ public static class UpdateService
 
                 var url = asset.GetProperty("browser_download_url").GetString();
                 if (url is null || !url.StartsWith("https://github.com/" + Repo + "/", StringComparison.OrdinalIgnoreCase))
-                    return null;   // only ever download from this project's own releases
+                    return new CheckResult(null, true);   // only ever download from this project's own releases
 
                 string? sha = null;
                 if (asset.TryGetProperty("digest", out var digest) && digest.GetString() is { } text &&
                     text.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
                     sha = text["sha256:".Length..];
 
-                return new UpdateInfo(Normalize(latest), url, asset.GetProperty("size").GetInt64(), sha);
+                return new CheckResult(new UpdateInfo(Normalize(latest), url, asset.GetProperty("size").GetInt64(), sha), false);
             }
+
+            return new CheckResult(null, true);   // a newer release without a file for this PC
         }
         catch
         {
             // no internet, GitHub busy, an unexpected answer: just start the version that is installed
+            return new CheckResult(null, true);
         }
-
-        return null;
     }
 
     /// <summary>
@@ -182,12 +190,22 @@ public static class UpdateService
         }
     }
 
-    /// <summary>Starts the (new) program again with the same arguments. The caller must have released the single-instance lock.</summary>
-    public static void Restart(IEnumerable<string> args)
+    /// <summary>The start-up argument that makes the new program wait until the old one has closed (it still holds the single-instance lock).</summary>
+    public const string WaitForExitArgument = "--wait-for-exit=";
+
+    /// <summary>
+    /// Starts the (new) program again with the same arguments. When <paramref name="waitForThisProgram"/> is true the new one waits
+    /// for this one to close first (use it when this program is closed right after, not before).
+    /// </summary>
+    public static void Restart(IEnumerable<string> args, bool waitForThisProgram = false)
     {
         var info = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-        foreach (var arg in args)
+
+        foreach (var arg in args.Where(a => !a.StartsWith(WaitForExitArgument, StringComparison.OrdinalIgnoreCase)))
             info.ArgumentList.Add(arg);
+
+        if (waitForThisProgram)
+            info.ArgumentList.Add(WaitForExitArgument + Environment.ProcessId);
 
         Process.Start(info);
     }

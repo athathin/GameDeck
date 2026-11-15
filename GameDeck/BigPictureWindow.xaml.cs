@@ -20,6 +20,7 @@ namespace GameDeck.Views;
 /// <remarks>Each action takes the window its dialogs belong to and returns a result line to show (null = nothing to say).</remarks>
 public record BigPictureSettingsActions(
     Func<Task<string?>> Scan,
+    Func<Action<string>, Task<string?>> CheckForUpdates,
     Func<Window, string?> AddGames,
     Func<Window, string?> FindDuplicates,
     Action<Window> ExportBackup,
@@ -170,6 +171,7 @@ public partial class BigPictureWindow : Window
         Carousel.ItemsSource = _items;
 
         _pad.ControllerChanged += UpdateControllerUi;
+        ThemeService.Changed += OnThemeChanged;
         _timer.Tick += Timer_Tick;
         Loaded += (_, _) =>
         {
@@ -229,6 +231,7 @@ public partial class BigPictureWindow : Window
     {
         _timer.Stop();
         _pad.ControllerChanged -= UpdateControllerUi;   // the screen is gone: nothing left to redraw
+        ThemeService.Changed -= OnThemeChanged;
         _pad.Dispose();
 
         // hand covers back the way the main window expects them

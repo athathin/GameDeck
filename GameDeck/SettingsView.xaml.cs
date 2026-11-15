@@ -20,6 +20,7 @@ public partial class SettingsView : UserControl
     public event EventHandler? UninstallRequested;
     public event EventHandler? ExportRequested;
     public event EventHandler? ImportRequested;
+    public event EventHandler? CheckUpdatesRequested;
 
     // True while the code (not the user) changes a checkbox, so that doesn't count as a choice.
     // The checkboxes react to Checked / Unchecked rather than Click so that every way of toggling works
@@ -232,6 +233,16 @@ public partial class SettingsView : UserControl
         var theme = LightThemeRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
         SettingsService.Theme = theme;
         ThemeService.Apply(theme);   // every open screen changes at once
+    }
+
+    private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => CheckUpdatesRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Shows what the update check is doing / found, and keeps the button off while it works.</summary>
+    public void SetUpdateStatus(string text, bool busy)
+    {
+        UpdateStatusText.Text = text;
+        UpdateStatusText.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        CheckUpdatesButton.IsEnabled = !busy;
     }
 
     private void AutoUpdateCheckBox_Changed(object sender, RoutedEventArgs e)

@@ -161,6 +161,54 @@ public partial class MainWindow
             e.Handled = true;
     }
 
+    /// <summary>
+    /// The "Check for updates" button (Settings, and Big Picture's settings): looks for a newer release and, when there is one,
+    /// installs it and restarts GameDeck. <paramref name="report"/> shows what is going on; the result is the final line to show.
+    /// </summary>
+    private async Task<string?> CheckForUpdatesAsync(Action<string> report)
+    {
+        if (!UpdateService.CanUpdate)
+            return "This copy of GameDeck can't update itself: only the released program, in a folder you can write to, can.";
+
+        report("Checking for updates…");
+        var check = await UpdateService.CheckDetailedAsync(TimeSpan.FromSeconds(10));
+        if (check.Failed) return "Couldn't check for updates. Is this PC connected to the internet?";
+        if (check.Update is not { } update) return $"GameDeck {UpdateService.CurrentVersionText} is the latest version.";
+
+        var version = $"{update.Version.Major}.{update.Version.Minor}.{update.Version.Build}";
+
+        // a restart would stop the timing of a game that was started from GameDeck
+        if (_tracker.IsTracking)
+            return $"Version {version} is available. Close the game you started from GameDeck, then check again.";
+
+        report($"Downloading version {version}…");
+        var installed = await UpdateService.InstallAsync(update, new Progress<double>(p => report($"Downloading version {version}… {p:P0}")));
+        if (!installed) return "The update couldn't be installed, so nothing was changed. Try again later.";
+
+        report("Restarting GameDeck…");
+        try
+        {
+            UpdateService.Restart(Environment.GetCommandLineArgs().Skip(1), waitForThisProgram: true);
+        }
+        catch
+        {
+            return $"Version {version} is installed, but GameDeck couldn't restart by itself. Start it again.";
+        }
+
+        _exiting = true;   // a normal exit: the playtime so far is saved, and no "minimize or close?" question
+        Application.Current.Shutdown();
+        return null;
+    }
+
+    private async void SettingsPanel_CheckUpdatesRequested(object? sender, EventArgs e)
+    {
+        SettingsPanel.SetUpdateStatus("", busy: true);
+
+        var result = await CheckForUpdatesAsync(text => SettingsPanel.SetUpdateStatus(text, busy: true));
+        if (result is not null)
+            SettingsPanel.SetUpdateStatus(result, busy: false);
+    }
+
     private void SettingsPanel_OnlineCoversChanged(object? sender, EventArgs e)
     {
         if (!SettingsService.OnlineCovers) return;
@@ -258,6 +306,7 @@ public partial class MainWindow
         AddGames: AddGames,
         FindDuplicates: FindDuplicates,
         ExportBackup: ExportBackup,
+        CheckForUpdates: CheckForUpdatesAsync,
         ImportBackup: owner =>
         {
             ImportBackup(owner);

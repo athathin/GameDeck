@@ -84,6 +84,10 @@
                               Content="Install updates automatically when GameDeck starts"
                               Checked="AutoUpdateCheckBox_Changed" Unchecked="AutoUpdateCheckBox_Changed"/>
                     <TextBlock x:Name="VersionText" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"/>
+                    <Button x:Name="CheckUpdatesButton" Content="Check for updates" Style="{StaticResource PillButton}"
+                            HorizontalAlignment="Left" Margin="28,14,0,0" Click="CheckUpdatesButton_Click"/>
+                    <TextBlock x:Name="UpdateStatusText" Foreground="{DynamicResource TextSecondary}" FontSize="13" TextWrapping="Wrap"
+                               Margin="28,8,0,0" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
 

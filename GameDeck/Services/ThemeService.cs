@@ -12,12 +12,14 @@ public enum AppTheme
 
 /// <summary>
 /// The colors of the whole app, in one place. Every screen refers to these brushes by name (XAML: {DynamicResource TextMuted},
-/// code: ThemeService.TextMuted). Changing the theme only changes the color inside the same brush objects, so every screen that
-/// is open (and every one opened later) switches at once, with nothing to rebuild.
+/// code: ThemeService.TextMuted). Changing the theme puts a new set of brushes under the same names: WPF freezes a brush once a
+/// style uses it (so its color can't be edited afterwards), but screens that use {DynamicResource} pick up the replacement by
+/// themselves. Parts drawn in code listen to <see cref="Changed"/> and redraw.
 /// </summary>
 public static class ThemeService
 {
-    private static readonly Dictionary<string, SolidColorBrush> Brushes = [];
+    private static Dictionary<string, SolidColorBrush> _brushes = [];
+    private static Application? _app;
 
     // name -> dark color, light color
     private static readonly (string Key, string Dark, string Light)[] Palette =
@@ -40,42 +42,54 @@ public static class ThemeService
 
     public static AppTheme Current { get; private set; } = AppTheme.Dark;
 
-    /// <summary>Raised after the colors changed (windows that paint things themselves, such as the title bar, listen).</summary>
+    /// <summary>Raised after the colors changed: parts of the screen that were painted in code redraw themselves (and the title bars repaint).</summary>
     public static event Action? Changed;
 
     /// <summary>Creates the brushes and puts them where XAML can find them. Call once, before any window is created.</summary>
     public static void Initialize(Application app, AppTheme theme)
     {
+        _app = app;
         Current = theme;
-
-        foreach (var (key, dark, light) in Palette)
-        {
-            var brush = new SolidColorBrush(Parse(theme == AppTheme.Dark ? dark : light));
-            Brushes[key] = brush;
-            app.Resources[key] = brush;   // (not frozen: the color changes later)
-        }
+        Publish();
     }
 
     public static void Apply(AppTheme theme)
     {
         if (theme == Current) return;
+
         Current = theme;
-
-        foreach (var (key, dark, light) in Palette)
-            Brushes[key].Color = Parse(theme == AppTheme.Dark ? dark : light);
-
+        Publish();
         Changed?.Invoke();
     }
 
-    public static SolidColorBrush AppBg => Brushes["AppBg"];
-    public static SolidColorBrush PanelBg => Brushes["PanelBg"];
-    public static SolidColorBrush RaisedBg => Brushes["RaisedBg"];
-    public static SolidColorBrush HoverBg => Brushes["HoverBg"];
-    public static SolidColorBrush TextPrimary => Brushes["TextPrimary"];
-    public static SolidColorBrush TextSecondary => Brushes["TextSecondary"];
-    public static SolidColorBrush TextMuted => Brushes["TextMuted"];
-    public static SolidColorBrush SelectBg => Brushes["SelectBg"];
-    public static SolidColorBrush SelectFg => Brushes["SelectFg"];
+    /// <summary>Builds the brushes of the current theme and replaces the old ones under the same names.</summary>
+    private static void Publish()
+    {
+        var brushes = new Dictionary<string, SolidColorBrush>(Palette.Length);
+
+        foreach (var (key, dark, light) in Palette)
+        {
+            var brush = new SolidColorBrush(Parse(Current == AppTheme.Dark ? dark : light));
+            brush.Freeze();   // never edited: a new one replaces it
+            brushes[key] = brush;
+        }
+
+        _brushes = brushes;
+
+        // (replacing a resource tells every {DynamicResource} user to look it up again)
+        foreach (var (key, brush) in brushes)
+            _app!.Resources[key] = brush;
+    }
+
+    public static SolidColorBrush AppBg => _brushes["AppBg"];
+    public static SolidColorBrush PanelBg => _brushes["PanelBg"];
+    public static SolidColorBrush RaisedBg => _brushes["RaisedBg"];
+    public static SolidColorBrush HoverBg => _brushes["HoverBg"];
+    public static SolidColorBrush TextPrimary => _brushes["TextPrimary"];
+    public static SolidColorBrush TextSecondary => _brushes["TextSecondary"];
+    public static SolidColorBrush TextMuted => _brushes["TextMuted"];
+    public static SolidColorBrush SelectBg => _brushes["SelectBg"];
+    public static SolidColorBrush SelectFg => _brushes["SelectFg"];
 
     private static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);
 }

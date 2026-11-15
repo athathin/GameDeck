@@ -31,12 +31,33 @@ namespace GameDeck
             // the colors first: every window, the update window included, reads them
             ThemeService.Initialize(this, SettingsService.Theme);
 
+            // Started by an update from inside GameDeck: the old program is still closing and holds the lock, so wait for it
+            var args = e.Args;
+            var waitFor = args.FirstOrDefault(x => x.StartsWith(UpdateService.WaitForExitArgument, StringComparison.OrdinalIgnoreCase));
+            if (waitFor is not null)
+            {
+                args = args.Where(x => x != waitFor).ToArray();
+
+                try
+                {
+                    if (int.TryParse(waitFor[UpdateService.WaitForExitArgument.Length..], out var pid))
+                    {
+                        using var old = System.Diagnostics.Process.GetProcessById(pid);
+                        old.WaitForExit(20000);
+                    }
+                }
+                catch
+                {
+                    // it has already gone
+                }
+            }
+
             // Already running (maybe hidden in the system tray)? Ask that one to come to the front and quit.
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceName, out var isFirstInstance);
             if (!isFirstInstance)
             {
                 // Started by Windows at sign-in while GameDeck is already running: nothing to show.
-                if (!e.Args.Contains(StartupService.StartupArgument))
+                if (!args.Contains(StartupService.StartupArgument))
                     AskRunningInstanceToShow();
 
                 _instanceMutex.Dispose();
@@ -45,7 +66,7 @@ namespace GameDeck
                 return;
             }
 
-            StartAfterUpdateCheck(e.Args);
+            StartAfterUpdateCheck(args);
         }
 
         /// <summary>

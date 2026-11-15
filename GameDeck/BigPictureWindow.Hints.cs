@@ -169,6 +169,27 @@ public partial class BigPictureWindow
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 
+    /// <summary>
+    /// The theme changed. What the XAML paints follows by itself; what this screen built in code (tabs, hints, keyboard, stats,
+    /// the open settings list) holds the old colors, so it is built again.
+    /// </summary>
+    private void OnThemeChanged()
+    {
+        BuildTabs();
+        BuildMainHints();
+        BuildOverlayHints();
+        UpdateTopBar();
+
+        BuildKeyboard();
+        UpdateKeyboardSelection();
+
+        if (_tab == StatsTab)
+            BuildStats();
+
+        if (_overlay == Overlay.Settings)
+            RenderSettings();
+    }
+
     private void BuildTabs()
     {
         var l = Labels();

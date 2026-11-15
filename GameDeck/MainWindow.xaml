@@ -567,6 +567,7 @@
                             ScanRequested="SettingsPanel_ScanRequested"
                             DuplicatesRequested="SettingsPanel_DuplicatesRequested"
                             ExportRequested="SettingsPanel_ExportRequested"
+                            CheckUpdatesRequested="SettingsPanel_CheckUpdatesRequested"
                             ImportRequested="SettingsPanel_ImportRequested"/>
     </Grid>
 </Window>
