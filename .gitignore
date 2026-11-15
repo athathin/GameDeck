@@ -12,3 +12,6 @@ out/
 # leftovers of the self-update
 *.exe.old
 *.exe.new
+
+# the Beta icon as it was handed over (the .ico made from it is what the build uses)
+GameDeck/Assets/beta app icon.png

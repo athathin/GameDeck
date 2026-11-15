@@ -30,6 +30,8 @@
 	<PropertyGroup Condition="'$(GameDeckBeta)' == 'true'">
 		<DefineConstants>$(DefineConstants);BETA</DefineConstants>
 		<AssemblyName>GameDeckBeta</AssemblyName>
+		<!-- the Beta has its own icon: the program file, the taskbar, the window and the tray -->
+		<ApplicationIcon>Assets\beta-icon.ico</ApplicationIcon>
 		<RootNamespace>GameDeck</RootNamespace>
 		<!-- its own build folder: the generated files carry the program's name, and must not be mixed with the normal build's -->
 		<IntermediateOutputPath>obj\beta\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
@@ -49,6 +51,10 @@
 
 	<ItemGroup>
 		<Resource Include="Assets\icon.ico" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(GameDeckBeta)' == 'true'">
+		<Resource Include="Assets\beta-icon.ico" />
 	</ItemGroup>
 
 	<ItemGroup>

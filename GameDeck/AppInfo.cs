@@ -12,11 +12,13 @@ public static class AppInfo
     public const string DisplayName = "GameDeck Beta";
     public const string DataFolderName = "GameDeck Beta";   // %AppData%\GameDeck Beta
     public const string InstanceSuffix = "-Beta";
+    public const string IconUri = "pack://application:,,,/Assets/beta-icon.ico";
 #else
     public const bool IsBeta = false;
     public const string DisplayName = "GameDeck";
     public const string DataFolderName = "GameDeck";        // %AppData%\GameDeck
     public const string InstanceSuffix = "";
+    public const string IconUri = "pack://application:,,,/Assets/icon.ico";
 #endif
 
     /// <summary>
