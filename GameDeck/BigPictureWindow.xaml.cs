@@ -437,12 +437,54 @@ public partial class BigPictureWindow : Window
 
     private void SettingsButton_Click(object sender, MouseButtonEventArgs e) => OpenSettings();
 
-    private void Carousel_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    // ---------- the mouse on the row of games ----------
+
+    private Point _lastMouse;
+    private Game? _pressedTile;
+    private bool _hoverSelecting;   // the mouse chose the tile: the row must not glide to center it under the pointer
+
+    private Game? TileUnder(object source) =>
+        source is DependencyObject element &&
+        ItemsControl.ContainerFromElement(Carousel, element) is ListBoxItem { DataContext: Game game }
+            ? game
+            : null;
+
+    /// <summary>The tile under the mouse becomes the selected one, as with the stick (the row only follows when you move the mouse).</summary>
+    private void Carousel_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        // only a double click on a tile, not on empty space
-        if (_overlay == Overlay.None && e.OriginalSource is DependencyObject source &&
-            ItemsControl.ContainerFromElement(Carousel, source) is ListBoxItem)
-            OpenDetails();
+        var position = e.GetPosition(this);
+        if (position == _lastMouse) return;   // tiles gliding past a mouse that isn't moving are not a choice
+        _lastMouse = position;
+
+        if (_overlay != Overlay.None || TileUnder(e.OriginalSource) is not { } game ||
+            ReferenceEquals(game, Carousel.SelectedItem))
+            return;
+
+        if (_topFocus)
+            FocusTopBar(false);
+
+        _hoverSelecting = true;
+        try { Carousel.SelectedItem = game; }
+        finally { _hoverSelecting = false; }
+    }
+
+    // A tile can't take the keyboard focus, and a list only selects an item it can focus: so a click is handled here.
+    // Like in the desktop library, a click on a tile opens the game's page.
+    private void Carousel_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
+        _pressedTile = TileUnder(e.OriginalSource);
+
+    private void Carousel_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var tile = TileUnder(e.OriginalSource);
+        var pressed = _pressedTile;
+        _pressedTile = null;
+
+        // (pressed and released on the same tile; not on empty space, not behind an open menu)
+        if (_overlay != Overlay.None || tile is null || !ReferenceEquals(tile, pressed))
+            return;
+
+        Carousel.SelectedItem = tile;
+        OpenDetails();
     }
 
     private void Move(int step)
@@ -696,7 +738,9 @@ public partial class BigPictureWindow : Window
     private void Carousel_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateDetails();
-        UpdateTarget();
+
+        if (!_hoverSelecting)
+            UpdateTarget();
     }
 
     /// <summary>Where to scroll so the selected tile sits in the middle of the screen.</summary>
@@ -773,6 +817,15 @@ public partial class BigPictureWindow : Window
                 };
 
                 var (row0, col0) = (r, c);
+                cell.MouseEnter += (_, _) =>
+                {
+                    if (_keyRow == row0 && _keyCol == col0) return;
+
+                    _keyRow = row0;   // the mouse selects the key it points at
+                    _keyCol = col0;
+                    UpdateKeyboardSelection();
+                };
+
                 cell.MouseLeftButtonUp += (_, _) =>
                 {
                     _keyRow = row0;
@@ -974,11 +1027,28 @@ public partial class BigPictureWindow : Window
         {
             _filterIndex = index;
             ActivateFilterRow();
+        }, index =>
+        {
+            if (_filterIndex == index) return;
+
+            _filterIndex = index;
+            RenderOnHover(RenderFilters);
         });
+
+    private bool _renderingOnHover;
+
+    /// <summary>Redraws a list because the mouse moved onto another row: the list must not scroll while that happens.</summary>
+    private void RenderOnHover(Action render)
+    {
+        _renderingOnHover = true;
+        try { render(); }
+        finally { _renderingOnHover = false; }
+    }
 
     /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters and the settings share it).</summary>
     /// <returns>One cell per row (an empty one for a heading), so the indexes line up with <paramref name="rows"/>.</returns>
-    private List<Border> RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate)
+    private List<Border> RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate,
+                                    Action<int> hover)
     {
         panel.Children.Clear();
         var cells = new List<Border>();
@@ -1031,6 +1101,7 @@ public partial class BigPictureWindow : Window
             };
 
             var index = i;
+            cell.MouseEnter += (_, _) => hover(index);
             cell.MouseLeftButtonUp += (_, _) => activate(index);
 
             cells.Add(cell);
@@ -1038,7 +1109,8 @@ public partial class BigPictureWindow : Window
         }
 
         // keep the selected row on screen when the panel is long
-        if (selectedIndex < cells.Count)
+        // (not when the mouse chose the row: scrolling under the pointer would make the next row the one it points at)
+        if (selectedIndex < cells.Count && !_renderingOnHover)
             cells[selectedIndex].BringIntoView();
 
         return cells;
@@ -1177,6 +1249,12 @@ public partial class BigPictureWindow : Window
         {
             _settingsIndex = index;
             ActivateSettingsRow();
+        }, index =>
+        {
+            if (_settingsIndex == index || _capturingShortcut) return;
+
+            _settingsIndex = index;
+            RenderOnHover(RenderSettings);
         });
     }
 
@@ -1388,6 +1466,12 @@ public partial class BigPictureWindow : Window
         {
             page.Index = index;
             ActivateMenuRow();
+        }, index =>
+        {
+            if (page.Index == index) return;
+
+            page.Index = index;
+            RenderOnHover(RenderGameMenu);
         });
     }
 
@@ -1597,6 +1681,14 @@ public partial class BigPictureWindow : Window
                     Child = new TextBlock { Text = text, FontSize = 19, Foreground = selected ? Dark : TextGrey }
                 };
 
+                cell.MouseEnter += (_, _) =>
+                {
+                    if (_powerIndex == itemIndex) return;
+
+                    _powerIndex = itemIndex;   // the mouse selects what it points at, like the stick does
+                    RenderPower();
+                };
+
                 cell.MouseLeftButtonUp += (_, _) =>
                 {
                     _powerIndex = itemIndex;
@@ -1774,12 +1866,18 @@ public partial class BigPictureWindow : Window
         BuildTabs();
     }
 
+    // built once: the labels are asked for every time a hint bar, a tab row or a panel is drawn
+    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "Share", "Options", "R2", "PS");
+    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "−", "+", "ZR", "Home");
+    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "RT", "Xbox");
+    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "P", "R", "P");   // no controller
+
     private ButtonLabels Labels() => _pad.ActiveKind switch
     {
-        ControllerKind.PlayStation => new("✕", "○", "□", "△", "L1", "R1", "Share", "Options", "R2", "PS"),
-        ControllerKind.Nintendo => new("A", "B", "X", "Y", "L", "R", "−", "+", "ZR", "Home"),
-        ControllerKind.Xbox or ControllerKind.Generic => new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "RT", "Xbox"),
-        _ => new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "P", "R", "P")   // no controller: show the keyboard keys
+        ControllerKind.PlayStation => PlayStationLabels,
+        ControllerKind.Nintendo => NintendoLabels,
+        ControllerKind.Xbox or ControllerKind.Generic => XboxLabels,
+        _ => KeyboardLabels
     };
 
     private static void FillHints(Panel panel, params (string Button, string Action)[] hints)

@@ -113,7 +113,9 @@
                              ItemContainerStyle="{StaticResource BigItem}"
                              ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Disabled"
                              VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel"
-                             SelectionChanged="Carousel_SelectionChanged" MouseDoubleClick="Carousel_MouseDoubleClick"
+                             SelectionChanged="Carousel_SelectionChanged" PreviewMouseMove="Carousel_PreviewMouseMove"
+                             PreviewMouseLeftButtonDown="Carousel_PreviewMouseLeftButtonDown"
+                             PreviewMouseLeftButtonUp="Carousel_PreviewMouseLeftButtonUp"
                              PreviewMouseRightButtonUp="Carousel_RightClick">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
