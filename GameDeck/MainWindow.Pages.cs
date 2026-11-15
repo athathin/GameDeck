@@ -129,18 +129,31 @@ public partial class MainWindow
 
         if (dialog.ShowDialog(owner) != true) return null;
 
-        foreach (var file in dialog.FileNames)
+        return AddFiles(dialog.FileNames);
+    }
+
+    /// <summary>Adds programs as games (the file picker above, and Big Picture's file browser). Returns the result line.</summary>
+    private string? AddFiles(IReadOnlyList<string> files)
+    {
+        var added = 0;
+        foreach (var file in files)
         {
+            if (_library.Games.Any(g => g.LaunchTarget.Equals(file, StringComparison.OrdinalIgnoreCase)))
+                continue;   // already in the library
+
             _library.AddManual(new Game
             {
                 Name = Path.GetFileNameWithoutExtension(file),
                 Source = "Manual",
                 LaunchTarget = file
             });
+            added++;
         }
 
         Refresh();
-        return dialog.FileNames.Length == 1 ? "Added 1 game." : $"Added {dialog.FileNames.Length} games.";
+
+        if (added == 0) return files.Count == 1 ? "That game is already in the library." : "Those games are already in the library.";
+        return added == 1 ? "Added 1 game." : $"Added {added} games.";
     }
 
     private void SettingsPanel_AddGamesRequested(object? sender, EventArgs e)
@@ -310,6 +323,7 @@ public partial class MainWindow
             return $"Scan finished: {_library.Games.Count} games in your library.";
         },
         AddGames: AddGames,
+        AddFiles: AddFiles,
         FindDuplicates: FindDuplicates,
         ExportBackup: ExportBackup,
         CheckForUpdates: CheckForUpdatesAsync,

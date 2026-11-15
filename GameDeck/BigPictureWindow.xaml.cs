@@ -22,6 +22,7 @@ public record BigPictureSettingsActions(
     Func<Task<string?>> Scan,
     Func<Action<string>, Task<string?>> CheckForUpdates,
     Func<Window, string?> AddGames,
+    Func<IReadOnlyList<string>, string?> AddFiles,
     Func<Window, string?> FindDuplicates,
     Action<Window> ExportBackup,
     Func<Window, string?> ImportBackup,
@@ -52,7 +53,7 @@ public partial class BigPictureWindow : Window
     private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];
     private const int StatsTab = 3;
 
-    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu }
+    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse }
 
     private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right,
                                 string Select, string Start, string Trigger, string Home);

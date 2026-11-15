@@ -69,6 +69,7 @@ public partial class BigPictureWindow
             case Overlay.Details: HandleDetails(button); break;
             case Overlay.Settings: HandleSettings(button); break;
             case Overlay.GameMenu: HandleGameMenu(button); break;
+            case Overlay.Browse: HandleBrowse(button); break;
         }
     }
 
@@ -123,6 +124,7 @@ public partial class BigPictureWindow
             case Overlay.Settings: FillSettingsHints(); break;
             case Overlay.GameMenu when _menuPages.Count > 0: FillGameMenuHints(); break;
             case Overlay.Details: FillDetailsHints(); break;
+            case Overlay.Browse: FillBrowseHints(); break;
         }
     }
 

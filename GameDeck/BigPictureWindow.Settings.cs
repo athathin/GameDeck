@@ -40,7 +40,8 @@ public partial class BigPictureWindow
         {
             new("GAMES", IsHeader: true),
             new("Scan for games", Activate: () => RunSettingsAction(_actions.Scan)),
-            new("Add games…  (pick .exe files with the keyboard and mouse)",
+            new("Add games…  (browse with the controller)", Activate: OpenBrowse),
+            new("Add games with the Windows file picker…  (keyboard and mouse)",
                 Activate: () => RunSettingsAction(() => Task.FromResult(_actions.AddGames(this)))),
             new("Find duplicates…", Activate: () => RunSettingsAction(() => Task.FromResult(_actions.FindDuplicates(this)))),
 

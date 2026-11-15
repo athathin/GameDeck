@@ -407,6 +407,23 @@
             </Border>
         </Grid>
 
+        <!-- ======================= add games: a file browser for the controller (Settings > Add games) ======================= -->
+        <Grid x:Name="BrowseOverlay" Visibility="Collapsed" Background="{DynamicResource Scrim}">
+            <Border HorizontalAlignment="Right" Width="780" Background="{DynamicResource PanelBg}" Padding="0,28,0,20">
+                <DockPanel>
+                    <TextBlock x:Name="BrowseTitle" DockPanel.Dock="Top" Foreground="{DynamicResource TextPrimary}" FontSize="24" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" Margin="40,0,40,14"/>
+                    <StackPanel x:Name="BrowseHints" DockPanel.Dock="Bottom" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                    <TextBlock x:Name="BrowseStatus" DockPanel.Dock="Bottom" Visibility="Collapsed" Foreground="{DynamicResource TextSecondary}"
+                               FontSize="16" TextWrapping="Wrap" Margin="40,12,40,0"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="BrowseList" Margin="28,0,28,0"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+
         <!-- ======================= a game's page: Play has to be chosen here ======================= -->
         <Grid x:Name="DetailsOverlay" Visibility="Collapsed" Background="{DynamicResource AppBg}">
             <DockPanel Margin="56,36,56,32">
