@@ -1,4 +1,4 @@
-# Builds GameDeck Beta from the code in this folder: the same program with its own name, data folder and "one at a time"
+﻿# Builds GameDeck Beta from the code in this folder: the same program with its own name, data folder and "one at a time"
 # lock (see GameDeck\AppInfo.cs), so it runs next to the normal GameDeck. It never updates itself and is not pushed anywhere.
 #
 #   .\beta.ps1              build it (and set it up the first time)
@@ -27,6 +27,15 @@ if ((-not (Test-Path $betaData) -or $SyncData) -and (Test-Path $mainData)) {
     foreach ($file in 'library.json', 'userdata.json', 'sessions.json', 'settings.json') {
         $source = Join-Path $mainData $file
         if (Test-Path $source) { Copy-Item $source (Join-Path $betaData $file) -Force }
+    }
+    # the Beta must open its window (not sit in the tray) and must not fight the real GameDeck over the shortcut / Home button
+    $settingsFile = Join-Path $betaData 'settings.json'
+    if (Test-Path $settingsFile) {
+        $settings = Get-Content $settingsFile -Raw | ConvertFrom-Json
+        foreach ($name in 'StartMinimized', 'QuickLaunchEnabled', 'ControllerWake', 'AutoUpdate') {
+            if ($settings.PSObject.Properties[$name]) { $settings.$name = $false }
+        }
+        $settings | ConvertTo-Json | Set-Content $settingsFile -Encoding UTF8
     }
     foreach ($folder in 'covers', 'custom-covers') {
         $source = Join-Path $mainData $folder

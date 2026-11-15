@@ -31,6 +31,8 @@
 		<DefineConstants>$(DefineConstants);BETA</DefineConstants>
 		<AssemblyName>GameDeckBeta</AssemblyName>
 		<RootNamespace>GameDeck</RootNamespace>
+		<!-- its own build folder: the generated files carry the program's name, and must not be mixed with the normal build's -->
+		<IntermediateOutputPath>obj\beta\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
 	</PropertyGroup>
 
 	<ItemGroup>
