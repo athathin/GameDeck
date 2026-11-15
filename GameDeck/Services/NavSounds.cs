@@ -3,11 +3,11 @@ using System.Windows.Media;
 
 namespace GameDeck.Services;
 
-public enum NavSound { Move, Select, Back, Launch }
+public enum NavSound { Move, Select, Back, Launch, Enter, Exit }
 
 /// <summary>
 /// The small sounds of Big Picture mode: a soft tick when the selection moves, a brighter blip for "select", a lower one for
-/// "back", and a short rising chord when a game starts. They are made here out of sine waves (no sound files to ship), saved once as small .wav files in GameDeck's data
+/// "back", a short rising chord when a game starts, and a rising / falling three-note chime when Big Picture opens / closes. They are made here out of sine waves (no sound files to ship), saved once as small .wav files in GameDeck's data
 /// folder, and played with a media player per sound, made fresh each time Big Picture opens (so GameDeck shows up in the Windows volume mixer while it plays).
 /// </summary>
 public static class NavSounds
@@ -88,7 +88,7 @@ public static class NavSounds
             var voice = VoiceFor(sound);
             if (voice is null) return;
 
-            if (sound == NavSound.Launch)   // the launch sound stands alone: nothing else rings over it
+            if (sound is NavSound.Launch or NavSound.Enter or NavSound.Exit)   // these stand alone: nothing else rings over them
             {
                 foreach (var other in Voices.Where(v => v.Key != sound))
                     other.Value.Player.Stop();
@@ -183,9 +183,17 @@ public static class NavSounds
                 notes = [(392.0, 80), (294.0, 130)];
                 volume = 0.50;
                 break;
-            default:                // launch: a rising chord, C - E - G - C
+            case NavSound.Launch:   // a rising chord, C - E - G - C
                 notes = [(262.0, 110), (330.0, 110), (392.0, 110), (523.0, 260)];
                 volume = 0.55;
+                break;
+            case NavSound.Enter:    // Big Picture opens: D - A - D, rising
+                notes = [(294.0, 90), (440.0, 90), (587.0, 260)];
+                volume = 0.50;
+                break;
+            default:                // Big Picture closes: the same three notes, falling
+                notes = [(587.0, 90), (440.0, 90), (294.0, 260)];
+                volume = 0.50;
                 break;
         }
 

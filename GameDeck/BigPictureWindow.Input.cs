@@ -397,6 +397,9 @@ public partial class BigPictureWindow
         if (_closing) return;
 
         _closing = true;
+        if (!LaunchedGame)
+            NavSounds.Play(NavSound.Exit);   // (starting a game has its own sound, played before this)
+
         Close();
     }
 

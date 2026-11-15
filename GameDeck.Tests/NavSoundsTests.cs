@@ -10,6 +10,8 @@ public class NavSoundsTests
     [InlineData(NavSound.Select)]
     [InlineData(NavSound.Back)]
     [InlineData(NavSound.Launch)]
+    [InlineData(NavSound.Enter)]
+    [InlineData(NavSound.Exit)]
     public void Each_sound_is_a_valid_wav_file(NavSound sound)
     {
         var wav = NavSounds.Build(sound);

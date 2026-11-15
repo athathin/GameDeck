@@ -182,6 +182,7 @@ public partial class BigPictureWindow : Window
         _cursorTimer.Tick += (_, _) => HideCursor();
         Loaded += (_, _) =>
         {
+            NavSounds.Play(NavSound.Enter);   // (waits for its file to finish opening if it must)
             _scroll = FindChild<ScrollViewer>(Carousel);
             UpdateTarget();
             _scroll?.ScrollToHorizontalOffset(_targetOffset);
