@@ -94,9 +94,25 @@ public partial class BigPictureWindow
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
+        FillDetailsHints();
+        ShowOverlay(Overlay.Details);
+    }
+
+    private void FillDetailsHints()
+    {
         var l = Labels();
         FillHints(DetailsHints, (l.Confirm, "Play"), (l.Back, "Back"));
-        ShowOverlay(Overlay.Details);
+    }
+
+    /// <summary>The input device changed while a panel was open: its hints show the other device's buttons now.</summary>
+    private void RefreshOpenPanelHints()
+    {
+        switch (_overlay)
+        {
+            case Overlay.Settings: FillSettingsHints(); break;
+            case Overlay.GameMenu when _menuPages.Count > 0: FillGameMenuHints(); break;
+            case Overlay.Details: FillDetailsHints(); break;
+        }
     }
 
     private void DetailsView_BackRequested(object? sender, EventArgs e) => CloseOverlay();
@@ -168,6 +184,8 @@ public partial class BigPictureWindow
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        SetPadInUse(false);
+
         if (_overlay == Overlay.None)
         {
             if (_tab == StatsTab)

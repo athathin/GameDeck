@@ -259,7 +259,7 @@
             </Grid>
 
             <!-- bottom: what each button does -->
-            <Grid Grid.Row="2">
+            <Grid Grid.Row="2" MinHeight="40">
                 <StackPanel x:Name="HintsLeft" Orientation="Horizontal" HorizontalAlignment="Left"/>
                 <StackPanel x:Name="HintsPanel" Orientation="Horizontal" HorizontalAlignment="Right"/>
             </Grid>

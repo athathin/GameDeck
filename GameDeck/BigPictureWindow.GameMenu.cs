@@ -55,6 +55,12 @@ public partial class BigPictureWindow
         CloseOverlay();
     }
 
+    private void FillGameMenuHints()
+    {
+        var l = Labels();
+        FillHints(GameMenuHints, (l.Confirm, "Choose"), (l.Back, _menuPages.Count > 1 ? "Back" : "Close"));
+    }
+
     private void RenderGameMenu()
     {
         var page = _menuPages.Peek();
@@ -62,7 +68,7 @@ public partial class BigPictureWindow
         page.Index = Math.Clamp(page.Index, 0, _menuRows.Count - 1);
 
         GameMenuTitle.Text = page.Title;
-        FillHints(GameMenuHints, (Labels().Confirm, "Choose"), (Labels().Back, _menuPages.Count > 1 ? "Back" : "Close"));
+        FillGameMenuHints();
 
         _ = RenderRows(GameMenuList, _menuRows, page.Index, index =>
         {

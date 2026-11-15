@@ -23,7 +23,13 @@ public partial class BigPictureWindow
         ShowSettingsStatus(null);
         ShowOverlay(Overlay.Settings);
         RenderSettings();
-        FillHints(SettingsHints, (Labels().Confirm, "Change"), (Labels().Back, "Close"));
+        FillSettingsHints();
+    }
+
+    private void FillSettingsHints()
+    {
+        var l = Labels();
+        FillHints(SettingsHints, (l.Confirm, "Change"), (l.Back, "Close"));
     }
 
     /// <summary>The settings that make sense from the couch. Everything else is on the desktop settings page.</summary>

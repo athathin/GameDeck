@@ -247,9 +247,7 @@ public partial class BigPictureWindow : Window
 
         _padInUse = value;
         UpdateControllerUi();
-
-        if (_overlay == Overlay.Settings)
-            FillHints(SettingsHints, (Labels().Confirm, "Change"), (Labels().Back, "Close"));
+        RefreshOpenPanelHints();
     }
 
     /// <summary>True only while the user is really using the mouse: rows that scroll under a hidden pointer must not take the selection.</summary>
@@ -311,6 +309,8 @@ public partial class BigPictureWindow : Window
     {
         foreach (var button in _pad.Poll())
         {
+            if (_closing) break;   // an earlier button already closed this screen (launch, exit...): the rest are stale
+
             SetPadInUse(true);
             Handle(button);
         }

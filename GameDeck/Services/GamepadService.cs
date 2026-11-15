@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using SDL2;
 
 namespace GameDeck.Services;
@@ -187,10 +187,13 @@ public sealed class GamepadService : IDisposable
                 }
             }
 
-            foreach (var released in _heldSince.Keys.Where(b => !down.Contains(b)).ToList())
+            if (_heldSince.Count > 0)   // (nothing is allocated while no button is held: this runs 60 times a second)
             {
-                _heldSince.Remove(released);
-                _lastRepeat.Remove(released);
+                foreach (var released in _heldSince.Keys.Where(b => !down.Contains(b)).ToList())
+                {
+                    _heldSince.Remove(released);
+                    _lastRepeat.Remove(released);
+                }
             }
         }
         catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
