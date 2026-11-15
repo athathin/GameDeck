@@ -94,9 +94,17 @@ public partial class BigPictureWindow
         _pressingPlay = true;
         DetailsView.PressPlay();
         await Task.Delay(180);
+
+        // the launch sound plays to its end before this screen closes and the game starts (closing cut it off halfway)
+        if (!_closing && _overlay == Overlay.Details && SettingsService.NavSounds)
+        {
+            NavSounds.Play(NavSound.Launch);
+            await Task.Delay(NavSounds.LaunchMilliseconds);
+        }
+
         _pressingPlay = false;
 
-        if (_overlay == Overlay.Details)
+        if (!_closing && _overlay == Overlay.Details)
             LaunchSelected();
     }
 
@@ -380,7 +388,6 @@ public partial class BigPictureWindow
         if (_closing || Carousel.SelectedItem is not Game game) return;
 
         LaunchedGame = true;
-        NavSounds.Play(NavSound.Launch);
         CloseScreen();
         _launch(game);   // after closing, so the game isn't started behind a full-screen window
     }

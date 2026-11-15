@@ -25,6 +25,15 @@ public class NavSoundsTests
     }
 
     [Fact]
+    public void The_launch_sound_is_over_before_big_picture_stops_waiting_for_it()
+    {
+        var wav = NavSounds.Build(NavSound.Launch);
+        var milliseconds = (wav.Length - 44) / 2 * 1000 / 22050;
+
+        Assert.InRange(milliseconds, 300, NavSounds.LaunchMilliseconds);
+    }
+
+    [Fact]
     public void A_sound_fades_out_to_silence_so_it_does_not_click()
     {
         var wav = NavSounds.Build(NavSound.Select);

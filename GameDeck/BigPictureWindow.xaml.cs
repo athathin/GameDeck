@@ -293,6 +293,7 @@ public partial class BigPictureWindow : Window
 
     private void Cleanup()
     {
+        NavSounds.Release();
         _timer.Stop();
         _cursorTimer.Stop();
         Mouse.OverrideCursor = null;   // (the main window and the dialogs get their pointer back)

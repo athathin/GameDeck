@@ -8,23 +8,52 @@ public enum NavSound { Move, Select, Back, Launch }
 /// <summary>
 /// The small sounds of Big Picture mode: a soft tick when the selection moves, a brighter blip for "select", a lower one for
 /// "back", and a short rising chord when a game starts. They are made here out of sine waves (no sound files to ship), saved once as small .wav files in GameDeck's data
-/// folder, and played with a media player per sound (so GameDeck shows up in the Windows volume mixer while it plays).
+/// folder, and played with a media player per sound, made fresh each time Big Picture opens (so GameDeck shows up in the Windows volume mixer while it plays).
 /// </summary>
 public static class NavSounds
 {
     private const int SampleRate = 22050;
 
-    private static readonly Dictionary<NavSound, MediaPlayer> Players = [];
+    /// <summary>How long the launch sound takes (a little more than the sound itself): Big Picture waits this long before it closes.</summary>
+    public const int LaunchMilliseconds = 650;
+
+    /// <summary>One sound's player. A sound asked for before its file has finished opening is played as soon as it has.</summary>
+    private sealed class Voice
+    {
+        public readonly MediaPlayer Player = new() { Volume = 1.0 };
+        public bool Opened;
+        public bool PlayWhenOpened;
+    }
+
+    private static readonly Dictionary<NavSound, Voice> Voices = [];
     private static bool _failureReported;
 
     private static readonly string Folder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "sounds");
 
-    /// <summary>Opens the three sounds, so the first one is not late. Call on the UI thread (a media player belongs to it).</summary>
+    /// <summary>
+    /// Opens all the sounds from scratch (call when Big Picture opens, on the UI thread: a media player belongs to it). Players
+    /// kept from an earlier visit are closed first: one that has sat idle through a window closing, a game starting or the audio
+    /// device changing can stay silent, so every visit starts with fresh ones.
+    /// </summary>
     public static void Preload()
     {
+        Release();
+
         foreach (var sound in Enum.GetValues<NavSound>())
-            PlayerFor(sound);
+            VoiceFor(sound);
+    }
+
+    /// <summary>Closes the players (Big Picture is closing).</summary>
+    public static void Release()
+    {
+        foreach (var voice in Voices.Values)
+        {
+            try { voice.Player.Close(); }
+            catch (Exception ex) { Report(ex); }
+        }
+
+        Voices.Clear();
     }
 
     public static void Play(NavSound sound)
@@ -33,28 +62,36 @@ public static class NavSounds
 
         try
         {
-            var player = PlayerFor(sound);
-            if (player is null) return;
+            var voice = VoiceFor(sound);
+            if (voice is null) return;
 
             if (sound == NavSound.Launch)   // the launch sound stands alone: nothing else rings over it
             {
-                foreach (var other in Players.Where(p => p.Key != sound))
-                    other.Value.Stop();
+                foreach (var other in Voices.Where(v => v.Key != sound))
+                    other.Value.Player.Stop();
             }
 
-            player.Stop();
-            player.Position = TimeSpan.Zero;
-            player.Play();
+            if (!voice.Opened)
+                voice.PlayWhenOpened = true;
+            else
+                Restart(voice);
         }
         catch (Exception ex)
         {
-            Report(ex);   // (Big Picture simply stays quiet)
+            Voices.Remove(sound);   // the next time starts from a fresh player
+            Report(ex);             // (Big Picture simply stays quiet meanwhile)
         }
     }
 
-    private static MediaPlayer? PlayerFor(NavSound sound)
+    private static void Restart(Voice voice)
     {
-        if (Players.TryGetValue(sound, out var existing))
+        voice.Player.Position = TimeSpan.Zero;
+        voice.Player.Play();
+    }
+
+    private static Voice? VoiceFor(NavSound sound)
+    {
+        if (Voices.TryGetValue(sound, out var existing))
             return existing;
 
         try
@@ -66,12 +103,25 @@ public static class NavSounds
             if (!File.Exists(file) || new FileInfo(file).Length != wav.Length)
                 File.WriteAllBytes(file, wav);
 
-            var player = new MediaPlayer { Volume = 1.0 };
-            player.MediaFailed += (_, e) => Report(e.ErrorException);
-            player.Open(new Uri(file));
+            var voice = new Voice();
+            voice.Player.MediaOpened += (_, _) =>
+            {
+                voice.Opened = true;
+                if (voice.PlayWhenOpened)
+                {
+                    voice.PlayWhenOpened = false;
+                    Restart(voice);
+                }
+            };
+            voice.Player.MediaFailed += (_, e) =>
+            {
+                Voices.Remove(sound);
+                Report(e.ErrorException);
+            };
+            voice.Player.Open(new Uri(file));
 
-            Players[sound] = player;
-            return player;
+            Voices[sound] = voice;
+            return voice;
         }
         catch (Exception ex)
         {
