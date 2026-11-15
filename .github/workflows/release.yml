@@ -1,0 +1,65 @@
+# Publishes a new GameDeck release whenever the version in GameDeck/GameDeck.csproj is raised and pushed to main.
+# Both programs (64-bit and 32-bit) are built here and attached to the release. GameDeck itself looks at the latest
+# release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below
+# must stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content GameDeck/GameDeck.csproj
+          $version = $project.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if (-not $version) { throw 'No <Version> in GameDeck.csproj' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Is this version already released?
+        id: exists
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "v${{ steps.version.outputs.version }}" *> $null
+          "released=$($LASTEXITCODE -eq 0)".ToLower() >> $env:GITHUB_OUTPUT
+          $global:LASTEXITCODE = 0
+
+      - uses: actions/setup-dotnet@v4
+        if: steps.exists.outputs.released == 'false'
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build the 64-bit and 32-bit programs
+        if: steps.exists.outputs.released == 'false'
+        shell: pwsh
+        run: |
+          foreach ($rid in 'win-x64', 'win-x86') {
+            dotnet publish GameDeck/GameDeck.csproj -c Release -r $rid --self-contained true `
+              -p:PublishSingleFile=true -p:PublishReadyToRun=false -p:GameDeckInnerPublish=true -o "out/$rid"
+            if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $rid" }
+            Move-Item "out/$rid/GameDeck.exe" "out/GameDeck-$rid.exe"
+          }
+
+      - name: Create the release
+        if: steps.exists.outputs.released == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" `
+            "out/GameDeck-win-x64.exe#GameDeck for 64-bit Windows (most PCs)" `
+            "out/GameDeck-win-x86.exe#GameDeck for 32-bit Windows" `
+            --title "GameDeck ${{ steps.version.outputs.version }}" --generate-notes

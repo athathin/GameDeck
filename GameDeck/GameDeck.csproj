@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<PublishSingleFile>true</PublishSingleFile>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+		<!--
+			Off on purpose: with compression Windows has to unpack every program file into private memory when the app
+			starts (measured: ~145 MB vs ~81 MB). Uncompressed, the files are read straight from the .exe on demand.
+			The price is a bigger .exe on disk (~165 MB instead of ~72 MB).
+		-->
+		<EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+		<DebugType Condition="'$(Configuration)'=='Release'">none</DebugType>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<!-- WinForms is only here for the system tray icon (NotifyIcon) -->
+		<UseWindowsForms>true</UseWindowsForms>
+		<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+		<!-- 32-bit (win-x86) and 64-bit (win-x64) builds: see publish.ps1 -->
+		<RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
+		<Version>1.0.0</Version>
+		<!-- a desktop app doesn't need a background garbage-collector thread or extra JIT profiling memory -->
+		<ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+		<TieredPGO>false</TieredPGO>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- keeps WinForms' type names (MessageBox, Application, ...) from clashing with WPF's -->
+		<Using Remove="System.Windows.Forms" />
+		<Using Remove="System.Drawing" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+		<!-- SDL2: reads Xbox, PlayStation (DualShock 4 / DualSense) and Nintendo Switch Pro controllers; only loaded while Big Picture mode is open -->
+		<PackageReference Include="ppy.SDL2-CS" Version="1.0.82" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\icon.ico" />
+	</ItemGroup>
+
+	<!--
+		One Publish = both versions. Whichever of win-x86 / win-x64 is being published (any publish profile, the
+		Publish button in Visual Studio, or "dotnet publish"), the other one is published right after it, from the
+		same code, into the sibling folder: ...\publish\win-x86\ and ...\publish\win-x64\.
+	-->
+	<Target Name="PublishOtherArchitecture" AfterTargets="Publish"
+	        Condition="'$(GameDeckInnerPublish)' != 'true' And ('$(RuntimeIdentifier)' == 'win-x86' Or '$(RuntimeIdentifier)' == 'win-x64')">
+		<PropertyGroup>
+			<_OtherRid Condition="'$(RuntimeIdentifier)' == 'win-x86'">win-x64</_OtherRid>
+			<_OtherRid Condition="'$(RuntimeIdentifier)' == 'win-x64'">win-x86</_OtherRid>
+			<_OtherPublishDir>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\$(_OtherRid)\</_OtherPublishDir>
+		</PropertyGroup>
+
+		<Message Importance="high" Text="Also publishing $(_OtherRid) -> $(_OtherPublishDir)" />
+
+		<MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
+		         Properties="GameDeckInnerPublish=true;RuntimeIdentifier=$(_OtherRid);SelfContained=$(SelfContained);PublishDir=$(_OtherPublishDir)" />
+	</Target>
+
+</Project>

@@ -1,0 +1,24 @@
+﻿<Window x:Class="GameDeck.Views.CloseChoiceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GameDeck" SizeToContent="WidthAndHeight" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#171A21"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <StackPanel Margin="28,24,28,22" Width="400">
+        <TextBlock Text="Close GameDeck?" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
+        <TextBlock Foreground="#C5CBD6" FontSize="15" TextWrapping="Wrap" Margin="0,10,0,0"
+                   Text="Keep GameDeck running in the system tray, or close it completely? Playtime keeps being tracked while it's in the tray."/>
+
+        <CheckBox x:Name="DontAskCheckBox" Content="Don't ask again" Style="{StaticResource DarkCheckBox}"
+                  Margin="0,20,0,0"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+            <Button Content="Close" Click="ExitButton_Click"
+                    Style="{StaticResource DialogButton}" Background="#2A2F3A" Foreground="White"/>
+            <Button Content="Minimize to tray" IsDefault="True" Click="TrayButton_Click"
+                    Style="{StaticResource DialogButton}" Background="#8037FE" Foreground="White"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

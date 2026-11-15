@@ -1,0 +1,14 @@
+# build output
+bin/
+obj/
+publish/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# leftovers of the self-update
+*.exe.old
+*.exe.new
