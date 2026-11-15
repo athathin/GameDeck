@@ -31,7 +31,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Grid x:Name="Root" Margin="10,44" Width="228" Height="338" Background="Transparent"
+                        <Grid x:Name="Root" Margin="10,44" Width="228" Height="338" Background="Transparent" UseLayoutRounding="False"
                               RenderTransformOrigin="0.5,0.5">
                             <!-- ClipToBounds only clips to a rectangle, so the cover needs a real rounded clip to match the ring -->
                             <Border CornerRadius="8" Margin="4">
@@ -40,10 +40,11 @@
                                 </Border.Clip>
                                 <ContentPresenter/>
                             </Border>
-                            <!-- the card (220 x 330) sits 4 inside this tile; the ring is the 4 around it: outer radius = card radius + 4,
-                                 so its inner edge follows the card's rounded corners exactly -->
-                            <Border x:Name="Ring" CornerRadius="12" BorderBrush="#8037FE" BorderThickness="4"
-                                    IsHitTestVisible="False" Visibility="Collapsed"/>
+                            <!-- the card (220 x 330) sits 4 inside this tile; the ring is the 4 around it. A stroke is centered on its line (2 in, radius 10), so it
+                                 spans radius 8 to 12 and its inner edge follows the card's corners; unlike a border it
+                                 isn't pixel-snapped, so it can't drift from the card at a fractional position -->
+                            <Rectangle x:Name="Ring" Margin="2" RadiusX="10" RadiusY="10" Stroke="#8037FE" StrokeThickness="4"
+                                       SnapsToDevicePixels="False" IsHitTestVisible="False" Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">

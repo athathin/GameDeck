@@ -192,13 +192,11 @@ public partial class BigPictureWindow
                 ScrollStats(e.Delta > 0 ? -1 : 1);
             else
                 Move(e.Delta > 0 ? -1 : 1);
-        }
-        else if (_overlay == Overlay.Filters)
-        {
-            MoveFilter(e.Delta > 0 ? -1 : 1);
+
+            e.Handled = true;
         }
 
-        e.Handled = true;
+        // (with a panel open the wheel is left alone: the list under the pointer scrolls by itself)
     }
 
     private void SearchButton_Click(object sender, MouseButtonEventArgs e) => OpenSearch();

@@ -223,22 +223,43 @@ public partial class BigPictureWindow
     }
 
     /// <summary>The menu, in three groups like Steam's: the PC, GameDeck, and Cancel. Dangerous ones ask again first.</summary>
-    private List<List<PowerEntry>> PowerMenu() =>
-    [
-        [
-            new PowerEntry("Suspend System", () => { CloseOverlay(); SystemPower.Suspend(); }),
-            new PowerEntry("Turn Off System", SystemPower.TurnOff, "Turn off this PC?", "Turn off now"),
-            new PowerEntry("Restart System", SystemPower.Restart, "Restart this PC?", "Restart now")
-        ],
+    private List<List<PowerEntry>> PowerMenu()
+    {
+        var groups = new List<List<PowerEntry>>
+        {
+            new()
+            {
+                new PowerEntry("Suspend System", () => { CloseOverlay(); SystemPower.Suspend(); }),
+                new PowerEntry("Turn Off System", SystemPower.TurnOff, "Turn off this PC?", "Turn off now"),
+                new PowerEntry("Restart System", SystemPower.Restart, "Restart this PC?", "Restart now")
+            }
+        };
+
+        if (_pad.ActiveKind != ControllerKind.None)   // only while a controller is connected
+            groups.Add([new PowerEntry("Power Off Controller", PowerOffController)]);
+
+        groups.Add(
         [
             new PowerEntry("Minimize GameDeck", () => CloseThen(_minimizeApp)),
             new PowerEntry("Exit Big Picture Mode", CloseScreen),
             new PowerEntry("Exit GameDeck", () => CloseThen(_exitApp), "Exit GameDeck?", "Exit GameDeck")
-        ],
-        [
-            new PowerEntry("Cancel", CloseOverlay)
-        ]
-    ];
+        ]);
+
+        groups.Add([new PowerEntry("Cancel", CloseOverlay)]);
+        return groups;
+    }
+
+    /// <summary>Cuts the controller's Bluetooth connection so it switches off; a wired one can't be switched off from here.</summary>
+    private async void PowerOffController()
+    {
+        var turnedOff = await Task.Run(() => ControllerPower.TurnOff(_pad.ActiveName));
+        if (_closing || _overlay != Overlay.Power || _powerConfirming is not null) return;
+
+        if (turnedOff)
+            CloseOverlay();
+        else
+            PowerTitle.Text = "Couldn't switch the controller off. It may be wired.";
+    }
 
     private void RenderPower()
     {
