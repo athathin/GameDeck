@@ -1,6 +1,8 @@
 ﻿using System.Runtime.InteropServices;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
+using System.Windows.Threading;
 using GameDeck.Services;
 using GameDeck.Views;
 
@@ -27,6 +29,19 @@ namespace GameDeck
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // whatever goes wrong is written to a file, and the user gets a way to report it (see CrashLog)
+            DispatcherUnhandledException += OnUiThreadError;
+            AppDomain.CurrentDomain.UnhandledException += (_, a) =>
+            {
+                CrashLog.Write(a.ExceptionObject as Exception, a.IsTerminating ? "Unhandled error (closing)" : "Unhandled error");
+                UpdateService.NoteCrash();
+            };
+            TaskScheduler.UnobservedTaskException += (_, a) =>
+            {
+                CrashLog.Write(a.Exception, "Background task");
+                a.SetObserved();
+            };
 
             // the colors first: every window, the update window included, reads them
             ThemeService.Initialize(this, SettingsService.Theme);
@@ -66,7 +81,117 @@ namespace GameDeck
                 return;
             }
 
+            // Right after an update the new version has to prove it starts: if it didn't (it crashed the first time), the
+            // previous version comes back and the broken one is not offered again.
+            if (UpdateService.RollBackIfBroken())
+            {
+                _instanceMutex.Dispose();
+                _instanceMutex = null;
+
+                try { UpdateService.Restart(args); } catch { /* the user starts it again */ }
+
+                Shutdown();
+                return;
+            }
+
             StartAfterUpdateCheck(args);
+        }
+
+        // ---------- errors ----------
+
+        private bool _errorDialogOpen;
+        private int _errorCount;
+        private DateTime _errorWindowStart;
+
+        /// <summary>
+        /// An error on the screen's thread used to close GameDeck without a word. Now it is saved to a file, GameDeck keeps going
+        /// (or closes, if the user prefers), and the user can open a bug report that is already filled in.
+        /// </summary>
+        private void OnUiThreadError(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            var log = CrashLog.Write(e.Exception, "Window");
+            UpdateService.NoteCrash();
+            e.Handled = true;
+
+            if (_errorDialogOpen) return;   // (an error while the error window is showing)
+
+            // an error that repeats at once (something that fails on every tick) would bury the screen: then close
+            var now = DateTime.UtcNow;
+            if (now - _errorWindowStart > TimeSpan.FromSeconds(10))
+            {
+                _errorWindowStart = now;
+                _errorCount = 0;
+            }
+
+            if (++_errorCount > 3)
+            {
+                ExitAfterError();
+                return;
+            }
+
+            _errorDialogOpen = true;
+            try
+            {
+                var summary = CrashLog.Sanitize($"{e.Exception.GetType().Name}: {e.Exception.Message}");
+                var owner = Windows.OfType<Window>().FirstOrDefault(w => w.IsActive && w.IsVisible);
+
+                var choice = MessageDialog.Choose(owner, "GameDeck ran into a problem",
+                    "Something unexpected happened, so GameDeck stopped what it was doing.\n\n" + summary +
+                    (log is null ? "" : "\n\nThe details were saved in:\n" + CrashLog.Sanitize(log)) +
+                    "\n\nYou can report it on GitHub: the report opens already filled in, and nothing is sent until you press Submit there.",
+                    "Report on GitHub", "Close GameDeck", "Keep going");
+
+                if (choice == MessageChoice.Yes)
+                    Process.Start(new ProcessStartInfo(CrashLog.ReportUrl(e.Exception)) { UseShellExecute = true });
+                else if (choice == MessageChoice.No)
+                    ExitAfterError();
+            }
+            catch
+            {
+                // the error window itself failed: the error is in the log file
+            }
+            finally
+            {
+                _errorDialogOpen = false;
+            }
+        }
+
+        /// <summary>Closes GameDeck after an error (saving the playtime when the main window exists).</summary>
+        private void ExitAfterError()
+        {
+            if (MainWindow is MainWindow main)
+                main.ForceExit();
+            else
+                Shutdown(1);
+        }
+
+        // ---------- once the app is up ----------
+
+        /// <summary>
+        /// After 15 seconds without a crash the app has proven it works: a fresh update becomes final (the previous version's
+        /// file is removed) and its release notes are shown once. The daily backup of the user's data also runs here.
+        /// </summary>
+        private void BeginHealthWatch(MainWindow window)
+        {
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+
+                UpdateService.MarkHealthy();
+
+                // (only when the window is on screen: when GameDeck started hidden in the tray the notes wait for a later start)
+                if (window.IsVisible && UpdateService.TakeWhatsNew() is { } news)
+                    MessageDialog.Show(window, news.Notes, $"GameDeck was updated to {news.Version}");
+            };
+            timer.Start();
+
+            // the daily backup: now, and again every few hours for as long as GameDeck keeps running (it often sits in the tray)
+            _ = Task.Run(AutoBackupService.RunIfDue);
+
+            var backups = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+            backups.Tick += (_, _) => _ = Task.Run(AutoBackupService.RunIfDue);
+            backups.Start();
         }
 
         /// <summary>
@@ -101,6 +226,7 @@ namespace GameDeck
                 window.Show();
 
             ListenForShowRequests(window);
+            BeginHealthWatch(window);
         }
 
         /// <returns>True when a new version was installed and has been started (this one is closing).</returns>
@@ -183,6 +309,10 @@ namespace GameDeck
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // closed normally (not from an error window): an update that was just installed worked
+            if (e.ApplicationExitCode == 0)
+                UpdateService.MarkHealthy(cleanUp: false);
+
             _showEvent?.Dispose();
             _instanceMutex?.Dispose();
             base.OnExit(e);

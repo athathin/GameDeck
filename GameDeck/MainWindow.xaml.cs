@@ -256,6 +256,13 @@ public partial class MainWindow : Window
         _ = LoadVisibleCoversAsync();   // the covers were dropped while in the tray
     }
 
+    /// <summary>Closes GameDeck right now, from an error window: the playtime so far is saved and nothing is asked.</summary>
+    public void ForceExit()
+    {
+        _exiting = true;
+        Application.Current.Shutdown(1);
+    }
+
     private void ExitApp()
     {
         _exiting = true;

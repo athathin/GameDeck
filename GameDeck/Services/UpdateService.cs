@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GameDeck.Services;
 
@@ -16,7 +17,7 @@ public static class UpdateService
     private const string Repo = "athathin/GameDeck";
 
     /// <summary>A newer version that can be installed.</summary>
-    public record UpdateInfo(Version Version, string Url, long Size, string? Sha256);
+    public record UpdateInfo(Version Version, string Url, long Size, string? Sha256, string? Notes = null);
 
     private static readonly HttpClient Http = CreateClient();
 
@@ -31,7 +32,23 @@ public static class UpdateService
     /// <summary>The version of the running program, e.g. 1.0.0.</summary>
     public static Version CurrentVersion { get; } = Normalize(typeof(UpdateService).Assembly.GetName().Version ?? new Version(1, 0, 0));
 
-    public static string CurrentVersionText => $"{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Build}";
+    public static string CurrentVersionText => VersionText(CurrentVersion);
+
+    /// <summary>True when a release tag such as "v1.0.6" names a newer version than <paramref name="current"/>.</summary>
+    internal static bool IsNewer(string? tag, Version current) => TryGetNewer(tag, current, out _);
+
+    /// <summary>Reads a release tag (such as "v1.0.6") once, and says whether it is newer than <paramref name="current"/>.</summary>
+    private static bool TryGetNewer(string? tag, Version current, out Version latest)
+    {
+        if (Version.TryParse(tag?.TrimStart('v', 'V'), out var parsed))
+        {
+            latest = Normalize(parsed);
+            return latest > Normalize(current);
+        }
+
+        latest = new Version(0, 0, 0, 0);
+        return false;
+    }
 
     /// <summary>The release file that fits this PC: the 64-bit or the 32-bit program.</summary>
     private static string AssetName => Environment.Is64BitProcess ? "GameDeck-win-x64.exe" : "GameDeck-win-x86.exe";
@@ -92,8 +109,14 @@ public static class UpdateService
             if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()) return new CheckResult(null, false);
             if (root.TryGetProperty("prerelease", out var pre) && pre.GetBoolean()) return new CheckResult(null, false);
 
-            var tag = root.GetProperty("tag_name").GetString()?.TrimStart('v', 'V');
-            if (!Version.TryParse(tag, out var latest) || Normalize(latest) <= CurrentVersion) return new CheckResult(null, false);
+            if (!TryGetNewer(root.GetProperty("tag_name").GetString(), CurrentVersion, out var latest))
+                return new CheckResult(null, false);
+
+            // a version that did not start and was rolled back is not offered again (until a newer one is released)
+            if (LoadState().SkipVersion == VersionText(latest)) return new CheckResult(null, false);
+
+            var notes = root.TryGetProperty("body", out var body) ? body.GetString() : null;
+            if (notes is { Length: > 1500 }) notes = notes[..1500] + "…";
 
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
@@ -108,7 +131,7 @@ public static class UpdateService
                     text.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
                     sha = text["sha256:".Length..];
 
-                return new CheckResult(new UpdateInfo(Normalize(latest), url, asset.GetProperty("size").GetInt64(), sha), false);
+                return new CheckResult(new UpdateInfo(latest, url, asset.GetProperty("size").GetInt64(), sha, notes), false);
             }
 
             return new CheckResult(null, true);   // a newer release without a file for this PC
@@ -181,6 +204,9 @@ public static class UpdateService
                 throw;
             }
 
+            // the new version must show that it starts (MarkHealthy); until then the old file is kept to go back to
+            SaveState(new UpdateState { PendingVersion = VersionText(update.Version), Notes = update.Notes, From = CurrentVersionText });
+
             return true;
         }
         catch
@@ -227,7 +253,9 @@ public static class UpdateService
             {
                 var pending = false;
 
-                foreach (var leftover in new[] { exe + ".old", exe + ".new" })
+                var unproven = LoadState().PendingVersion == CurrentVersionText;   // keep the file to roll back to
+
+                foreach (var leftover in unproven ? new[] { exe + ".new", exe + ".bad" } : [exe + ".old", exe + ".new", exe + ".bad"])
                 {
                     try
                     {
@@ -288,6 +316,153 @@ public static class UpdateService
         catch
         {
             // not a single-file run, or no access: nothing to clean
+        }
+    }
+
+    // ---------- a version that doesn't start is rolled back ----------
+
+    private sealed class UpdateState
+    {
+        public string? PendingVersion { get; set; }   // an installed version that has not shown yet that it starts
+        public int Starts { get; set; }                // how many times it was started without showing it
+        public bool Crashed { get; set; }              // it hit an error that was written to the crash log
+        public string? NotesFor { get; set; }          // the version the saved notes belong to (kept until they have been shown)
+        public string? SkipVersion { get; set; }       // a version that was rolled back: not offered again
+        public string? Notes { get; set; }             // what's new in the pending version
+        public string? From { get; set; }              // the version that was replaced
+    }
+
+    private static readonly string StatePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "update-state.json");
+
+    private static UpdateState LoadState()
+    {
+        try
+        {
+            return File.Exists(StatePath)
+                ? JsonSerializer.Deserialize<UpdateState>(File.ReadAllText(StatePath)) ?? new UpdateState()
+                : new UpdateState();
+        }
+        catch
+        {
+            return new UpdateState();
+        }
+    }
+
+    private static void SaveState(UpdateState state)
+    {
+        try { AtomicFile.WriteAllText(StatePath, JsonSerializer.Serialize(state)); }
+        catch { }
+    }
+
+    /// <summary>1.0.6, or 1.0.6.1 when there is a fourth number.</summary>
+    internal static string VersionText(Version v) =>
+        v.Revision > 0 ? $"{v.Major}.{v.Minor}.{v.Build}.{v.Revision}" : $"{v.Major}.{v.Minor}.{v.Build}";
+
+    /// <summary>
+    /// Called first thing at start-up. Right after an update the new version has to prove itself: when it was started before
+    /// and never got as far as <see cref="MarkHealthy"/>, it is broken (crashing at start) and the previous version comes back.
+    /// Returns true when that has been done and the previous version is ready to start: the caller starts it and closes this one.
+    /// </summary>
+    public static bool RollBackIfBroken()
+    {
+        try
+        {
+            var state = LoadState();
+            if (state.PendingVersion != CurrentVersionText) return false;
+
+            var exe = Environment.ProcessPath;
+            var previous = exe + ".old";
+
+            // Broken = it was started before, never got to show it works, and either wrote a crash log or has now failed three
+            // times in a row. (Being closed from Task Manager, or a power cut, in the first seconds must not count as broken.)
+            var broken = state.Starts >= 1 && (state.Crashed || state.Starts >= 3);
+
+            if (!broken || exe is null || !File.Exists(previous))
+            {
+                state.Starts++;
+                SaveState(state);
+                return false;
+            }
+
+            // swap the old file back in
+            var bad = exe + ".bad";
+            if (File.Exists(bad)) File.Delete(bad);
+
+            File.Move(exe, bad);
+            try
+            {
+                File.Move(previous, exe);
+            }
+            catch
+            {
+                File.Move(bad, exe);
+                return false;
+            }
+
+            SaveState(new UpdateState { SkipVersion = CurrentVersionText });
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>The running version hit an error: if it is a version that was just installed, remember that it crashed.</summary>
+    public static void NoteCrash()
+    {
+        try
+        {
+            var state = LoadState();
+            if (state.PendingVersion != CurrentVersionText || state.Crashed) return;
+
+            state.Crashed = true;
+            SaveState(state);
+        }
+        catch
+        {
+            // the crash log is what matters
+        }
+    }
+
+    /// <summary>
+    /// The new version is running fine (it stayed up a while, or was closed normally): the update is final and the previous
+    /// version's file is not needed any more. What's new in it stays saved until it has been shown (<see cref="TakeWhatsNew"/>).
+    /// </summary>
+    public static void MarkHealthy(bool cleanUp = true)
+    {
+        try
+        {
+            var state = LoadState();
+            if (state.PendingVersion != CurrentVersionText) return;
+
+            SaveState(new UpdateState { SkipVersion = state.SkipVersion, Notes = state.Notes, NotesFor = CurrentVersionText });
+
+            if (cleanUp)
+                CleanUpOldVersion();
+        }
+        catch
+        {
+            // nothing to do: it is tried again at the next start
+        }
+    }
+
+    /// <summary>The release notes of the version that was just installed, once. Null when there are none (or they were shown).</summary>
+    public static (string Version, string Notes)? TakeWhatsNew()
+    {
+        try
+        {
+            var state = LoadState();
+            if (state.NotesFor != CurrentVersionText || string.IsNullOrWhiteSpace(state.Notes)) return null;
+
+            var notes = state.Notes.Trim();
+            SaveState(new UpdateState { SkipVersion = state.SkipVersion });
+            return (CurrentVersionText, notes);
+        }
+        catch
+        {
+            return null;
         }
     }
 

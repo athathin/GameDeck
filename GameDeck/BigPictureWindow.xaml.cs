@@ -172,6 +172,7 @@ public partial class BigPictureWindow : Window
 
         _pad.ControllerChanged += UpdateControllerUi;
         ThemeService.Changed += OnThemeChanged;
+        ApplyScale();
         _timer.Tick += Timer_Tick;
         Loaded += (_, _) =>
         {

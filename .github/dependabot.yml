@@ -1,0 +1,12 @@
+# Opens a pull request when a library or a build step used by GameDeck has a newer version, so nothing quietly gets old.
+# Nothing changes unless the owner accepts the pull request.
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

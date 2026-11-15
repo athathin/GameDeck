@@ -43,6 +43,14 @@ public partial class BigPictureWindow
                 Activate: () => SetTheme(AppTheme.Dark)),
             new("Light theme", IsOn: () => SettingsService.Theme == AppTheme.Light, IsRadio: true,
                 Activate: () => SetTheme(AppTheme.Light)),
+            new("Follow Windows", IsOn: () => SettingsService.Theme == AppTheme.System, IsRadio: true,
+                Activate: () => SetTheme(AppTheme.System)),
+
+            new("SIZE", IsHeader: true),
+            new("Normal", IsOn: () => SettingsService.BigPictureScale < 1.1, IsRadio: true, Activate: () => SetScale(1.0)),
+            new("Large", IsOn: () => SettingsService.BigPictureScale is >= 1.1 and < 1.3, IsRadio: true, Activate: () => SetScale(1.2)),
+            new("Extra large (for a TV)", IsOn: () => SettingsService.BigPictureScale >= 1.3, IsRadio: true,
+                Activate: () => SetScale(1.4)),
 
             new("GENERAL", IsHeader: true),
             new("Launch GameDeck when Windows starts", IsOn: () => StartupService.IsEnabled,
@@ -126,6 +134,19 @@ public partial class BigPictureWindow
             _settingsIndex = index;
             RenderOnHover(RenderSettings);
         });
+    }
+
+    private void SetScale(double scale)
+    {
+        SettingsService.BigPictureScale = scale;
+        ApplyScale();   // this screen changes at once
+    }
+
+    /// <summary>Draws the whole screen bigger (or normal): everything in it, text included, is scaled together.</summary>
+    private void ApplyScale()
+    {
+        var scale = SettingsService.BigPictureScale;
+        RootGrid.LayoutTransform = scale == 1.0 ? Transform.Identity : new ScaleTransform(scale, scale);
     }
 
     private static void SetTheme(AppTheme theme)

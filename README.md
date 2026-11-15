@@ -1,6 +1,6 @@
 # GameDeck
 
-One library for the games from all your launchers (Steam, Epic, GOG, Ubisoft, Riot, Xbox, Rockstar, Battle.net, EA and
+One library for the games from all your launchers (Steam, Epic, GOG, Ubisoft, Riot, Xbox, Rockstar, Battle.net, EA, itch.io, Amazon Games and
 games you add yourself), with a desktop mode and a full-screen, controller-friendly **Big Picture** mode.
 
 ## Download
@@ -22,6 +22,26 @@ To remove GameDeck, use **Settings > Uninstall GameDeck** inside the app.
 
 Each time GameDeck starts it checks this page for a newer release. If there is one it downloads it, installs it and
 starts again as the new version, the way Steam updates itself. You can turn this off in **Settings**.
+
+Settings also has a **Check for updates** button. An update is only made final once the new version has run for a short
+while: a version that doesn't start is replaced by the previous one, and isn't offered again.
+
+## Your data
+
+Favorites, playtime, play sessions and settings are saved on your PC in `%AppData%\GameDeck`. A copy of the last seven
+days is kept in `%AppData%\GameDeck\backups`, and GameDeck uses it if one of the files is ever damaged. Errors are written
+to `%AppData%\GameDeck\logs`; when one happens GameDeck offers to open a bug report that is already filled in (nothing
+is sent until you press Submit on GitHub, and your user name is removed from it).
+
+## Privacy
+
+GameDeck has no account, no ads and no tracking. It only contacts:
+
+- **github.com**, to look for and download updates (turn it off in Settings),
+- **Steam, Epic and Microsoft's store**, to fetch cover art and look up game names (turn it off with
+  "Download cover art from the internet" in Settings).
+
+Your library, playtime and settings never leave your PC.
 
 ## Bugs and suggestions
 

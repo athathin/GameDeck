@@ -39,15 +39,8 @@ public class SessionLog
 
     public void Load()
     {
-        try
-        {
-            if (File.Exists(FilePath))
-                _sessions = JsonSerializer.Deserialize<List<Session>>(File.ReadAllText(FilePath)) ?? [];
-        }
-        catch
-        {
-            _sessions = [];   // unreadable file: start empty
-        }
+        // (a damaged file is set aside and the newest daily backup is used instead of starting empty)
+        _sessions = AutoBackupService.LoadJson<List<Session>>(FilePath) ?? [];
 
         _perDay = null;
     }

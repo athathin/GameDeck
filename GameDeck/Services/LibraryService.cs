@@ -21,6 +21,8 @@ public class LibraryService
         new RiotScanner(),
         new XboxScanner(),
         new RockstarScanner(),
+        new ItchScanner(),
+        new AmazonScanner(),
         new UninstallRegistryScanner("Battle.net", (name, publisher) =>
             (publisher.Contains("Blizzard", StringComparison.OrdinalIgnoreCase) ||
              publisher.Contains("Activision", StringComparison.OrdinalIgnoreCase)) &&
@@ -37,15 +39,8 @@ public class LibraryService
     /// <summary>Loads the saved library (instant, no scanning).</summary>
     public void Load()
     {
-        try
-        {
-            if (File.Exists(FilePath))
-                Games = JsonSerializer.Deserialize<List<Game>>(File.ReadAllText(FilePath)) ?? [];
-        }
-        catch
-        {
-            Games = [];
-        }
+        // (a damaged file is set aside and the newest daily backup is used instead of starting empty)
+        Games = AutoBackupService.LoadJson<List<Game>>(FilePath) ?? [];
     }
 
     /// <summary>Runs every scanner. Manually added games are always kept. Call from a background thread.</summary>

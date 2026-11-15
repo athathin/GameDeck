@@ -59,7 +59,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <!-- ======================= the screen ======================= -->
         <Grid Margin="56,36,56,32">
             <Grid.RowDefinitions>

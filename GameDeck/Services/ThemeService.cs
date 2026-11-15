@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace GameDeck.Services;
 
@@ -7,7 +8,8 @@ namespace GameDeck.Services;
 public enum AppTheme
 {
     Dark,
-    Light
+    Light,
+    System   // whatever Windows is set to (and it follows when Windows changes)
 }
 
 /// <summary>
@@ -20,6 +22,7 @@ public static class ThemeService
 {
     private static Dictionary<string, SolidColorBrush> _brushes = [];
     private static Application? _app;
+    private static bool _watchingWindows;
 
     // name -> dark color, light color
     private static readonly (string Key, string Dark, string Light)[] Palette =
@@ -40,6 +43,10 @@ public static class ThemeService
         ("ScrimStrong", "#D90E1016", "#D9E8ECF3")
     ];
 
+    /// <summary>What the user chose (Dark, Light or System).</summary>
+    public static AppTheme Setting { get; private set; } = AppTheme.Dark;
+
+    /// <summary>The colors in use right now: always Dark or Light (System has been resolved).</summary>
     public static AppTheme Current { get; private set; } = AppTheme.Dark;
 
     /// <summary>Raised after the colors changed: parts of the screen that were painted in code redraw themselves (and the title bars repaint).</summary>
@@ -49,17 +56,49 @@ public static class ThemeService
     public static void Initialize(Application app, AppTheme theme)
     {
         _app = app;
-        Current = theme;
+        Setting = theme;
+        Current = Resolve(theme);
         Publish();
+
+        // "follow Windows": when the user changes Windows' own light / dark setting, the colors follow
+        if (!_watchingWindows)
+        {
+            _watchingWindows = true;
+
+            SystemEvents.UserPreferenceChanged += (_, e) =>
+            {
+                if (Setting == AppTheme.System && e.Category == UserPreferenceCategory.General)
+                    app.Dispatcher.BeginInvoke(() => Apply(AppTheme.System));
+            };
+        }
     }
 
     public static void Apply(AppTheme theme)
     {
-        if (theme == Current) return;
+        Setting = theme;
 
-        Current = theme;
+        var colors = Resolve(theme);
+        if (colors == Current) return;
+
+        Current = colors;
         Publish();
         Changed?.Invoke();
+    }
+
+    /// <summary>Dark or Light for a choice: System asks Windows (apps use the dark theme when it says so; dark if unknown).</summary>
+    private static AppTheme Resolve(AppTheme theme)
+    {
+        if (theme != AppTheme.System) return theme;
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int light && light != 0 ? AppTheme.Light : AppTheme.Dark;
+        }
+        catch
+        {
+            return AppTheme.Dark;
+        }
     }
 
     /// <summary>Builds the brushes of the current theme and replaces the old ones under the same names.</summary>

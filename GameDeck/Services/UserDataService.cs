@@ -38,18 +38,10 @@ public class UserDataService
 
     public void Load()
     {
-        try
-        {
-            if (!File.Exists(FilePath)) return;
-
-            var loaded = JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(FilePath));
-            if (loaded is not null)
-                _entries = new Dictionary<string, Entry>(loaded, StringComparer.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            // unreadable file: start empty
-        }
+        // (a damaged file is set aside and the newest daily backup is used instead of starting empty)
+        var loaded = AutoBackupService.LoadJson<Dictionary<string, Entry>>(FilePath);
+        if (loaded is not null)
+            _entries = new Dictionary<string, Entry>(loaded, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Copies the saved values (favorite, playtime, name, hidden, categories, launch options) onto the game.</summary>

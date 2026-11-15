@@ -57,6 +57,8 @@ public static class SettingsService
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public AppTheme Theme { get; set; } = AppTheme.Dark;
 
+        public double BigPictureScale { get; set; } = 1.0;
+
         public bool QuickLaunchEnabled { get; set; } = true;
 
         // Ctrl + Alt + G: modifier bits as in GlobalHotkey, and a Windows virtual-key code (0x47 = G)
@@ -153,7 +155,18 @@ public static class SettingsService
         }
     }
 
-    /// <summary>The color scheme: dark (the default) or light.</summary>
+    /// <summary>How big everything is drawn in Big Picture mode: 1 (normal), 1.2 or 1.4 (for a TV across the room).</summary>
+    public static double BigPictureScale
+    {
+        get => Current.BigPictureScale is >= 1.0 and <= 1.5 ? Current.BigPictureScale : 1.0;
+        set
+        {
+            Current.BigPictureScale = value;
+            Save();
+        }
+    }
+
+    /// <summary>The color scheme: dark (the default), light, or following Windows.</summary>
     public static AppTheme Theme
     {
         get => Current.Theme;
@@ -201,14 +214,8 @@ public static class SettingsService
 
     private static Data Load()
     {
-        try
-        {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<Data>(File.ReadAllText(FilePath)) ?? new Data();
-        }
-        catch { }
-
-        return new Data();
+        // (a damaged file is set aside and the newest daily backup is used instead of the defaults)
+        return AutoBackupService.LoadJson<Data>(FilePath) ?? new Data();
     }
 
     private static void Save()

@@ -50,6 +50,12 @@ public partial class SettingsView : UserControl
 
         DarkThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Dark;
         LightThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Light;
+        SystemThemeRadio.IsChecked = SettingsService.Theme == AppTheme.System;
+
+        var scale = SettingsService.BigPictureScale;
+        ScaleNormalRadio.IsChecked = scale < 1.1;
+        ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
+        ScaleHugeRadio.IsChecked = scale >= 1.3;
 
         AutoUpdateCheckBox.IsChecked = SettingsService.AutoUpdate;
         VersionText.Text = $"You have GameDeck {UpdateService.CurrentVersionText}. New versions come from github.com/athathin/GameDeck.";
@@ -230,9 +236,21 @@ public partial class SettingsView : UserControl
     {
         if (_updating) return;
 
-        var theme = LightThemeRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
+        var theme = SystemThemeRadio.IsChecked == true ? AppTheme.System
+            : LightThemeRadio.IsChecked == true ? AppTheme.Light
+            : AppTheme.Dark;
+
         SettingsService.Theme = theme;
         ThemeService.Apply(theme);   // every open screen changes at once
+    }
+
+    private void ScaleRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.BigPictureScale = ScaleHugeRadio.IsChecked == true ? 1.4
+            : ScaleLargeRadio.IsChecked == true ? 1.2
+            : 1.0;   // Big Picture reads it when it opens
     }
 
     private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => CheckUpdatesRequested?.Invoke(this, EventArgs.Empty);

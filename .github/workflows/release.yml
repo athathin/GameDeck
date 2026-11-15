@@ -1,7 +1,8 @@
 # Publishes a new GameDeck release whenever the version in GameDeck/GameDeck.csproj is raised and pushed to main.
-# Both programs (64-bit and 32-bit) are built here and attached to the release. GameDeck itself looks at the latest
-# release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below
-# must stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
+# The tests run first (a failing test stops the release). Both programs (64-bit and 32-bit) are then built here and attached to
+# the release, with release notes made from the commit messages since the previous release. GameDeck itself looks at the latest
+# release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below must
+# stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
 name: Release
 
 on:
@@ -16,7 +17,9 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # the whole history, to find what changed since the last release
 
       - name: Read the version
         id: version
@@ -37,10 +40,17 @@ jobs:
           "released=$($LASTEXITCODE -eq 0)".ToLower() >> $env:GITHUB_OUTPUT
           $global:LASTEXITCODE = 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         if: steps.exists.outputs.released == 'false'
         with:
           dotnet-version: 10.0.x
+
+      - name: Run the tests
+        if: steps.exists.outputs.released == 'false'
+        shell: pwsh
+        run: |
+          dotnet test GameDeck.Tests/GameDeck.Tests.csproj -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'The tests failed, so no release is made.' }
 
       - name: Build the 64-bit and 32-bit programs
         if: steps.exists.outputs.released == 'false'
@@ -53,6 +63,20 @@ jobs:
             Move-Item "out/$rid/GameDeck.exe" "out/GameDeck-$rid.exe"
           }
 
+      - name: Write the release notes
+        if: steps.exists.outputs.released == 'false'
+        shell: pwsh
+        run: |
+          # the first line of every commit since the previous release, without the "Version x.y.z: " start
+          $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
+          $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
+          $lines = git log $range --no-merges --pretty=format:'%s' |
+            ForEach-Object { $_ -replace '^Version [0-9.]+:\s*', '' } |
+            Where-Object { $_ } |
+            ForEach-Object { "- $_" }
+          if (-not $lines) { $lines = '- Improvements and fixes' }
+          $lines | Set-Content -Path release-notes.md -Encoding utf8
+
       - name: Create the release
         if: steps.exists.outputs.released == 'false'
         shell: pwsh
@@ -62,4 +86,4 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" `
             "out/GameDeck-win-x64.exe#GameDeck for 64-bit Windows (most PCs)" `
             "out/GameDeck-win-x86.exe#GameDeck for 32-bit Windows" `
-            --title "GameDeck ${{ steps.version.outputs.version }}" --generate-notes
+            --title "GameDeck ${{ steps.version.outputs.version }}" --notes-file release-notes.md
