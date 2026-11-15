@@ -51,7 +51,7 @@ public partial class BigPictureWindow
                 var (row0, col0) = (r, c);
                 cell.MouseEnter += (_, _) =>
                 {
-                    if (_keyRow == row0 && _keyCol == col0) return;
+                    if (!PointerIsChoosing || (_keyRow == row0 && _keyCol == col0)) return;
 
                     _keyRow = row0;   // the mouse selects the key it points at
                     _keyCol = col0;
@@ -333,7 +333,10 @@ public partial class BigPictureWindow
             };
 
             var index = i;
-            cell.MouseEnter += (_, _) => hover(index);
+            cell.MouseEnter += (_, _) =>
+            {
+                if (PointerIsChoosing) hover(index);   // (not rows that scroll under a hidden pointer)
+            };
             cell.MouseLeftButtonUp += (_, _) => activate(index);
 
             cells.Add(cell);

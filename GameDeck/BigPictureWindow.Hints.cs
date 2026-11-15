@@ -39,11 +39,14 @@ public partial class BigPictureWindow
     private static readonly ButtonLabels NintendoSwapped = NintendoLabels with { Confirm = NintendoLabels.Back, Back = NintendoLabels.Confirm };
     private static readonly ButtonLabels XboxSwapped = XboxLabels with { Confirm = XboxLabels.Back, Back = XboxLabels.Confirm };
 
+    /// <summary>The controller the hints are drawn for; none while the keyboard or mouse was used last.</summary>
+    private ControllerKind ShownKind => _padInUse ? _pad.ActiveKind : ControllerKind.None;
+
     private ButtonLabels Labels()
     {
         var swap = SettingsService.SwapConfirmBack;
 
-        return _pad.ActiveKind switch
+        return ShownKind switch
         {
             ControllerKind.PlayStation => swap ? PlayStationSwapped : PlayStationLabels,
             ControllerKind.Nintendo => swap ? NintendoSwapped : NintendoLabels,
@@ -74,7 +77,7 @@ public partial class BigPictureWindow
     private void BuildMainHints()
     {
         var l = Labels();
-        var onController = _pad.ActiveKind != ControllerKind.None;
+        var onController = ShownKind != ControllerKind.None;
 
         FillBar(HintsLeft, (HomeIcon(l, onController), "POWER"));
 
@@ -137,7 +140,7 @@ public partial class BigPictureWindow
         if (!onController)
             return Chip(labels.Home);
 
-        return _pad.ActiveKind switch
+        return ShownKind switch
         {
             ControllerKind.Xbox => Logo(XboxLogo, 34),
             ControllerKind.PlayStation => Logo(PlayStationLogo, 30),

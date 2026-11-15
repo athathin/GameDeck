@@ -237,12 +237,29 @@ public partial class BigPictureWindow : Window
 
     private readonly DispatcherTimer _cursorTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private Point _cursorPosition;
-    private bool _mouseMoved;   // the last mouse event was a real move (set before the tiles see it)
+    private bool _padInUse = true;   // false after the keyboard or mouse was used last: the hints then show their keys
+    private bool _mouseMoved;
+
+    /// <summary>The button hints follow whatever was used last: the controller, or the keyboard and mouse.</summary>
+    private void SetPadInUse(bool value)
+    {
+        if (_padInUse == value) return;
+
+        _padInUse = value;
+        UpdateControllerUi();
+
+        if (_overlay == Overlay.Settings)
+            FillHints(SettingsHints, (Labels().Confirm, "Change"), (Labels().Back, "Close"));
+    }
+
+    /// <summary>True only while the user is really using the mouse: rows that scroll under a hidden pointer must not take the selection.</summary>
+    private bool PointerIsChoosing => _mouseMoved && Mouse.OverrideCursor is null;   // the last mouse event was a real move (set before the tiles see it)
 
     /// <summary>Hides the pointer on the whole screen (it also hides the hand over buttons).</summary>
     private void HideCursor()
     {
         _cursorTimer.Stop();
+        _mouseMoved = false;
         _cursorPosition = Mouse.GetPosition(this);   // the spot it hides at: only moving away from it counts as movement
         Mouse.OverrideCursor = Cursors.None;
     }
@@ -265,6 +282,7 @@ public partial class BigPictureWindow : Window
         if (!_mouseMoved) return;
 
         _cursorPosition = position;
+        SetPadInUse(false);
         ShowCursor();
     }
 
@@ -292,7 +310,10 @@ public partial class BigPictureWindow : Window
     private void Timer_Tick(object? sender, EventArgs e)
     {
         foreach (var button in _pad.Poll())
+        {
+            SetPadInUse(true);
             Handle(button);
+        }
 
         // glide towards the selected tile instead of jumping
         if (_scroll is not null)

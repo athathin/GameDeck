@@ -285,7 +285,7 @@ public partial class BigPictureWindow
 
                 cell.MouseEnter += (_, _) =>
                 {
-                    if (_powerIndex == itemIndex) return;
+                    if (!PointerIsChoosing || _powerIndex == itemIndex) return;
 
                     _powerIndex = itemIndex;   // the mouse selects what it points at, like the stick does
                     RenderPower();

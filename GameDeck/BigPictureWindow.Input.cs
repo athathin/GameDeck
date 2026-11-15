@@ -105,6 +105,8 @@ public partial class BigPictureWindow
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        SetPadInUse(false);
+
         // choosing a new quick launch shortcut: every key press is part of it
         if (_capturingShortcut && _overlay == Overlay.Settings)
         {
@@ -204,7 +206,7 @@ public partial class BigPictureWindow
     private void Carousel_PreviewMouseMove(object sender, MouseEventArgs e)
     {
         // only a real move of a visible pointer chooses a tile (not tiles gliding under the hidden one)
-        if (!_mouseMoved || Mouse.OverrideCursor is not null) return;
+        if (!PointerIsChoosing) return;
 
         if (_overlay != Overlay.None || TileUnder(e.OriginalSource) is not { } game ||
             ReferenceEquals(game, Carousel.SelectedItem))
