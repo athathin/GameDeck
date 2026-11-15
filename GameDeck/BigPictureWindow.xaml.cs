@@ -190,6 +190,7 @@ public partial class BigPictureWindow : Window
 
         BuildKeyboard();
         InitContinue();
+        NavSounds.Preload();
         UpdateClock();
         ApplyTab(preserveSelection: false);
         UpdateControllerUi();

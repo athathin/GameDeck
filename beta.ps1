@@ -28,11 +28,11 @@ if ((-not (Test-Path $betaData) -or $SyncData) -and (Test-Path $mainData)) {
         $source = Join-Path $mainData $file
         if (Test-Path $source) { Copy-Item $source (Join-Path $betaData $file) -Force }
     }
-    # the Beta must open its window (not sit in the tray) and must not fight the real GameDeck over the shortcut / Home button
+    # the Beta must open its window (not sit in the tray) and must not fight the real GameDeck over the shortcut
     $settingsFile = Join-Path $betaData 'settings.json'
     if (Test-Path $settingsFile) {
         $settings = Get-Content $settingsFile -Raw | ConvertFrom-Json
-        foreach ($name in 'StartMinimized', 'QuickLaunchEnabled', 'ControllerWake', 'AutoUpdate') {
+        foreach ($name in 'StartMinimized', 'QuickLaunchEnabled', 'AutoUpdate') {
             if ($settings.PSObject.Properties[$name]) { $settings.$name = $false }
         }
         $settings | ConvertTo-Json | Set-Content $settingsFile -Encoding UTF8

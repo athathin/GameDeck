@@ -28,9 +28,9 @@ public partial class MainWindow
     /// </summary>
     private void StartControllerWake()
     {
-        // (the Beta stays out of it: the normal GameDeck is the one that answers the Home button)
+        // (the Beta leaves the button to the normal GameDeck while that one is running: two programs must not both answer it)
         _wake = new ControllerWakeService(() =>
-            !AppInfo.IsBeta && SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking);
+            SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning);
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();

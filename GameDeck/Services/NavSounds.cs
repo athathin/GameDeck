@@ -1,5 +1,5 @@
 ﻿using System.IO;
-using System.Media;
+using System.Windows.Media;
 
 namespace GameDeck.Services;
 
@@ -7,13 +7,25 @@ public enum NavSound { Move, Select, Back }
 
 /// <summary>
 /// The small sounds of Big Picture mode: a soft tick when the selection moves, a brighter blip for "select", a lower one for
-/// "back". They are made here out of sine waves (no sound files to ship) and played through the normal Windows audio.
+/// "back". They are made here out of sine waves (no sound files to ship), saved once as small .wav files in GameDeck's data
+/// folder, and played with a media player per sound (so GameDeck shows up in the Windows volume mixer while it plays).
 /// </summary>
 public static class NavSounds
 {
     private const int SampleRate = 22050;
 
-    private static readonly Dictionary<NavSound, SoundPlayer> Players = [];
+    private static readonly Dictionary<NavSound, MediaPlayer> Players = [];
+    private static bool _failureReported;
+
+    private static readonly string Folder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "sounds");
+
+    /// <summary>Opens the three sounds, so the first one is not late. Call on the UI thread (a media player belongs to it).</summary>
+    public static void Preload()
+    {
+        foreach (var sound in Enum.GetValues<NavSound>())
+            PlayerFor(sound);
+    }
 
     public static void Play(NavSound sound)
     {
@@ -21,19 +33,54 @@ public static class NavSounds
 
         try
         {
-            if (!Players.TryGetValue(sound, out var player))
-            {
-                player = new SoundPlayer(new MemoryStream(Build(sound)));
-                player.Load();
-                Players[sound] = player;
-            }
+            var player = PlayerFor(sound);
+            if (player is null) return;
 
-            player.Play();   // asynchronous: a new sound simply replaces one that is still playing
+            player.Stop();
+            player.Position = TimeSpan.Zero;
+            player.Play();
         }
-        catch
+        catch (Exception ex)
         {
-            // no audio device or a blocked sound system: Big Picture simply stays quiet
+            Report(ex);   // (Big Picture simply stays quiet)
         }
+    }
+
+    private static MediaPlayer? PlayerFor(NavSound sound)
+    {
+        if (Players.TryGetValue(sound, out var existing))
+            return existing;
+
+        try
+        {
+            Directory.CreateDirectory(Folder);
+
+            var file = Path.Combine(Folder, sound.ToString().ToLowerInvariant() + ".wav");
+            var wav = Build(sound);
+            if (!File.Exists(file) || new FileInfo(file).Length != wav.Length)
+                File.WriteAllBytes(file, wav);
+
+            var player = new MediaPlayer { Volume = 1.0 };
+            player.MediaFailed += (_, e) => Report(e.ErrorException);
+            player.Open(new Uri(file));
+
+            Players[sound] = player;
+            return player;
+        }
+        catch (Exception ex)
+        {
+            Report(ex);
+            return null;
+        }
+    }
+
+    // a sound that can't play is written to the error log once, so there is something to look at
+    private static void Report(Exception? ex)
+    {
+        if (_failureReported) return;
+
+        _failureReported = true;
+        CrashLog.Write(ex, "Navigation sound");
     }
 
     /// <summary>A mono 16-bit WAV file in memory: a short tone (or two) with a quick fade-out.</summary>
