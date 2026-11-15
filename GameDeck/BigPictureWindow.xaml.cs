@@ -174,6 +174,7 @@ public partial class BigPictureWindow : Window
         ThemeService.Changed += OnThemeChanged;
         ApplyScale();
         _timer.Tick += Timer_Tick;
+        _cursorTimer.Tick += (_, _) => HideCursor();
         Loaded += (_, _) =>
         {
             _scroll = FindChild<ScrollViewer>(Carousel);
@@ -220,17 +221,56 @@ public partial class BigPictureWindow : Window
         _pad.Start();
         _timer.Start();
         UpdateControllerUi();
+
+        HideCursor();   // the pointer only shows up when the mouse is moved
     }
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
         _timer.Stop();
         _pad.Stop();
+
+        ShowCursor(autoHide: false);   // a dialog or another program is in front: it needs its pointer
+    }
+
+    // ---------- the mouse pointer: hidden until the mouse moves ----------
+
+    private readonly DispatcherTimer _cursorTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private Point _cursorPosition;
+
+    /// <summary>Hides the pointer on the whole screen (it also hides the hand over buttons).</summary>
+    private void HideCursor()
+    {
+        _cursorTimer.Stop();
+        _cursorPosition = Mouse.GetPosition(this);   // the spot it hides at: only moving away from it counts as movement
+        Mouse.OverrideCursor = Cursors.None;
+    }
+
+    /// <summary>Shows the pointer; it hides again after a few seconds without movement.</summary>
+    private void ShowCursor(bool autoHide = true)
+    {
+        Mouse.OverrideCursor = null;
+        _cursorTimer.Stop();
+
+        if (autoHide)
+            _cursorTimer.Start();
+    }
+
+    private void Window_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        // tiles that glide under a still mouse also raise this event: only a real move shows the pointer
+        var position = e.GetPosition(this);
+        if (position == _cursorPosition) return;
+
+        _cursorPosition = position;
+        ShowCursor();
     }
 
     private void Cleanup()
     {
         _timer.Stop();
+        _cursorTimer.Stop();
+        Mouse.OverrideCursor = null;   // (the main window and the dialogs get their pointer back)
         _pad.ControllerChanged -= UpdateControllerUi;   // the screen is gone: nothing left to redraw
         ThemeService.Changed -= OnThemeChanged;
         _pad.Dispose();

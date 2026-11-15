@@ -15,6 +15,9 @@ public partial class BigPictureWindow
 
     private void Handle(PadButton button)
     {
+        if (Mouse.OverrideCursor is null)
+            HideCursor();   // a button or a key was used: no pointer needed
+
         // an open menu / keyboard / panel takes all the input
         if (_overlay != Overlay.None)
         {

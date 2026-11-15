@@ -6,7 +6,7 @@
         Background="{DynamicResource AppBg}"
         Activated="Window_Activated" Deactivated="Window_Deactivated"
         PreviewKeyDown="Window_PreviewKeyDown" PreviewTextInput="Window_PreviewTextInput"
-        PreviewMouseWheel="Window_PreviewMouseWheel">
+        PreviewMouseWheel="Window_PreviewMouseWheel" PreviewMouseMove="Window_PreviewMouseMove">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
