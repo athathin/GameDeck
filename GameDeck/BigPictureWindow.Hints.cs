@@ -83,7 +83,7 @@ public partial class BigPictureWindow
 
         var items = new List<(UIElement Icon, string Text)>();
 
-        if (_tab != StatsTab && !_topFocus)
+        if (_tab != StatsTab && !_topFocus && !_stripFocus)
             items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU"));
 
         if (_tab == StatsTab && !_topFocus)

@@ -36,6 +36,9 @@ public partial class BigPictureWindow
             DetailsPanel.Visibility = Visibility.Collapsed;
             FilterSummary.Visibility = Visibility.Collapsed;
 
+            FocusStrip(false);
+            UpdateContinue();   // (hides the row of last played games: it belongs to the All games list)
+
             BuildStats();
             StatsScroll.ScrollToTop();
             BuildTabs();
@@ -92,6 +95,9 @@ public partial class BigPictureWindow
         UpdateFilterSummary();
         BuildTabs();
         UpdateDetails();
+
+        FocusStrip(false);
+        UpdateContinue();
 
         // a new list starts at its first tile straight away
         UpdateTarget();
@@ -275,8 +281,8 @@ public partial class BigPictureWindow
     {
         if (((FrameworkElement)sender).DataContext is not Game game) return;
 
-        // scrolled far away: free the picture, unless the main window's own tile still shows this game
-        if (_touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
+        // scrolled far away: free the picture, unless the main window's own tile still shows this game (or the Continue row does)
+        if (!_continueItems.Contains(game) && _touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
         {
             game.CoverWanted = false;
             game.Cover = null;

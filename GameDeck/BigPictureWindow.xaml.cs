@@ -187,6 +187,7 @@ public partial class BigPictureWindow : Window
         Closed += (_, _) => Cleanup();
 
         BuildKeyboard();
+        InitContinue();
         UpdateClock();
         ApplyTab(preserveSelection: false);
         UpdateControllerUi();

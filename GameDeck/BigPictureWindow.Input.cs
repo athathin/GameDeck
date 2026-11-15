@@ -32,6 +32,10 @@ public partial class BigPictureWindow
             return;
         }
 
+        // the "Continue playing" row takes the directions while it is selected
+        if (_stripFocus && HandleStrip(button))
+            return;
+
         // the icons at the top (search, filters, settings, power) are selected with the stick: they take the directions
         if (_topFocus && HandleTopBar(button))
             return;
@@ -237,6 +241,8 @@ public partial class BigPictureWindow
 
         if (_topFocus)
             FocusTopBar(false);
+        if (_stripFocus)
+            FocusStrip(false);
 
         _hoverSelecting = true;
         try { Carousel.SelectedItem = game; }
@@ -281,7 +287,8 @@ public partial class BigPictureWindow
         }
         else if (direction < 0)
         {
-            FocusTopBar(true);
+            if (StripAvailable) FocusStrip(true);   // the row of last played games sits above the tiles
+            else FocusTopBar(true);
         }
     }
 
@@ -297,7 +304,12 @@ public partial class BigPictureWindow
     private void FocusTopBar(bool on)
     {
         _topFocus = on;
-        if (on) _topIndex = Math.Clamp(_topIndex, 0, TopIcons.Length - 1);
+        if (on)
+        {
+            _topIndex = Math.Clamp(_topIndex, 0, TopIcons.Length - 1);
+            _stripFocus = false;
+            ContinueList.SelectedIndex = -1;
+        }
 
         UpdateTopBar();
         BuildMainHints();
@@ -333,6 +345,7 @@ public partial class BigPictureWindow
             case PadButton.Left: _topIndex = Math.Max(0, _topIndex - 1); UpdateTopBar(); return true;
             case PadButton.Right: _topIndex = Math.Min(TopIcons.Length - 1, _topIndex + 1); UpdateTopBar(); return true;
             case PadButton.Up: return true;
+            case PadButton.Down when StripAvailable: FocusStrip(true); return true;   // on to the row of last played games
             case PadButton.Down or PadButton.Back: FocusTopBar(false); return true;   // back to the games
 
             case PadButton.Confirm:
