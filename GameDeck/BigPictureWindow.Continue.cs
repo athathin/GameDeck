@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -62,7 +62,27 @@ public partial class BigPictureWindow
         }
 
         ContinueList.SelectedIndex = _stripFocus ? _stripIndex : -1;
+        HideTileRing(_stripFocus);   // (the selected tile has no ring while the row is the selected one)
         BuildMainHints();
+    }
+
+    private FrameworkElement? _hiddenRing;
+
+    /// <summary>
+    /// While the row is selected, the selected tile must not show its ring too (two rings look like two selections).
+    /// The ring is hidden by a value set on the ring itself, which wins over the template's own "selected" rule; clearing it brings the rule back.
+    /// </summary>
+    private void HideTileRing(bool hide)
+    {
+        _hiddenRing?.ClearValue(VisibilityProperty);
+        _hiddenRing = null;
+
+        if (hide && Carousel.ItemContainerGenerator.ContainerFromItem(Carousel.SelectedItem) is ListBoxItem tile &&
+            tile.Template.FindName("Ring", tile) is FrameworkElement ring)
+        {
+            ring.Visibility = Visibility.Collapsed;
+            _hiddenRing = ring;
+        }
     }
 
     /// <summary>Returns true when the button was used up here.</summary>

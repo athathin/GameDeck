@@ -40,6 +40,7 @@ public partial class MainWindow
         FilterBar.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
         if (stats)
         {
+            UpdateContinue(false);
             ShowStats();
             EmptyText.Visibility = Visibility.Collapsed;
             StatusText.Text = $"{_library.Games.Count} games";
@@ -93,6 +94,8 @@ public partial class MainWindow
                 _ => "No games found. Open Settings (the gear) and choose \"Scan for games\" or \"Add games\"."
             };
         EmptyText.Visibility = realCount == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        UpdateContinue(_view is not ("Favorites" or "Recent") && !filtered && !_showHidden);
     }
 
     private IOrderedEnumerable<Game> Sort(IEnumerable<Game> games) => _sort switch
@@ -148,6 +151,7 @@ public partial class MainWindow
     private void Tile_Unloaded(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).DataContext is not Game { IsRandomTile: false } game) return;
+        if (_continueGames.Contains(game)) return;   // the Continue playing row still shows it
 
         game.CoverWanted = false;
         game.Cover = null;   // scrolled away (or filtered out): free the image, it reloads from disk when needed

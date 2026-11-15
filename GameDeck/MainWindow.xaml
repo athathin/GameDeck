@@ -142,6 +142,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -296,8 +297,49 @@
                 </StackPanel>
             </DockPanel>
 
+            <!-- Continue playing: the games played last (only on the plain All games list) -->
+            <StackPanel x:Name="ContinueBar" Grid.Row="2" Margin="8,0,8,16" Visibility="Collapsed">
+                <TextBlock Text="CONTINUE PLAYING" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold" Margin="2,0,0,10"/>
+                <ItemsControl x:Name="ContinueList">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <views:RoundedClipBorder Width="240" Height="64" CornerRadius="8" Margin="0,0,12,12" Cursor="Hand"
+                                                     Loaded="ContinueCard_Loaded" MouseLeftButtonUp="ContinueCard_MouseLeftButtonUp">
+                                <views:RoundedClipBorder.Style>
+                                    <Style TargetType="views:RoundedClipBorder">
+                                        <Setter Property="Background" Value="{DynamicResource PanelBg}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource RaisedBg}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </views:RoundedClipBorder.Style>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="43"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Background="{Binding PlaceholderBrush}">
+                                        <Image Source="{Binding Cover}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
+                                        <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding LastPlayedText}" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </views:RoundedClipBorder>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- The game grid. VirtualizingTilePanel only creates the tiles that are on screen. -->
-            <ListBox x:Name="GameList" Grid.Row="2"
+            <ListBox x:Name="GameList" Grid.Row="3"
                      ItemsSource="{Binding Games}"
                      ItemContainerStyle="{StaticResource TileItem}"
                      Background="Transparent" BorderThickness="0"
@@ -426,7 +468,7 @@
             </ListBox>
 
             <!-- the Stats tab -->
-            <ScrollViewer x:Name="StatsPanel" Grid.Row="2" Visibility="Collapsed"
+            <ScrollViewer x:Name="StatsPanel" Grid.Row="3" Visibility="Collapsed"
                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <!-- full width, so the refresh button can sit at the far right while the content stays on the left -->
                 <Grid>
@@ -562,7 +604,7 @@
             </ScrollViewer>
 
             <!-- message for empty views (no favorites yet, no search results...) -->
-            <TextBlock x:Name="EmptyText" Grid.Row="2" Foreground="{DynamicResource TextMuted}" FontSize="15"
+            <TextBlock x:Name="EmptyText" Grid.Row="3" Foreground="{DynamicResource TextMuted}" FontSize="15"
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        TextWrapping="Wrap" TextAlignment="Center" MaxWidth="460"
                        Visibility="Collapsed" IsHitTestVisible="False"/>

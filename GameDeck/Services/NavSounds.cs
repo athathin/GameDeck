@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Media;
 
 namespace GameDeck.Services;
@@ -41,9 +41,9 @@ public static class NavSounds
     {
         var (first, second, milliseconds, volume) = sound switch
         {
-            NavSound.Move => (1500.0, 1500.0, 28, 0.20),
-            NavSound.Select => (880.0, 1320.0, 110, 0.30),
-            _ => (660.0, 440.0, 110, 0.28)
+            NavSound.Move => (1100.0, 1100.0, 80, 0.55),
+            NavSound.Select => (880.0, 1320.0, 190, 0.65),
+            _ => (660.0, 440.0, 190, 0.60)
         };
 
         var samples = SampleRate * milliseconds / 1000;
@@ -56,7 +56,7 @@ public static class NavSounds
             var frequency = t < 0.5 ? first : second;   // two steps: "select" rises, "back" falls
 
             phase += 2 * Math.PI * frequency / SampleRate;
-            var fade = Math.Pow(1 - t, 2);              // quick fade-out: no click at the end
+            var fade = Math.Pow(1 - t, 1.5);            // fade-out: no click at the end
             var attack = Math.Min(1, i / 60.0);         // and none at the start
 
             data[i] = (short)(Math.Sin(phase) * fade * attack * volume * short.MaxValue);

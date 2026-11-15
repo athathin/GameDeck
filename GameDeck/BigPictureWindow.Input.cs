@@ -318,6 +318,7 @@ public partial class BigPictureWindow
             _topIndex = Math.Clamp(_topIndex, 0, TopIcons.Length - 1);
             _stripFocus = false;
             ContinueList.SelectedIndex = -1;
+            HideTileRing(false);
         }
 
         UpdateTopBar();
