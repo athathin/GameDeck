@@ -61,7 +61,7 @@ public partial class DuplicatesDialog : Window
 
         var card = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x22, 0x2B)),
+            Background = ThemeService.PanelBg,
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(18, 16, 18, 10),
             Margin = new Thickness(0, 0, 0, 12),
@@ -71,7 +71,7 @@ public partial class DuplicatesDialog : Window
                 {
                     new TextBlock
                     {
-                        Text = group[0].DisplayName, Foreground = Brushes.White, FontSize = 16,
+                        Text = group[0].DisplayName, Foreground = ThemeService.TextPrimary, FontSize = 16,
                         FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis
                     },
                     radioPanel,
@@ -104,14 +104,14 @@ public partial class DuplicatesDialog : Window
         panel.Children.Add(new TextBlock
         {
             Text = $"{source}  ·  {(game.PlaytimeSeconds > 0 ? game.PlaytimeText : "Not played yet")}",
-            Foreground = Brushes.White, FontSize = 14
+            Foreground = ThemeService.TextPrimary, FontSize = 14
         });
 
         if (where is not null)
         {
             panel.Children.Add(new TextBlock
             {
-                Text = where, Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x91, 0xA0)), FontSize = 12,
+                Text = where, Foreground = ThemeService.TextMuted, FontSize = 12,
                 TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = where, MaxWidth = 430
             });
         }

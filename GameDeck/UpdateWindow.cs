@@ -1,3 +1,4 @@
+using GameDeck.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,11 +20,11 @@ public sealed class UpdateWindow : Window
         ResizeMode = ResizeMode.NoResize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Topmost = true;
-        Background = new SolidColorBrush(Color.FromRgb(0x17, 0x1A, 0x21));
+        Background = ThemeService.AppBg;
 
         _status = new TextBlock
         {
-            Text = "0%", Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x91, 0xA0)), FontSize = 13,
+            Text = "0%", Foreground = ThemeService.TextMuted, FontSize = 13,
             Margin = new Thickness(0, 8, 0, 0)
         };
 
@@ -31,7 +32,7 @@ public sealed class UpdateWindow : Window
         {
             Height = 8, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 18, 0, 0),
             Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)),
-            Background = new SolidColorBrush(Color.FromRgb(0x2A, 0x2F, 0x3A)), BorderThickness = new Thickness(0)
+            Background = ThemeService.RaisedBg, BorderThickness = new Thickness(0)
         };
 
         Content = new Border
@@ -43,10 +44,10 @@ public sealed class UpdateWindow : Window
                 VerticalAlignment = VerticalAlignment.Center,
                 Children =
                 {
-                    new TextBlock { Text = "Updating GameDeck…", Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.SemiBold },
+                    new TextBlock { Text = "Updating GameDeck…", Foreground = ThemeService.TextPrimary, FontSize = 20, FontWeight = FontWeights.SemiBold },
                     new TextBlock
                     {
-                        Text = $"Version {version}", Foreground = new SolidColorBrush(Color.FromRgb(0xC5, 0xCB, 0xD6)),
+                        Text = $"Version {version}", Foreground = ThemeService.TextSecondary,
                         FontSize = 14, Margin = new Thickness(0, 4, 0, 0)
                     },
                     _bar,

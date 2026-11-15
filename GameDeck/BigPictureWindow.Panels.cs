@@ -43,7 +43,7 @@ public partial class BigPictureWindow
                     Background = KeyBackground,
                     Child = new TextBlock
                     {
-                        Text = Rows[r][c], Foreground = Brushes.White, FontSize = 22,
+                        Text = Rows[r][c], Foreground = ThemeService.TextPrimary, FontSize = 22,
                         HorizontalAlignment = HorizontalAlignment.Center
                     }
                 };
@@ -86,8 +86,8 @@ public partial class BigPictureWindow
                 var selected = r == _keyRow && c == _keyCol;
                 var cell = _keyCells[r][c];
 
-                cell.Background = selected ? Brushes.White : KeyBackground;
-                ((TextBlock)cell.Child).Foreground = selected ? Dark : Brushes.White;
+                cell.Background = selected ? ThemeService.SelectBg : KeyBackground;
+                ((TextBlock)cell.Child).Foreground = selected ? Dark : ThemeService.TextPrimary;
             }
         }
     }
@@ -324,7 +324,7 @@ public partial class BigPictureWindow
 
             var cell = new Border
             {
-                Background = selected ? Brushes.White : Brushes.Transparent,
+                Background = selected ? ThemeService.SelectBg : Brushes.Transparent,
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(16, 12, 16, 12),
                 Margin = new Thickness(0, 1, 0, 1),

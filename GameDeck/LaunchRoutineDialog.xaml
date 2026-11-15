@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Launch routine" Width="560" Height="720" MinHeight="420" ResizeMode="CanResizeWithGrip"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="#171A21"
+        Background="{DynamicResource AppBg}"
         PreviewKeyDown="Window_PreviewKeyDown">
 
     <Window.Resources>
@@ -17,7 +17,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#2A2F3A"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource RaisedBg}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#8037FE"/>
@@ -29,14 +29,14 @@
         </Style>
 
         <Style x:Key="FieldHeader" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8A91A0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="2,22,0,8"/>
         </Style>
 
         <Style x:Key="AppListBox" TargetType="ListBox">
-            <Setter Property="Background" Value="#1E222B"/>
+            <Setter Property="Background" Value="{DynamicResource PanelBg}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="4"/>
             <Setter Property="Height" Value="96"/>
@@ -52,8 +52,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <TextBlock x:Name="TitleText" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
-            <TextBlock x:Name="HintText" Foreground="#C5CBD6" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0"
+            <TextBlock x:Name="TitleText" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="SemiBold"/>
+            <TextBlock x:Name="HintText" Foreground="{DynamicResource TextSecondary}" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0"
                        Text="Steps GameDeck runs around this game. They only run when you start the game from GameDeck, not when you start it from another launcher."/>
         </StackPanel>
 
@@ -65,7 +65,7 @@
                 <ListBox x:Name="StartList" Style="{StaticResource AppListBox}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Display}" Foreground="White" FontSize="13" ToolTip="{Binding Path}"
+                            <TextBlock Text="{Binding Display}" Foreground="{DynamicResource TextPrimary}" FontSize="13" ToolTip="{Binding Path}"
                                        TextTrimming="CharacterEllipsis"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -76,7 +76,7 @@
                 </StackPanel>
                 <CheckBox x:Name="CloseStartedCheckBox" Style="{StaticResource DarkCheckBox}" Margin="0,14,0,0"
                           Content="Close them when the game ends"/>
-                <TextBlock Foreground="#8A91A0" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,0"
+                <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,0"
                            Text="Only apps GameDeck opened are closed. An app that was already running is left alone."/>
 
                 <!-- apps to close -->
@@ -84,7 +84,7 @@
                 <ListBox x:Name="CloseList" Style="{StaticResource AppListBox}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Display}" Foreground="White" FontSize="13" ToolTip="{Binding Path}"
+                            <TextBlock Text="{Binding Display}" Foreground="{DynamicResource TextPrimary}" FontSize="13" ToolTip="{Binding Path}"
                                        TextTrimming="CharacterEllipsis"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -96,7 +96,7 @@
                 </StackPanel>
                 <CheckBox x:Name="AskCheckBox" Style="{StaticResource DarkCheckBox}" Margin="0,14,0,0"
                           Content="Ask me before closing anything"/>
-                <TextBlock Foreground="#8A91A0" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,0"
+                <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,0"
                            Text="Shows what will be closed and lets you start the game without closing it, or cancel."/>
                 <CheckBox x:Name="ReopenCheckBox" Style="{StaticResource DarkCheckBox}" Margin="0,12,0,0"
                           Content="Reopen them when the game ends"/>
@@ -107,14 +107,14 @@
                 <TextBlock Text="POWER" Style="{StaticResource FieldHeader}" Margin="2,28,0,8"/>
                 <CheckBox x:Name="PowerCheckBox" Style="{StaticResource DarkCheckBox}"
                           Content="Use the High performance power plan while playing"/>
-                <TextBlock Foreground="#8A91A0" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,10"
+                <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,10"
                            Text="Your current power plan is put back when the game ends (and at the next GameDeck start if something interrupts that)."/>
             </StackPanel>
         </ScrollViewer>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
             <Button Content="Cancel" IsCancel="True" Style="{StaticResource DialogButton}"
-                    Background="#2A2F3A" Foreground="White"/>
+                    Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}"/>
             <Button x:Name="SaveButton" Content="Save" IsDefault="True" Click="SaveButton_Click"
                     Style="{StaticResource DialogButton}" Background="#8037FE" Foreground="White"/>
         </StackPanel>

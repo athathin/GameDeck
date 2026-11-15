@@ -28,6 +28,9 @@ namespace GameDeck
         {
             base.OnStartup(e);
 
+            // the colors first: every window, the update window included, reads them
+            ThemeService.Initialize(this, SettingsService.Theme);
+
             // Already running (maybe hidden in the system tray)? Ask that one to come to the front and quit.
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceName, out var isFirstInstance);
             if (!isFirstInstance)

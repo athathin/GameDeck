@@ -38,6 +38,12 @@ public partial class BigPictureWindow
                 Activate: () => RunSettingsAction(() => Task.FromResult(_actions.AddGames(this)))),
             new("Find duplicates…", Activate: () => RunSettingsAction(() => Task.FromResult(_actions.FindDuplicates(this)))),
 
+            new("APPEARANCE", IsHeader: true),
+            new("Dark theme", IsOn: () => SettingsService.Theme == AppTheme.Dark, IsRadio: true,
+                Activate: () => SetTheme(AppTheme.Dark)),
+            new("Light theme", IsOn: () => SettingsService.Theme == AppTheme.Light, IsRadio: true,
+                Activate: () => SetTheme(AppTheme.Light)),
+
             new("GENERAL", IsHeader: true),
             new("Launch GameDeck when Windows starts", IsOn: () => StartupService.IsEnabled,
                 Activate: () => StartupService.SetEnabled(!StartupService.IsEnabled))
@@ -117,6 +123,12 @@ public partial class BigPictureWindow
             _settingsIndex = index;
             RenderOnHover(RenderSettings);
         });
+    }
+
+    private static void SetTheme(AppTheme theme)
+    {
+        SettingsService.Theme = theme;
+        ThemeService.Apply(theme);   // this screen and the desktop window change at once
     }
 
     private void HandleSettings(PadButton button)

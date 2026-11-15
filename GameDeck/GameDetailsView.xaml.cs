@@ -56,7 +56,7 @@ public partial class GameDetailsView : UserControl
         PlayButton.RenderTransformOrigin = new Point(0.5, 0.5);
         PlayButton.RenderTransform = new ScaleTransform(1.06, 1.06);
         PlayButton.Background = PlaySelected;
-        PlayButton.Effect = new DropShadowEffect { Color = Colors.White, BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+        PlayButton.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
     }
 
     /// <summary>Draws the Play button as pressed: darker and pushed in.</summary>

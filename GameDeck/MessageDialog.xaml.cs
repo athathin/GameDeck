@@ -50,8 +50,8 @@ public partial class MessageDialog : Window
             {
                 Content = text,
                 Style = (Style)FindResource("DialogButton"),
-                Background = new SolidColorBrush(primary ? Color.FromRgb(0x80, 0x37, 0xFE) : Color.FromRgb(0x2A, 0x2F, 0x3A)),
-                Foreground = Brushes.White,
+                Background = primary ? new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)) : ThemeService.RaisedBg,
+                Foreground = primary ? Brushes.White : ThemeService.TextPrimary,
                 IsDefault = primary
             };
 

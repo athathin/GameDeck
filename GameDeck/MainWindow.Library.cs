@@ -244,7 +244,7 @@ public partial class MainWindow
     {
         // the icon turns purple while a launcher / category filter or "show hidden" is on
         var active = HasActiveFilters;
-        FilterButton.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)) : Brushes.White;
+        FilterButton.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)) : ThemeService.TextPrimary;
         UpdateFilterChips();
     }
 
@@ -398,7 +398,7 @@ public partial class MainWindow
             CategoryList.Children.Add(new TextBlock
             {
                 Text = "None yet. Right-click a game, then Edit game…",
-                Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x91, 0xA0)),
+                Foreground = ThemeService.TextMuted,
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap
             });

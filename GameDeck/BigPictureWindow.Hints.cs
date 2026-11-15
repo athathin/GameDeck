@@ -90,7 +90,7 @@ public partial class BigPictureWindow
             panel.Children.Add(icon);
             panel.Children.Add(new TextBlock
             {
-                Text = text, Foreground = Brushes.White, FontSize = 16, FontWeight = FontWeights.Bold,
+                Text = text, Foreground = ThemeService.TextPrimary, FontSize = 16, FontWeight = FontWeights.Bold,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 34, 0)
             });
         }
@@ -106,7 +106,7 @@ public partial class BigPictureWindow
 
     private static Border Round(TextBlock content)
     {
-        content.Foreground = Brushes.White;
+        content.Foreground = ThemeService.TextPrimary;
         content.FontWeight = FontWeights.Bold;
         content.HorizontalAlignment = HorizontalAlignment.Center;
         content.VerticalAlignment = VerticalAlignment.Center;
@@ -149,14 +149,14 @@ public partial class BigPictureWindow
 
     private static UIElement Logo(Geometry shape, double size) => new System.Windows.Shapes.Path
     {
-        Data = shape, Fill = Brushes.White, Stretch = Stretch.Uniform, Width = size, Height = size,
+        Data = shape, Fill = ThemeService.TextPrimary, Stretch = Stretch.Uniform, Width = size, Height = size,
         VerticalAlignment = VerticalAlignment.Center
     };
 
     /// <summary>The controller's Menu / Options button: three lines.</summary>
     private static UIElement OptionsIcon() => new TextBlock
     {
-        Text = "", FontFamily = new FontFamily("Segoe MDL2 Assets"), Foreground = Brushes.White, FontSize = 30,
+        Text = "", FontFamily = new FontFamily("Segoe MDL2 Assets"), Foreground = ThemeService.TextPrimary, FontSize = 30,
         VerticalAlignment = VerticalAlignment.Center
     };
 
@@ -194,9 +194,27 @@ public partial class BigPictureWindow
                     Text = TabNames[i],
                     FontSize = 24,
                     FontWeight = FontWeights.SemiBold,
-                    Foreground = selected ? Brushes.White : Muted
+                    Foreground = selected ? ThemeService.TextPrimary : Muted
                 }
             };
+
+            // under the mouse a tab that isn't the open one lights up: brighter text and a grey underline
+            if (!selected)
+            {
+                var label = (TextBlock)tab.Child;
+
+                tab.MouseEnter += (_, _) =>
+                {
+                    label.Foreground = ThemeService.TextPrimary;
+                    tab.BorderBrush = Muted;
+                };
+
+                tab.MouseLeave += (_, _) =>
+                {
+                    label.Foreground = Muted;
+                    tab.BorderBrush = Brushes.Transparent;
+                };
+            }
 
             tab.MouseLeftButtonUp += (_, _) =>
             {
@@ -223,7 +241,7 @@ public partial class BigPictureWindow
         VerticalAlignment = VerticalAlignment.Center,
         Child = new TextBlock
         {
-            Text = text, Foreground = Brushes.White, FontSize = 15, FontWeight = FontWeights.SemiBold,
+            Text = text, Foreground = ThemeService.TextPrimary, FontSize = 15, FontWeight = FontWeights.SemiBold,
             VerticalAlignment = VerticalAlignment.Center
         }
     };

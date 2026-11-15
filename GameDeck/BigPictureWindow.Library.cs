@@ -203,7 +203,7 @@ public partial class BigPictureWindow
 
             row.Children.Add(new TextBlock
             {
-                Text = game.DisplayName, Foreground = Brushes.White, FontSize = 18,
+                Text = game.DisplayName, Foreground = ThemeService.TextPrimary, FontSize = 18,
                 TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 16, 0)
             });

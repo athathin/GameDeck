@@ -277,7 +277,7 @@ public partial class BigPictureWindow
 
                 var cell = new Border
                 {
-                    Background = selected ? Brushes.White : Brushes.Transparent,
+                    Background = selected ? ThemeService.SelectBg : Brushes.Transparent,
                     Padding = new Thickness(24, 15, 24, 15),
                     Cursor = Cursors.Hand,
                     Child = new TextBlock { Text = text, FontSize = 19, Foreground = selected ? Dark : TextGrey }

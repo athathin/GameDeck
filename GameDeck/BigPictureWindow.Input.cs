@@ -288,13 +288,13 @@ public partial class BigPictureWindow
 
             if (selected)
             {
-                icons[i].Background = Brushes.White;
+                icons[i].Background = ThemeService.SelectBg;
                 glyph.Foreground = Dark;
             }
             else
             {
                 icons[i].ClearValue(BackgroundProperty);   // back to the style's colors (including the mouse hover)
-                glyph.Foreground = Brushes.White;
+                glyph.Foreground = ThemeService.TextPrimary;
             }
         }
     }

@@ -54,6 +54,9 @@ public static class SettingsService
 
         public bool AutoUpdate { get; set; } = true;
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public AppTheme Theme { get; set; } = AppTheme.Dark;
+
         public bool QuickLaunchEnabled { get; set; } = true;
 
         // Ctrl + Alt + G: modifier bits as in GlobalHotkey, and a Windows virtual-key code (0x47 = G)
@@ -146,6 +149,17 @@ public static class SettingsService
         set
         {
             Current.ControllerWake = value;
+            Save();
+        }
+    }
+
+    /// <summary>The color scheme: dark (the default) or light.</summary>
+    public static AppTheme Theme
+    {
+        get => Current.Theme;
+        set
+        {
+            Current.Theme = value;
             Save();
         }
     }

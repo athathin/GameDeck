@@ -3,22 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Manage categories" Width="460" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="#171A21"
+        Background="{DynamicResource AppBg}"
         PreviewKeyDown="Window_PreviewKeyDown">
 
     <StackPanel Margin="28,24,28,22">
-        <TextBlock Text="Manage categories" Foreground="White" FontSize="20" FontWeight="SemiBold"/>
-        <TextBlock Foreground="#8A91A0" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,14"
+        <TextBlock Text="Manage categories" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="SemiBold"/>
+        <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,14"
                    Text="Deleting a category only removes the label. Your games stay in the library."/>
 
-        <TextBlock x:Name="EmptyText" Foreground="#C5CBD6" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,6"
+        <TextBlock x:Name="EmptyText" Foreground="{DynamicResource TextSecondary}" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,6"
                    Text="No categories left."/>
 
         <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="Rows">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="#1E222B" CornerRadius="6" Padding="14,8" Margin="0,0,8,8">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="6" Padding="14,8" Margin="0,0,8,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -26,9 +26,9 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Name}" Foreground="White" FontSize="14"
+                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimary}" FontSize="14"
                                                TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{Binding CountText}" Foreground="#8A91A0" FontSize="12" Margin="0,2,0,0"/>
+                                    <TextBlock Text="{Binding CountText}" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Content="Rename" Tag="{Binding Name}" Click="RenameButton_Click"
                                         Style="{StaticResource PillButton}" Padding="12,6" FontSize="13"/>

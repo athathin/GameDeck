@@ -78,12 +78,14 @@ public partial class BigPictureWindow : Window
         return brush;
     }
 
-    private static readonly SolidColorBrush Purple = Frozen(0x80, 0x37, 0xFE);
-    private static readonly SolidColorBrush TextGrey = Frozen(0xC5, 0xCB, 0xD6);
-    private static readonly SolidColorBrush Dark = Frozen(0x17, 0x1A, 0x21);
-    private static readonly SolidColorBrush KeyBackground = Frozen(0x2A, 0x2F, 0x3A);
-    private static readonly SolidColorBrush Muted = Frozen(0x8A, 0x91, 0xA0);
-    private static readonly SolidColorBrush Divider = Frozen(0x12, 0x14, 0x1A);
+    private static readonly SolidColorBrush Purple = Frozen(0x80, 0x37, 0xFE);   // the accent: the same in every theme
+
+    // the rest follow the theme (these are the shared brushes of ThemeService: their color changes with the theme)
+    private static SolidColorBrush TextGrey => ThemeService.TextSecondary;
+    private static SolidColorBrush Dark => ThemeService.SelectFg;            // text on the selected row
+    private static SolidColorBrush KeyBackground => ThemeService.RaisedBg;
+    private static SolidColorBrush Muted => ThemeService.TextMuted;
+    private static SolidColorBrush Divider => ThemeService.AppBg;
 
     private IReadOnlyList<Game> _library;               // replaced when a scan, an import... changed the library
     private readonly SessionLog _sessions;

@@ -47,6 +47,9 @@ public partial class SettingsView : UserControl
 
         OnlineCoversCheckBox.IsChecked = SettingsService.OnlineCovers;
 
+        DarkThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Dark;
+        LightThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Light;
+
         AutoUpdateCheckBox.IsChecked = SettingsService.AutoUpdate;
         VersionText.Text = $"You have GameDeck {UpdateService.CurrentVersionText}. New versions come from github.com/athathin/GameDeck.";
 
@@ -220,6 +223,15 @@ public partial class SettingsView : UserControl
 
         SettingsService.OnlineCovers = OnlineCoversCheckBox.IsChecked == true;
         OnlineCoversChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        var theme = LightThemeRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
+        SettingsService.Theme = theme;
+        ThemeService.Apply(theme);   // every open screen changes at once
     }
 
     private void AutoUpdateCheckBox_Changed(object sender, RoutedEventArgs e)

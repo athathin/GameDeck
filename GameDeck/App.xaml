@@ -30,8 +30,8 @@
 
         <!-- rounded grey buttons in the header (Add game, Scan, sort, ...) -->
         <Style x:Key="PillButton" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#2A2F3A"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource RaisedBg}"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Margin" Value="8,0,0,0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -44,7 +44,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#3A4050"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBg}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
@@ -57,7 +57,7 @@
 
         <!-- dark rounded checkbox with a blue tick -->
         <Style x:Key="DarkCheckBox" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#C5CBD6"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -65,7 +65,7 @@
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal" Background="Transparent">
                             <Border x:Name="box" Width="18" Height="18" CornerRadius="4" VerticalAlignment="Center"
-                                    Background="#2A2F3A" BorderBrush="#3A4050" BorderThickness="1">
+                                    Background="{DynamicResource RaisedBg}" BorderBrush="{DynamicResource HoverBg}" BorderThickness="1">
                                 <Path x:Name="tick" Data="M4,9 L7.5,12.5 L14,5.5" Visibility="Collapsed"
                                       Stroke="White" StrokeThickness="2"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
@@ -92,7 +92,7 @@
 
         <!-- dark round radio button with a purple dot (same look as DarkCheckBox) -->
         <Style x:Key="DarkRadioButton" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#C5CBD6"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -100,7 +100,7 @@
                     <ControlTemplate TargetType="RadioButton">
                         <StackPanel Orientation="Horizontal" Background="Transparent">
                             <Border x:Name="box" Width="18" Height="18" CornerRadius="9" VerticalAlignment="Center"
-                                    Background="#2A2F3A" BorderBrush="#3A4050" BorderThickness="1">
+                                    Background="{DynamicResource RaisedBg}" BorderBrush="{DynamicResource HoverBg}" BorderThickness="1">
                                 <Ellipse x:Name="dot" Width="8" Height="8" Fill="White" Visibility="Collapsed"/>
                             </Border>
                             <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="False"/>
@@ -122,15 +122,15 @@
 
         <!-- dark rounded text box (turns blue-outlined while typing) -->
         <Style x:Key="DarkTextBox" TargetType="TextBox">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="SelectionBrush" Value="#8037FE"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="10,8"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="bd" Background="#2A2F3A" CornerRadius="6"
+                        <Border x:Name="bd" Background="{DynamicResource RaisedBg}" CornerRadius="6"
                                 BorderBrush="Transparent" BorderThickness="1">
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
                         </Border>
@@ -154,10 +154,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="bar" Background="#3A4050" CornerRadius="3"/>
+                        <Border x:Name="bar" Background="{DynamicResource HoverBg}" CornerRadius="3"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bar" Property="Background" Value="#4C566A"/>
+                                <Setter TargetName="bar" Property="Background" Value="{DynamicResource ScrollbarHover}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
                                 <Setter TargetName="bar" Property="Background" Value="#8037FE"/>
@@ -229,13 +229,13 @@
         <!-- ================= right-click / drop-down menus (same dark look as the rest of the UI) ================= -->
 
         <Style TargetType="ContextMenu">
-            <Setter Property="Foreground" Value="#C5CBD6"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="HasDropShadow" Value="False"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContextMenu">
-                        <Border Background="#1E222B" BorderBrush="#2A2F3A" BorderThickness="1"
+                        <Border Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource RaisedBg}" BorderThickness="1"
                                 CornerRadius="8" Padding="4" SnapsToDevicePixels="True">
                             <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
                         </Border>
@@ -248,14 +248,14 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <Border Height="1" Background="#2A2F3A" Margin="8,4"/>
+                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="8,4"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
         <Style TargetType="MenuItem">
-            <Setter Property="Foreground" Value="#C5CBD6"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
             <Setter Property="Padding" Value="8,7"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -276,14 +276,14 @@
                                     <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
                                                       VerticalAlignment="Center" Margin="0,0,24,0"/>
                                     <Path x:Name="arrow" Grid.Column="2" Data="M0,0 L4,4 L0,8" Visibility="Collapsed"
-                                          Stroke="#8A91A0" StrokeThickness="1.5" VerticalAlignment="Center"
+                                          Stroke="{DynamicResource TextMuted}" StrokeThickness="1.5" VerticalAlignment="Center"
                                           Margin="0,0,4,0"/>
                                 </Grid>
                             </Border>
                             <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="2" VerticalOffset="-5"
                                    IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
                                    AllowsTransparency="True" Focusable="False" PopupAnimation="None">
-                                <Border Background="#1E222B" BorderBrush="#2A2F3A" BorderThickness="1"
+                                <Border Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource RaisedBg}" BorderThickness="1"
                                         CornerRadius="8" Padding="4" Margin="0,0,6,6">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
                                 </Border>
@@ -297,11 +297,11 @@
                                 <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#2A2F3A"/>
-                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource RaisedBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#5A6070"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextDisabled}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -315,7 +315,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Ellipse x:Name="knob" Fill="#8A91A0"/>
+                        <Ellipse x:Name="knob" Fill="{DynamicResource TextMuted}"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="knob" Property="Fill" Value="#8037FE"/>
@@ -336,7 +336,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
                         <Grid Background="Transparent">
-                            <Border Height="4" CornerRadius="2" Background="#2A2F3A" VerticalAlignment="Center"/>
+                            <Border Height="4" CornerRadius="2" Background="{DynamicResource RaisedBg}" VerticalAlignment="Center"/>
                             <Track x:Name="PART_Track">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource ScrollTrackButton}"/>
@@ -357,12 +357,12 @@
 
         <!-- tooltips in the app's dark style instead of Windows' light yellow-grey box -->
         <Style TargetType="ToolTip">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToolTip">
-                        <Border Background="#1E222B" BorderBrush="#2A2F3A" BorderThickness="1" CornerRadius="6" Padding="10,6">
+                        <Border Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource RaisedBg}" BorderThickness="1" CornerRadius="6" Padding="10,6">
                             <ContentPresenter/>
                         </Border>
                     </ControlTemplate>
@@ -373,14 +373,14 @@
         <!-- one bar of a stats chart (ChartBar): value on top, the bar, then its label underneath -->
         <DataTemplate x:Key="ChartBarTemplate">
             <StackPanel Margin="2,0" Background="Transparent" ToolTip="{Binding ToolTip}">
-                <TextBlock Text="{Binding Value}" Foreground="#C5CBD6" FontSize="12" HorizontalAlignment="Center"
+                <TextBlock Text="{Binding Value}" Foreground="{DynamicResource TextSecondary}" FontSize="12" HorizontalAlignment="Center"
                            Height="16" TextTrimming="CharacterEllipsis"/>
                 <Grid Height="100">
                     <Border Height="{Binding Height, Mode=OneWay}" Opacity="{Binding Opacity, Mode=OneWay}" Width="30"
                             VerticalAlignment="Bottom" HorizontalAlignment="Center"
                             Background="#8037FE" CornerRadius="3,3,0,0"/>
                 </Grid>
-                <TextBlock Text="{Binding Label}" Foreground="#8A91A0" FontSize="11" HorizontalAlignment="Center"
+                <TextBlock Text="{Binding Label}" Foreground="{DynamicResource TextMuted}" FontSize="11" HorizontalAlignment="Center"
                            Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
         </DataTemplate>
@@ -393,10 +393,10 @@
                     <ColumnDefinition Width="190"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding Game}" Foreground="White" FontSize="14" TextTrimming="CharacterEllipsis"
+                <TextBlock Text="{Binding Game}" Foreground="{DynamicResource TextPrimary}" FontSize="14" TextTrimming="CharacterEllipsis"
                            Margin="0,0,14,0"/>
-                <TextBlock Grid.Column="1" Text="{Binding When}" Foreground="#8A91A0" FontSize="13"/>
-                <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="#C5CBD6" FontSize="13"
+                <TextBlock Grid.Column="1" Text="{Binding When}" Foreground="{DynamicResource TextMuted}" FontSize="13"/>
+                <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="{DynamicResource TextSecondary}" FontSize="13"
                            HorizontalAlignment="Right"/>
             </Grid>
         </DataTemplate>
