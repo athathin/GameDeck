@@ -14,6 +14,8 @@ public partial class GameSettingsDialog : Window
     public string GameName => NameBox.Text;
     public string Arguments => ArgsBox.Text;
     public bool RunAsAdmin => AdminCheckBox.IsChecked == true;
+    public int Rating { get; private set; }
+    public string Notes => NotesBox.Text;
 
     /// <summary>The categories typed in, trimmed, without empty or repeated entries.</summary>
     public List<string> Tags => TagsBox.Text
@@ -31,6 +33,9 @@ public partial class GameSettingsDialog : Window
         TagsBox.Text = string.Join(", ", game.Tags);
         ArgsBox.Text = game.LaunchArguments ?? "";
         AdminCheckBox.IsChecked = game.RunAsAdmin;
+        NotesBox.Text = game.Notes ?? "";
+        Rating = game.Rating;
+        BuildStars();
 
         // Only games that start from an .exe (or Steam) can take arguments; only .exe games can be elevated
         ArgsBox.IsEnabled = game.SupportsArguments;
@@ -44,6 +49,36 @@ public partial class GameSettingsDialog : Window
 
         NameBox.Focus();
         NameBox.SelectAll();
+    }
+
+    /// <summary>Five stars to click: the one clicked becomes the rating, and clicking the current rating again clears it.</summary>
+    private void BuildStars()
+    {
+        StarsPanel.Children.Clear();
+
+        for (var i = 1; i <= 5; i++)
+        {
+            var star = i;
+            var filled = star <= Rating;
+
+            var text = new System.Windows.Controls.TextBlock
+            {
+                Text = filled ? "★" : "☆",
+                FontSize = 26,
+                Margin = new Thickness(0, 0, 6, 0),
+                Cursor = Cursors.Hand,
+                Foreground = filled ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0xC8, 0x57))
+                                    : ThemeService.TextMuted
+            };
+
+            text.MouseLeftButtonUp += (_, _) =>
+            {
+                Rating = Rating == star ? 0 : star;
+                BuildStars();
+            };
+
+            StarsPanel.Children.Add(text);
+        }
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e) => DialogResult = true;

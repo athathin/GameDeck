@@ -59,6 +59,10 @@ public static class SettingsService
 
         public double BigPictureScale { get; set; } = 1.0;
 
+        public bool SwapConfirmBack { get; set; }
+
+        public string? SteamGridDbKey { get; set; }
+
         public bool QuickLaunchEnabled { get; set; } = true;
 
         // Ctrl + Alt + G: modifier bits as in GlobalHotkey, and a Windows virtual-key code (0x47 = G)
@@ -151,6 +155,28 @@ public static class SettingsService
         set
         {
             Current.ControllerWake = value;
+            Save();
+        }
+    }
+
+    /// <summary>Confirm with the B button and go back with A (the Nintendo arrangement), on any controller.</summary>
+    public static bool SwapConfirmBack
+    {
+        get => Current.SwapConfirmBack;
+        set
+        {
+            Current.SwapConfirmBack = value;
+            Save();
+        }
+    }
+
+    /// <summary>The user's own SteamGridDB key (a free account at steamgriddb.com): when set, it is used as a last source of cover art.</summary>
+    public static string? SteamGridDbKey
+    {
+        get => Current.SteamGridDbKey;
+        set
+        {
+            Current.SteamGridDbKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
             Save();
         }
     }

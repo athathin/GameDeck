@@ -31,6 +31,9 @@ public class UserDataService
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public GameStatus Status { get; set; }
 
+        public int Rating { get; set; }          // 0 = not rated, 1 to 5 stars
+        public string? Notes { get; set; }
+
         public LaunchProfile? Profile { get; set; }
     }
 
@@ -58,6 +61,8 @@ public class UserDataService
         game.RunAsAdmin = entry.RunAsAdmin;
         game.Tags = entry.Tags?.ToList() ?? [];   // a copy, so the game and the saved entry never share one list
         game.Status = entry.Status;
+        game.Rating = Math.Clamp(entry.Rating, 0, 5);
+        game.Notes = entry.Notes;
         game.Profile = entry.Profile?.Clone();   // a copy, like the categories
     }
 
@@ -91,7 +96,8 @@ public class UserDataService
     }
 
     /// <summary>Saves what was entered in "Edit game". Empty values mean "back to the default".</summary>
-    public void SaveGameSettings(Game game, string? customName, string? arguments, bool runAsAdmin, List<string> tags)
+    public void SaveGameSettings(Game game, string? customName, string? arguments, bool runAsAdmin, List<string> tags,
+                                 int rating, string? notes)
     {
         var entry = GetEntry(game);
 
@@ -100,6 +106,8 @@ public class UserDataService
         entry.Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments.Trim();
         entry.RunAsAdmin = runAsAdmin;
         entry.Tags = tags.Count == 0 ? null : tags;
+        entry.Rating = Math.Clamp(rating, 0, 5);
+        entry.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
 
         Save();
         Apply(game);

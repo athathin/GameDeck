@@ -34,13 +34,23 @@ public partial class BigPictureWindow
     private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "RT", "Xbox");
     private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "P", "R", "P");   // no controller
 
-    private ButtonLabels Labels() => _pad.ActiveKind switch
+    // the same with the confirm and back buttons swapped (the keyboard is never swapped)
+    private static readonly ButtonLabels PlayStationSwapped = PlayStationLabels with { Confirm = PlayStationLabels.Back, Back = PlayStationLabels.Confirm };
+    private static readonly ButtonLabels NintendoSwapped = NintendoLabels with { Confirm = NintendoLabels.Back, Back = NintendoLabels.Confirm };
+    private static readonly ButtonLabels XboxSwapped = XboxLabels with { Confirm = XboxLabels.Back, Back = XboxLabels.Confirm };
+
+    private ButtonLabels Labels()
     {
-        ControllerKind.PlayStation => PlayStationLabels,
-        ControllerKind.Nintendo => NintendoLabels,
-        ControllerKind.Xbox or ControllerKind.Generic => XboxLabels,
-        _ => KeyboardLabels
-    };
+        var swap = SettingsService.SwapConfirmBack;
+
+        return _pad.ActiveKind switch
+        {
+            ControllerKind.PlayStation => swap ? PlayStationSwapped : PlayStationLabels,
+            ControllerKind.Nintendo => swap ? NintendoSwapped : NintendoLabels,
+            ControllerKind.Xbox or ControllerKind.Generic => swap ? XboxSwapped : XboxLabels,
+            _ => KeyboardLabels
+        };
+    }
 
     private static void FillHints(Panel panel, params (string Button, string Action)[] hints)
     {

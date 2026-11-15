@@ -117,6 +117,47 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public LaunchProfile? Profile { get; set; }
 
+    private int _rating;
+
+    /// <summary>The user's rating: 0 (not rated) to 5 stars.</summary>
+    [JsonIgnore]
+    public int Rating
+    {
+        get => _rating;
+        set
+        {
+            if (Set(ref _rating, value))
+            {
+                Notify(nameof(RatingText));
+                Notify(nameof(HasRating));
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasRating => Rating > 0;
+
+    /// <summary>The rating as stars, e.g. ★★★★☆ (empty when not rated).</summary>
+    [JsonIgnore]
+    public string RatingText => Rating <= 0 ? "" : new string('★', Rating) + new string('☆', 5 - Rating);
+
+    private string? _notes;
+
+    /// <summary>The user's own notes about the game.</summary>
+    [JsonIgnore]
+    public string? Notes
+    {
+        get => _notes;
+        set
+        {
+            if (Set(ref _notes, value))
+                Notify(nameof(HasNotes));
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
     private GameStatus _status;
 
     /// <summary>Playing / Completed / Up next / Dropped, or None.</summary>

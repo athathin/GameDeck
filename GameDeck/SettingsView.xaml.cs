@@ -57,6 +57,8 @@ public partial class SettingsView : UserControl
         ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
         ScaleHugeRadio.IsChecked = scale >= 1.3;
 
+        GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
+
         AutoUpdateCheckBox.IsChecked = SettingsService.AutoUpdate;
         VersionText.Text = $"You have GameDeck {UpdateService.CurrentVersionText}. New versions come from github.com/athathin/GameDeck.";
 
@@ -64,6 +66,7 @@ public partial class SettingsView : UserControl
         LaunchToastCheckBox.IsChecked = SettingsService.ShowLaunchToast;
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
+        SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
         QuickLaunchCheckBox.IsChecked = SettingsService.QuickLaunchEnabled;
         StopCapturing();
         ShowQuickLaunchOptions();
@@ -82,6 +85,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.ControllerWake = ControllerWakeCheckBox.IsChecked == true;   // the listener checks this on its own
+    }
+
+    private void SwapButtonsCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.SwapConfirmBack = SwapButtonsCheckBox.IsChecked == true;   // read at every button press
     }
 
     private void QuickLaunchCheckBox_Changed(object sender, RoutedEventArgs e)
@@ -251,6 +261,15 @@ public partial class SettingsView : UserControl
         SettingsService.BigPictureScale = ScaleHugeRadio.IsChecked == true ? 1.4
             : ScaleLargeRadio.IsChecked == true ? 1.2
             : 1.0;   // Big Picture reads it when it opens
+    }
+
+    private void GridKeyBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_updating || (GridKeyBox.Text.Trim() == (SettingsService.SteamGridDbKey ?? ""))) return;
+
+        SettingsService.SteamGridDbKey = GridKeyBox.Text;
+        CoverService.ResetKeyCheck();
+        OnlineCoversChanged?.Invoke(this, EventArgs.Empty);   // covers that were missing are looked for again
     }
 
     private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => CheckUpdatesRequested?.Invoke(this, EventArgs.Empty);

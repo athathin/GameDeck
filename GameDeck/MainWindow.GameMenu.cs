@@ -37,7 +37,7 @@ public partial class MainWindow
         var dialog = new GameSettingsDialog(game) { Owner = owner };
         if (dialog.ShowDialog() != true) return;
 
-        _userData.SaveGameSettings(game, dialog.GameName, dialog.Arguments, dialog.RunAsAdmin, dialog.Tags);
+        _userData.SaveGameSettings(game, dialog.GameName, dialog.Arguments, dialog.RunAsAdmin, dialog.Tags, dialog.Rating, dialog.Notes);
         Refresh();   // the new name can change the order, new categories show up in the Category menu
     }
 

@@ -124,6 +124,8 @@ public partial class MainWindow
 
         if (tab is not null)
             _bigPicture.Restore(tab.Value, selected);
+        else if (games.Where(g => g.LastPlayed is not null).MaxBy(g => g.LastPlayed) is { } lastPlayed)
+            _bigPicture.Restore(0, lastPlayed);   // "continue playing": it opens with the game you played last selected
 
         // Big Picture replaces the desktop window while it is open: otherwise Alt+Tab (or closing Big Picture) lands on a
         // desktop window that was sitting behind it. (Hide, not the tray: no icon for something that comes right back.)

@@ -140,6 +140,11 @@ public static class CoverService
             if (epicUrl is not null && await DownloadAsync(epicUrl, file))
                 return file;
 
+            // 4) SteamGridDB, only when the user has entered their own key in Settings
+            var gridUrl = await FindSteamGridDbUrlAsync(game);
+            if (gridUrl is not null && await DownloadAsync(gridUrl, file))
+                return file;
+
             File.WriteAllBytes(miss, Array.Empty<byte>()); // remember "nothing found" for a week
             return null;
         }
@@ -331,6 +336,70 @@ public static class CoverService
         }
 
         return null;
+    }
+
+    // ---------- SteamGridDB (the user's own key) ----------
+
+    private static bool _gridKeyRejected;
+
+    /// <summary>Forgets that a SteamGridDB key was refused (call after the key was changed).</summary>
+    public static void ResetKeyCheck() => _gridKeyRejected = false;
+
+    /// <summary>
+    /// Looks the game up on SteamGridDB by name (an exact, normalized match only) and returns the address of a 600x900 poster.
+    /// Only runs with the user's own key; the game's name is sent to steamgriddb.com for this.
+    /// </summary>
+    private static async Task<string?> FindSteamGridDbUrlAsync(Game game)
+    {
+        var key = SettingsService.SteamGridDbKey;
+        if (string.IsNullOrWhiteSpace(key)) return null;
+
+        // a refused key (no network needed to know): fail without caching a "no cover" result for the game
+        if (_gridKeyRejected) throw new InvalidOperationException("The SteamGridDB key was refused.");
+
+        var search = await GridGetAsync($"https://www.steamgriddb.com/api/v2/search/autocomplete/{Uri.EscapeDataString(game.Name)}", key);
+        if (!search.RootElement.TryGetProperty("data", out var results) || results.ValueKind != JsonValueKind.Array) return null;
+
+        var wanted = Normalize(game.Name);
+        int? id = null;
+        foreach (var result in results.EnumerateArray())
+        {
+            if (Normalize(Str(result, "name")) == wanted && result.TryGetProperty("id", out var found))
+            {
+                id = found.GetInt32();
+                break;
+            }
+        }
+
+        if (id is null) return null;
+
+        var grids = await GridGetAsync($"https://www.steamgriddb.com/api/v2/grids/game/{id}?dimensions=600x900&types=static", key);
+        if (!grids.RootElement.TryGetProperty("data", out var images) || images.ValueKind != JsonValueKind.Array) return null;
+
+        foreach (var image in images.EnumerateArray())
+        {
+            if (Str(image, "url") is { } url && url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return url;
+        }
+
+        return null;
+    }
+
+    private static async Task<JsonDocument> GridGetAsync(string url, string key)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+
+        using var response = await Http.SendAsync(request);
+
+        if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            _gridKeyRejected = true;
+            throw new InvalidOperationException("The SteamGridDB key was refused.");
+        }
+
+        response.EnsureSuccessStatusCode();   // other problems throw too, so no "miss" gets cached
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
     }
 
     // ---------- Epic ----------

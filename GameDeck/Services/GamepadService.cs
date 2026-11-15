@@ -341,8 +341,10 @@ public sealed class GamepadService : IDisposable
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_LEFT) || stickX < -StickThreshold) down.Add(PadButton.Left);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || stickX > StickThreshold) down.Add(PadButton.Right);
 
-        if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_A)) down.Add(PadButton.Confirm);
-        if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_B)) down.Add(PadButton.Back);
+        // (by default A confirms and B goes back; with the "swap A and B" setting it is the other way round)
+        var swap = SettingsService.SwapConfirmBack;
+        if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_A)) down.Add(swap ? PadButton.Back : PadButton.Confirm);
+        if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_B)) down.Add(swap ? PadButton.Confirm : PadButton.Back);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_X)) down.Add(PadButton.X);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_Y)) down.Add(PadButton.Y);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) down.Add(PadButton.LeftShoulder);

@@ -102,6 +102,13 @@ public partial class BigPictureWindow
 
         rows.AddRange(
         [
+            new("Confirm with B and go back with A (swap the two buttons)", IsOn: () => SettingsService.SwapConfirmBack,
+                Activate: () =>
+                {
+                    SettingsService.SwapConfirmBack = !SettingsService.SwapConfirmBack;
+                    BuildMainHints();   // the hints name the buttons the other way round now
+                    BuildOverlayHints();
+                }),
             new("Open Big Picture mode from a controller", IsOn: () => SettingsService.ControllerWake,
                 Activate: () => SettingsService.ControllerWake = !SettingsService.ControllerWake),
 

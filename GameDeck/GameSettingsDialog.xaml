@@ -17,6 +17,13 @@
         <TextBlock Text="Separate them with commas, for example: Co-op, Racing" Foreground="{DynamicResource TextHint}" FontSize="12"
                    Margin="0,5,0,0"/>
 
+        <TextBlock Text="Your rating" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,16,0,6"/>
+        <StackPanel x:Name="StarsPanel" Orientation="Horizontal"/>
+
+        <TextBlock Text="Notes" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,16,0,6"/>
+        <TextBox x:Name="NotesBox" Style="{StaticResource DarkTextBox}" AcceptsReturn="True" TextWrapping="Wrap"
+                 Height="84" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/>
+
         <TextBlock Text="Launch options" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,16,0,6"/>
         <TextBox x:Name="ArgsBox" Style="{StaticResource DarkTextBox}"/>
         <CheckBox x:Name="AdminCheckBox" Style="{StaticResource DarkCheckBox}" Content="Run as administrator"

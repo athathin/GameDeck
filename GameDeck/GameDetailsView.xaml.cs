@@ -34,6 +34,12 @@ public partial class GameDetailsView : UserControl
         SessionsPanel.Visibility = sessions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         RankText.Text = game.PlaytimeSeconds > 0 ? $"#{rank} of {playedCount}" : "-";
+        RatingStarsText.Text = game.RatingText;
+        RatingStarsText.Visibility = game.HasRating ? Visibility.Visible : Visibility.Collapsed;
+
+        NotesText.Text = game.Notes ?? "";
+        NotesPanel.Visibility = game.HasNotes ? Visibility.Visible : Visibility.Collapsed;
+
         CategoriesText.Text = game.Tags.Count > 0 ? "Categories: " + string.Join(", ", game.Tags) : "";
         CategoriesText.Visibility = game.Tags.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }

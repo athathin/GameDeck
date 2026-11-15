@@ -39,7 +39,9 @@ GameDeck has no account, no ads and no tracking. It only contacts:
 
 - **github.com**, to look for and download updates (turn it off in Settings),
 - **Steam, Epic and Microsoft's store**, to fetch cover art and look up game names (turn it off with
-  "Download cover art from the internet" in Settings).
+  "Download cover art from the internet" in Settings),
+- **steamgriddb.com**, only if you enter your own SteamGridDB key in Settings: the names of games that have no cover yet
+  are sent there to look for one.
 
 Your library, playtime and settings never leave your PC.
 
