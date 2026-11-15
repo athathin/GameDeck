@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace GameDeck.Services;
 
@@ -16,6 +16,43 @@ public static class ControllerPower
 
     /// <summary>Cuts the connection of the connected Bluetooth controller(s). False when there is none (it is wired, or not Bluetooth).</summary>
     public static bool TurnOff(string controllerName)
+    {
+        // Xbox controllers (also the Bluetooth LE ones, which Windows doesn't list as classic Bluetooth devices) have a call of their own
+        var xbox = XInputPowerOff();
+
+        return TurnOffBluetooth(controllerName) || xbox;
+    }
+
+    /// <summary>XInput's undocumented "power off controller" (export 103 of xinput1_4.dll) for every connected Xbox controller slot.</summary>
+    private static bool XInputPowerOff()
+    {
+        try
+        {
+            var library = LoadLibrary("xinput1_4.dll");
+            if (library == IntPtr.Zero) return false;
+
+            var powerOff = GetProcAddress(library, (IntPtr)103);
+            if (powerOff == IntPtr.Zero) return false;
+
+            var call = Marshal.GetDelegateForFunctionPointer<XInputPowerOffController>(powerOff);
+            var any = false;
+
+            for (uint slot = 0; slot < 4; slot++)
+            {
+                if (XInputGetState(slot, out _) != 0) continue;   // nothing connected there
+
+                if (call(slot) == 0) any = true;
+            }
+
+            return any;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or ArgumentException or MarshalDirectiveException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TurnOffBluetooth(string controllerName)
     {
         try
         {
@@ -184,4 +221,23 @@ public static class ControllerPower
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr handle);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate uint XInputPowerOffController(uint userIndex);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr LoadLibrary(string name);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetProcAddress(IntPtr module, IntPtr ordinal);
+
+    [DllImport("xinput1_4.dll")]
+    private static extern uint XInputGetState(uint userIndex, out XInputState state);
+
+    // XINPUT_STATE is 16 bytes (a packet number and the buttons, triggers and sticks); only the call's result matters here
+    [StructLayout(LayoutKind.Sequential)]
+    private struct XInputState
+    {
+        public long First, Second;
+    }
 }
