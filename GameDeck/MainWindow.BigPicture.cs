@@ -28,8 +28,9 @@ public partial class MainWindow
     /// </summary>
     private void StartControllerWake()
     {
+        // (the Beta stays out of it: the normal GameDeck is the one that answers the Home button)
         _wake = new ControllerWakeService(() =>
-            SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking);
+            !AppInfo.IsBeta && SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking);
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();

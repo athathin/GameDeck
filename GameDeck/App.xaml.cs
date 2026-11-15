@@ -13,14 +13,14 @@ namespace GameDeck
     /// </summary>
     public partial class App : Application
     {
-        // One GameDeck at a time. The names are per Windows session ("Local\"), and the Debug build uses its own
-        // pair, so pressing F5 in Visual Studio works while the published app is running.
+        // One GameDeck at a time. The names are per Windows session ("Local\"), and the Debug build and the Beta use their own
+        // pairs, so pressing F5 in Visual Studio works while the published app is running.
 #if DEBUG
-        private const string InstanceName = @"Local\GameDeck-SingleInstance-Debug";
-        private const string ShowEventName = @"Local\GameDeck-ShowWindow-Debug";
+        private const string InstanceName = @"Local\GameDeck-SingleInstance-Debug" + AppInfo.InstanceSuffix;
+        private const string ShowEventName = @"Local\GameDeck-ShowWindow-Debug" + AppInfo.InstanceSuffix;
 #else
-        private const string InstanceName = @"Local\GameDeck-SingleInstance";
-        private const string ShowEventName = @"Local\GameDeck-ShowWindow";
+        private const string InstanceName = @"Local\GameDeck-SingleInstance" + AppInfo.InstanceSuffix;
+        private const string ShowEventName = @"Local\GameDeck-ShowWindow" + AppInfo.InstanceSuffix;
 #endif
 
         private Mutex? _instanceMutex;

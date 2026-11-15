@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GameDeck.Models;
@@ -13,7 +13,7 @@ namespace GameDeck.Services;
 public class UserDataService
 {
     private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "userdata.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "userdata.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

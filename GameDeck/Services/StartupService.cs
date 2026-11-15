@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace GameDeck.Services;
 
@@ -11,7 +11,7 @@ public static class StartupService
     public const string StartupArgument = "--startup";
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "GameDeck";
+    private const string ValueName = AppInfo.DisplayName;
 
     public static bool IsEnabled
     {

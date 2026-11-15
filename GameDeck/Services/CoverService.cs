@@ -21,11 +21,11 @@ public static class CoverService
     private const string EpicPrefix = "com.epicgames.launcher://apps/";
 
     private static readonly string CacheDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "covers");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "covers");
 
     // Covers picked by the user live in their own folder, so clearing the download cache never removes them
     private static readonly string CustomDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "custom-covers");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "custom-covers");
 
     private static readonly HttpClient Http = CreateClient();
     private static readonly SemaphoreSlim NetworkGate = new(4); // max 4 downloads at once

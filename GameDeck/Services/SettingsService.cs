@@ -28,7 +28,7 @@ public static class SettingsService
     public static readonly double[] TileScales = [0.25, 0.5, 1, 1.25, 1.5];
 
     private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "settings.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "settings.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

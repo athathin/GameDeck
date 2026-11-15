@@ -78,6 +78,7 @@ public partial class MainWindow : Window
         TileScale = SettingsService.TileScale;
 
         InitializeComponent();
+        Title = AppInfo.DisplayName;
         TitleBarStyler.Apply(this);   // title bar in the same color as the window
         DataContext = this;
 

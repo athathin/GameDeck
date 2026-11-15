@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using GameDeck.Models;
 
 namespace GameDeck.Services;
@@ -16,7 +16,7 @@ public static class ProcessGuard
         "ctfmon", "fontdrvhost", "RuntimeBroker", "audiodg", "ApplicationFrameHost", "TextInputHost",
         "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "taskmgr",
         // GameDeck
-        "GameDeck",
+        "GameDeck", "GameDeckBeta",
         // game launchers: closing them before the game starts would break it
         "steam", "steamwebhelper", "steamservice", "EpicGamesLauncher", "GalaxyClient", "upc", "UbisoftConnect",
         "RiotClientServices", "RiotClientUx", "vgc", "Battle.net", "EADesktop", "EALauncher", "Origin",

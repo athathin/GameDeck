@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using GameDeck.Models;
 using GameDeck.Scanners;
@@ -8,7 +8,7 @@ namespace GameDeck.Services;
 public class LibraryService
 {
     private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "library.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "library.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

@@ -39,7 +39,7 @@ public sealed class TrayIcon : IDisposable
             Padding = new Forms.Padding((int)(4 * scale))
         };
 
-        menu.Items.Add(MenuItem("Open GameDeck", open, scale));
+        menu.Items.Add(MenuItem("Open " + AppInfo.DisplayName, open, scale));
         menu.Items.Add(MenuItem("Big Picture mode", bigPicture, scale));
         menu.Items.Add(new Forms.ToolStripSeparator { Margin = new Forms.Padding(0, (int)(3 * scale), 0, (int)(3 * scale)) });
         menu.Items.Add(MenuItem("Exit", exit, scale));
@@ -93,7 +93,7 @@ public sealed class TrayIcon : IDisposable
         _icon = new Forms.NotifyIcon
         {
             Icon = LoadIcon(),
-            Text = "GameDeck",
+            Text = AppInfo.DisplayName,
             ContextMenuStrip = menu,
             Visible = false
         };

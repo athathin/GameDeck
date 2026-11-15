@@ -26,6 +26,13 @@
 		<TieredPGO>false</TieredPGO>
 	</PropertyGroup>
 
+	<!-- The Beta (see beta.ps1): the same code with another name and identity (AppInfo.cs), built with -p:GameDeckBeta=true -->
+	<PropertyGroup Condition="'$(GameDeckBeta)' == 'true'">
+		<DefineConstants>$(DefineConstants);BETA</DefineConstants>
+		<AssemblyName>GameDeckBeta</AssemblyName>
+		<RootNamespace>GameDeck</RootNamespace>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<!-- keeps WinForms' type names (MessageBox, Application, ...) from clashing with WPF's -->
 		<Using Remove="System.Windows.Forms" />

@@ -156,6 +156,7 @@ public partial class BigPictureWindow : Window
                             Action onlineCoversChanged, Action quickLaunchChanged)
     {
         InitializeComponent();
+        Title = AppInfo.DisplayName + " Big Picture";
 
         _actions = actions;
         _gameActions = gameMenu;

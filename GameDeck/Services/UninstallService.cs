@@ -25,7 +25,7 @@ public static class UninstallService
         var exe = Environment.ProcessPath;
         var exeFolder = exe is null ? null : Path.GetDirectoryName(exe);
 
-        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck");
+        var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName);
         var tempNet = Path.Combine(Path.GetTempPath(), ".net");
         var extracted = Path.Combine(tempNet, "GameDeck");
 

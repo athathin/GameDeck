@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -15,7 +15,7 @@ public static class CrashLog
     private const int MaxUrlLength = 6500;   // browsers and GitHub accept long addresses, but not unlimited ones
 
     private static readonly string Folder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "logs");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "logs");
 
     public static string LogFolder => Folder;
 

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -61,7 +61,7 @@ public static class UpdateService
     {
         get
         {
-#if DEBUG
+#if DEBUG || BETA
             return false;
 #else
             try
@@ -333,7 +333,7 @@ public static class UpdateService
     }
 
     private static readonly string StatePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "update-state.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "update-state.json");
 
     private static UpdateState LoadState()
     {

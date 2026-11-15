@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using GameDeck.Models;
 
@@ -18,7 +18,7 @@ public record ChartBar(string Label, string Value, double Height, double Opacity
 public class SessionLog
 {
     private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "sessions.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "sessions.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

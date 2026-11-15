@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -20,7 +20,7 @@ public class LaunchRoutineService
     private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(8);
 
     private static readonly string PendingPowerFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck", "pending-power-plan.txt");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "pending-power-plan.txt");
 
     /// <summary>What a running routine has to undo when its game ends.</summary>
     private class Session

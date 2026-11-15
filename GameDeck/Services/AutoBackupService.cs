@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 
 namespace GameDeck.Services;
@@ -16,7 +16,7 @@ public static class AutoBackupService
     private static readonly string[] Files = ["userdata.json", "sessions.json", "library.json", "settings.json"];
 
     private static string DataFolder { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GameDeck");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName);
 
     private static string BackupFolder => Path.Combine(DataFolder, "backups");
 
