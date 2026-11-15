@@ -116,7 +116,7 @@ public partial class BigPictureWindow
                     BuildMainHints();   // the hints name the buttons the other way round now
                     BuildOverlayHints();
                 }),
-            new("Sounds when moving, selecting and going back", IsOn: () => SettingsService.NavSounds,
+            new("Sounds  (moving, selecting, going back, starting a game)", IsOn: () => SettingsService.NavSounds,
                 Activate: () => SettingsService.NavSounds = !SettingsService.NavSounds),
             new("Open Big Picture mode from a controller", IsOn: () => SettingsService.ControllerWake,
                 Activate: () => SettingsService.ControllerWake = !SettingsService.ControllerWake),

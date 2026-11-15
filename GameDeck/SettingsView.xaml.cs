@@ -66,6 +66,7 @@ public partial class SettingsView : UserControl
         LaunchToastCheckBox.IsChecked = SettingsService.ShowLaunchToast;
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
+        NavSoundsCheckBox.IsChecked = SettingsService.NavSounds;
         SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
         QuickLaunchCheckBox.IsChecked = SettingsService.QuickLaunchEnabled;
         StopCapturing();
@@ -79,6 +80,13 @@ public partial class SettingsView : UserControl
     // True while the shortcut button waits for the user to press the new keys. The main window checks this so Esc
     // cancels the capture instead of leaving the settings screen.
     public bool IsCapturingShortcut { get; private set; }
+
+    private void NavSoundsCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.NavSounds = NavSoundsCheckBox.IsChecked == true;   // Big Picture checks this each time a sound would play
+    }
 
     private void ControllerWakeCheckBox_Changed(object sender, RoutedEventArgs e)
     {
