@@ -23,6 +23,17 @@ To remove GameDeck, use **Settings > Uninstall GameDeck** inside the app.
 Each time GameDeck starts it checks this page for a newer release. If there is one it downloads it, installs it and
 starts again as the new version, the way Steam updates itself. You can turn this off in **Settings**.
 
+## Bugs and suggestions
+
+Found a bug or have an idea? Please [open an issue](https://github.com/athathin/GameDeck/issues/new/choose) and pick
+**Bug report** or **Suggestion**. For a bug, it helps to include:
+
+- the GameDeck version (Settings shows it) and whether you use the 64-bit or the 32-bit file,
+- whether it happens in desktop mode or Big Picture mode, and the controller you use,
+- what you did, what happened and what you expected, with a screenshot if you can.
+
+Please leave out personal information. You can only suggest changes: only the owner can change this repository.
+
 ## License
 
 GameDeck is released under the [MIT License](LICENSE). The software and artwork it includes are listed in

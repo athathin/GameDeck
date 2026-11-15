@@ -1,0 +1,73 @@
+name: Bug report
+description: Something in GameDeck doesn't work the way it should
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping to improve GameDeck! The more of these you fill in, the faster the problem can be found.
+        Please don't include personal information (names, e-mail addresses, file paths with your user name).
+  - type: input
+    id: version
+    attributes:
+      label: GameDeck version
+      description: Shown in Settings, under "Install updates automatically when GameDeck starts".
+      placeholder: "1.0.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: bits
+    attributes:
+      label: Which file are you using?
+      options:
+        - GameDeck-win-x64.exe (64-bit)
+        - GameDeck-win-x86.exe (32-bit)
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Where does it happen?
+      options:
+        - Desktop mode
+        - Big Picture mode
+        - Both
+        - Updating / starting up
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: controller
+    attributes:
+      label: Controller (if it has to do with one)
+      description: Model and how it is connected.
+      placeholder: "Xbox Elite Series 2, Bluetooth"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem. A screenshot or a photo of the screen helps a lot (you can paste it here).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can it be repeated?
+      description: The steps that lead to the problem, one per line.
+      placeholder: |
+        1. Open Big Picture mode
+        2. Press ...
+        3. ...
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
