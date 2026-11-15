@@ -25,7 +25,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- a tile in the row: grows and gets a purple ring while selected -->
+        <!-- a tile in the row: grows and gets a ring (the desktop selection color) while selected -->
         <Style x:Key="BigItem" TargetType="ListBoxItem">
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="Template">
@@ -40,7 +40,9 @@
                                 </Border.Clip>
                                 <ContentPresenter/>
                             </Border>
-                            <Border x:Name="Ring" CornerRadius="8" BorderBrush="#8037FE" BorderThickness="4"
+                            <!-- drawn just outside the card (margin = thickness, outer radius = card radius + thickness), so the inner edge
+                                 follows the card's rounded corners; same color as the selection in desktop mode -->
+                            <Border x:Name="Ring" Margin="-4" CornerRadius="12" BorderBrush="{DynamicResource TextPrimary}" BorderThickness="4"
                                     IsHitTestVisible="False" Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
