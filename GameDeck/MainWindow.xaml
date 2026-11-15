@@ -398,7 +398,7 @@
                                     <TextBlock Text="★" Foreground="#FFC857" FontSize="14"/>
                                 </Border>
 
-                                <Border x:Name="Highlight" BorderBrush="{DynamicResource TextPrimary}" BorderThickness="2"
+                                <Border x:Name="Highlight" BorderBrush="#8037FE" BorderThickness="2"
                                         CornerRadius="4" Opacity="0" IsHitTestVisible="False"/>
                             </Grid>
                         </Viewbox>
