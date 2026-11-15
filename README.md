@@ -22,12 +22,3 @@ To remove GameDeck, use **Settings > Uninstall GameDeck** inside the app.
 
 Each time GameDeck starts it checks this page for a newer release. If there is one it downloads it, installs it and
 starts again as the new version, the way Steam updates itself. You can turn this off in **Settings**.
-
-## Publishing a new version (for the maintainer)
-
-1. Raise `<Version>` in `GameDeck/GameDeck.csproj`.
-2. Push to `main`.
-
-The [Release workflow](.github/workflows/release.yml) builds the 64-bit and 32-bit programs and publishes them as a
-new release. Every installed GameDeck picks it up the next time it starts. Pushing without raising the version does not
-create a release.
