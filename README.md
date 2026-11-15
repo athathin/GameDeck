@@ -22,3 +22,8 @@ To remove GameDeck, use **Settings > Uninstall GameDeck** inside the app.
 
 Each time GameDeck starts it checks this page for a newer release. If there is one it downloads it, installs it and
 starts again as the new version, the way Steam updates itself. You can turn this off in **Settings**.
+
+## License
+
+GameDeck is released under the [MIT License](LICENSE). The software and artwork it includes are listed in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
