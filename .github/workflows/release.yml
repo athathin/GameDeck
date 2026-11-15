@@ -40,7 +40,7 @@ jobs:
           "released=$($LASTEXITCODE -eq 0)".ToLower() >> $env:GITHUB_OUTPUT
           $global:LASTEXITCODE = 0
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         if: steps.exists.outputs.released == 'false'
         with:
           dotnet-version: 10.0.x
