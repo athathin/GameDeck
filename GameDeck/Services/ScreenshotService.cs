@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using GameDeck.Models;
 
 namespace GameDeck.Services;
@@ -26,12 +26,20 @@ public static class ScreenshotService
     {
         var found = new List<string>();
 
-        found.AddRange(Pictures(FolderOf(game), null));
+        found.AddRange(Pictures(FolderOf(game), "*", null));
 
-        // Game Bar names its files after the window's title, which is nearly always the game's name
-        var names = new[] { game.Name, game.DisplayName }.Where(n => n.Trim().Length >= 3).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (names.Count > 0)
-            found.AddRange(Pictures(CapturesFolder, file => names.Any(n => Path.GetFileName(file).StartsWith(n, StringComparison.OrdinalIgnoreCase))));
+        // Game Bar names its files after the window's title, which is nearly always the game's name. The folder can hold
+        // thousands of captures of other games: only the files that start with this game's name are asked for.
+        var invalid = Path.GetInvalidFileNameChars();
+        var names = new[] { game.Name, game.DisplayName }
+            .Select(n => n.Trim())
+            .Where(n => n.Length >= 3 && n.IndexOfAny(invalid) < 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in names)
+            found.AddRange(Pictures(CapturesFolder, name + "*", null));
+
+        found = found.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         return found
             .Select(f => (File: f, Time: SafeWriteTime(f)))
@@ -69,13 +77,13 @@ public static class ScreenshotService
         return added;
     }
 
-    private static IEnumerable<string> Pictures(string folder, Func<string, bool>? filter)
+    private static IEnumerable<string> Pictures(string folder, string pattern, Func<string, bool>? filter)
     {
         try
         {
             if (!Directory.Exists(folder)) return [];
 
-            return Directory.EnumerateFiles(folder)
+            return Directory.EnumerateFiles(folder, pattern)
                 .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase) && (filter?.Invoke(f) ?? true))
                 .ToList();
         }

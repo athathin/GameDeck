@@ -88,6 +88,9 @@ public partial class BigPictureWindow
     /// <summary>Returns true when the button was used up here.</summary>
     private bool HandleStrip(PadButton button)
     {
+        if (_continueItems.Count == 0) return false;
+        _stripIndex = Math.Clamp(_stripIndex, 0, _continueItems.Count - 1);   // (the row may have got shorter since)
+
         switch (button)
         {
             case PadButton.Left: _stripIndex = Math.Max(0, _stripIndex - 1); ContinueList.SelectedIndex = _stripIndex; return true;

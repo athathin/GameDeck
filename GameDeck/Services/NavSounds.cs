@@ -40,6 +40,8 @@ public static class NavSounds
     {
         Release();
 
+        if (!SettingsService.NavSounds) return;   // (turned on later in the session: the first sound opens its player then)
+
         foreach (var sound in Enum.GetValues<NavSound>())
             VoiceFor(sound);
     }

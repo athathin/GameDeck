@@ -25,6 +25,9 @@ public partial class GameDetailsView : UserControl
     /// <summary>The screenshots shown now (the controller screen opens them full size).</summary>
     public IReadOnlyList<string> Shots { get; private set; } = [];
 
+    /// <summary>The screenshots are found a moment after the page opens (the pictures are read in the background).</summary>
+    public event EventHandler? ShotsChanged;
+
     public GameDetailsView()
     {
         InitializeComponent();
@@ -49,6 +52,9 @@ public partial class GameDetailsView : UserControl
         NotesText.Text = game.Notes ?? "";
         NotesPanel.Visibility = game.HasNotes ? Visibility.Visible : Visibility.Collapsed;
 
+        Shots = [];   // (the last game's pictures must not stay while this game's are being found)
+        ShotsWrap.Children.Clear();
+        ShotsHint.Visibility = Visibility.Visible;
         LoadShots(game);
 
         CategoriesText.Text = game.Tags.Count > 0 ? "Categories: " + string.Join(", ", game.Tags) : "";
@@ -57,14 +63,29 @@ public partial class GameDetailsView : UserControl
 
     // ---- screenshots ----
 
-    private void LoadShots(Game game)
+    private async void LoadShots(Game game)
     {
-        Shots = ScreenshotService.Find(game);
+        List<string> files;
+        List<BitmapImage?> thumbnails;
 
+        try
+        {
+            files = await Task.Run(() => ScreenshotService.Find(game));
+            thumbnails = await Task.Run(() => files.Select(Thumbnail).ToList());   // (frozen pictures can be made on another thread)
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return;   // (an async void must not throw: with no screenshots found the page simply shows none)
+        }
+
+        if (!ReferenceEquals(DataContext, game)) return;   // another game's page was opened meanwhile
+
+        Shots = files;
         ShotsWrap.Children.Clear();
+
         for (var i = 0; i < Shots.Count; i++)
         {
-            var thumbnail = Thumbnail(Shots[i]);
+            var thumbnail = thumbnails[i];
             if (thumbnail is null) continue;
 
             var index = i;
@@ -80,6 +101,7 @@ public partial class GameDetailsView : UserControl
         }
 
         ShotsHint.Visibility = ShotsWrap.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ShotsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>

@@ -191,6 +191,10 @@ public partial class BigPictureWindow : Window
 
         BuildKeyboard();
         InitContinue();
+        DetailsView.ShotsChanged += (_, _) =>
+        {
+            if (_overlay == Overlay.Details) FillDetailsHints();   // the "Screenshots" hint appears once they are found
+        };
         NavSounds.Preload();
         UpdateClock();
         ApplyTab(preserveSelection: false);
