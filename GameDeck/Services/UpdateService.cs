@@ -49,9 +49,10 @@ public static class UpdateService
 #else
             try
             {
-                // (started through "dotnet GameDeck.dll" the running program is dotnet.exe, which must never be touched)
+                // The program may carry any name (the release files are called GameDeck-win-x64.exe and so on), but when it
+                // is started through "dotnet GameDeck.dll" the running program is dotnet.exe, which must never be touched.
                 var exe = Environment.ProcessPath;
-                if (exe is null || !string.Equals(Path.GetFileName(exe), "GameDeck.exe", StringComparison.OrdinalIgnoreCase))
+                if (exe is null || string.Equals(Path.GetFileNameWithoutExtension(exe), "dotnet", StringComparison.OrdinalIgnoreCase))
                     return false;
 
                 // renaming the file is how the swap works, so check that the folder allows it

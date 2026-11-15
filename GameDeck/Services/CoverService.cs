@@ -55,7 +55,9 @@ public static class CoverService
             if (file is null || !game.CoverWanted) return;
 
             game.Cover = LoadBitmap(file);
-            game.HasCustomCover = FindCustomCover(Hash(game.LaunchTarget)) is not null;
+
+            // the file just found already says whether it is the user's own cover: no need to search that folder again
+            game.HasCustomCover = string.Equals(Path.GetDirectoryName(file), CustomDir, StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
@@ -456,6 +458,10 @@ public static class CoverService
     private static string Normalize(string? text) =>
         new((text ?? "").Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
+    // A game's key is asked for several times every time its cover is looked up (and a tile does that each time it scrolls
+    // into view): work it out once per launch target.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> Hashes = new();
+
     private static string Hash(string text) =>
-        Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(text.ToLowerInvariant())))[..16];
+        Hashes.GetOrAdd(text, t => Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(t.ToLowerInvariant())))[..16]);
 }
