@@ -44,16 +44,39 @@ public static class NavSounds
             VoiceFor(sound);
     }
 
-    /// <summary>Closes the players (Big Picture is closing).</summary>
+    // players put aside (Big Picture closed or opened again) that may still be finishing a sound
+    private static readonly List<Voice> Retired = [];
+    private static System.Windows.Threading.DispatcherTimer? _retireTimer;
+
+    /// <summary>
+    /// Puts the players away (Big Picture is closing). A sound still playing, like the blip of the "Exit" button, is not cut off:
+    /// the players are closed a little later.
+    /// </summary>
     public static void Release()
     {
-        foreach (var voice in Voices.Values)
+        Retired.AddRange(Voices.Values);
+        Voices.Clear();
+
+        if (Retired.Count == 0) return;
+
+        _retireTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _retireTimer.Tick -= CloseRetired;
+        _retireTimer.Tick += CloseRetired;
+        _retireTimer.Stop();
+        _retireTimer.Start();   // (again from now: whatever was put away last gets its full time)
+    }
+
+    private static void CloseRetired(object? sender, EventArgs e)
+    {
+        _retireTimer?.Stop();
+
+        foreach (var voice in Retired)
         {
             try { voice.Player.Close(); }
             catch (Exception ex) { Report(ex); }
         }
 
-        Voices.Clear();
+        Retired.Clear();
     }
 
     public static void Play(NavSound sound)
