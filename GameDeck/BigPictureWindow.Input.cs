@@ -18,6 +18,13 @@ public partial class BigPictureWindow
         if (Mouse.OverrideCursor is null)
             HideCursor();   // a button or a key was used: no pointer needed
 
+        NavSounds.Play(button switch
+        {
+            PadButton.Confirm or PadButton.Start or PadButton.Y or PadButton.RightTrigger => NavSound.Select,
+            PadButton.Back => NavSound.Back,
+            _ => NavSound.Move
+        });
+
         // an open menu / keyboard / panel takes all the input
         if (_overlay != Overlay.None)
         {

@@ -51,6 +51,7 @@ public static class SettingsService
         public bool ShowLaunchToast { get; set; } = true;
 
         public bool ControllerWake { get; set; } = true;
+        public bool NavSounds { get; set; } = true;
 
         public bool AutoUpdate { get; set; } = true;
 
@@ -144,6 +145,17 @@ public static class SettingsService
         set
         {
             Current.ShowLaunchToast = value;
+            Save();
+        }
+    }
+
+    /// <summary>The small sounds of Big Picture mode (selection moves, select, back).</summary>
+    public static bool NavSounds
+    {
+        get => Current.NavSounds;
+        set
+        {
+            Current.NavSounds = value;
             Save();
         }
     }
