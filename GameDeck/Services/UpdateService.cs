@@ -192,23 +192,84 @@ public static class UpdateService
         Process.Start(info);
     }
 
-    /// <summary>Removes the previous version's file that an update left behind (it can still be in use right after the swap).</summary>
+    /// <summary>
+    /// Removes what an update leaves behind, so only the new version's files remain: the previous program file, a download
+    /// that never finished, and the unpacked copies of the earlier versions' built-in libraries. Runs in the background.
+    /// </summary>
     public static void CleanUpOldVersion()
     {
-        try
+        _ = Task.Run(async () =>
         {
             var exe = Environment.ProcessPath;
             if (exe is null) return;
 
-            foreach (var leftover in new[] { exe + ".old", exe + ".new" })
+            // Right after an update the previous version is still closing and its file is locked for a moment: try again
+            // for a while (a locked file that is still there at the end is removed at the next start).
+            for (var attempt = 0; attempt < 30; attempt++)
             {
-                if (File.Exists(leftover))
-                    File.Delete(leftover);
+                var pending = false;
+
+                foreach (var leftover in new[] { exe + ".old", exe + ".new" })
+                {
+                    try
+                    {
+                        if (File.Exists(leftover))
+                            File.Delete(leftover);
+                    }
+                    catch
+                    {
+                        pending = true;
+                    }
+                }
+
+                if (!pending) break;
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+
+            RemoveOldUnpackedLibraries();
+        });
+    }
+
+    /// <summary>
+    /// A single-file program unpacks its native libraries into a folder of its own in %TEMP%\.net\&lt;name&gt;\&lt;id&gt;, a new
+    /// one for every version. The folders of the versions that were replaced are no longer needed.
+    /// </summary>
+    private static void RemoveOldUnpackedLibraries()
+    {
+        try
+        {
+            var root = Path.Combine(Path.GetTempPath(), ".net") + Path.DirectorySeparatorChar;
+
+            // the folder this version runs from: wherever one of its own loaded libraries lives
+            string? current = null;
+            using (var process = Process.GetCurrentProcess())
+            {
+                foreach (ProcessModule module in process.Modules)
+                {
+                    if (module.FileName.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    {
+                        current = Path.GetDirectoryName(module.FileName);
+                        break;
+                    }
+                }
+            }
+
+            // only ever look at this program's own folder: %TEMP%\.net\<name>\<id>, one level below the app's name
+            var appFolder = current is null ? null : Path.GetDirectoryName(current);
+            if (appFolder is null || !Path.GetDirectoryName(appFolder)!.Equals(root.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                return;
+
+            foreach (var folder in Directory.EnumerateDirectories(appFolder))
+            {
+                if (folder.Equals(current, StringComparison.OrdinalIgnoreCase)) continue;
+
+                try { Directory.Delete(folder, recursive: true); }
+                catch { /* in use: left for the next start */ }
             }
         }
         catch
         {
-            // still in use: it is removed the next time GameDeck starts
+            // not a single-file run, or no access: nothing to clean
         }
     }
 
