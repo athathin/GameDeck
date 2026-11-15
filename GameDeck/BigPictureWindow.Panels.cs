@@ -189,8 +189,8 @@ public partial class BigPictureWindow
     {
         var rows = new List<FilterRow> { new("Clear all filters", Activate: ClearFilters) };
 
-        var launchers = _library.Select(g => g.Source).Distinct()
-            .OrderBy(s => s == "Manual").ThenBy(s => s, StringComparer.CurrentCultureIgnoreCase).ToList();
+        var launchers = _library.Select(g => g.Source).Append(ManualSource).Distinct()   // "Other" is always offered
+            .OrderBy(s => s == ManualSource).ThenBy(s => s, StringComparer.CurrentCultureIgnoreCase).ToList();
         if (launchers.Count > 0)
         {
             rows.Add(new FilterRow("LAUNCHER", IsHeader: true));
@@ -204,15 +204,16 @@ public partial class BigPictureWindow
 
         var categories = _library.SelectMany(g => g.Tags).Distinct(StringComparer.CurrentCultureIgnoreCase)
             .OrderBy(t => t, StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (categories.Count > 0)
+
+        rows.Add(new FilterRow("CATEGORY", IsHeader: true));
+        if (categories.Count == 0)
+            rows.Add(new FilterRow("None yet. Edit a game from its menu to add some."));
+
+        foreach (var category in categories)
         {
-            rows.Add(new FilterRow("CATEGORY", IsHeader: true));
-            foreach (var category in categories)
-            {
-                var chosen = category;
-                rows.Add(new FilterRow(chosen, IsOn: () => _categoryFilters.Contains(chosen),
-                                       Activate: () => Toggle(_categoryFilters, chosen)));
-            }
+            var chosen = category;
+            rows.Add(new FilterRow(chosen, IsOn: () => _categoryFilters.Contains(chosen),
+                                   Activate: () => Toggle(_categoryFilters, chosen)));
         }
 
         rows.Add(new FilterRow("STATUS", IsHeader: true));
@@ -223,15 +224,18 @@ public partial class BigPictureWindow
                                    Activate: () => Toggle(_statusFilters, chosen)));
         }
 
+        rows.Add(new FilterRow("SHOW", IsHeader: true));
+        rows.Add(new FilterRow("Hidden games", IsOn: () => _showHidden, Activate: () => _showHidden = !_showHidden));
+
         rows.Add(new FilterRow("SORT BY", IsHeader: true));
         foreach (var (text, mode) in new[]
                  {
                      ("Name (A–Z)", SortMode.Name), ("Most played", SortMode.Playtime),
-                     ("Last played", SortMode.LastPlayed), ("Launcher", SortMode.Source)
+                     ("Recently played", SortMode.LastPlayed), ("Launcher", SortMode.Source)
                  })
         {
             var chosen = mode;
-            rows.Add(new FilterRow(text, IsOn: () => _sort == chosen, Activate: () => _sort = chosen, IsRadio: true));
+            rows.Add(new FilterRow(text, IsOn: () => _sort == chosen, Activate: () => { _sort = chosen; SettingsService.SortMode = chosen; }, IsRadio: true));
         }
 
         _filterRows = rows;
@@ -252,6 +256,7 @@ public partial class BigPictureWindow
         _launcherFilters.Clear();
         _categoryFilters.Clear();
         _statusFilters.Clear();
+        _showHidden = false;
     }
 
     private void RenderFilters() =>

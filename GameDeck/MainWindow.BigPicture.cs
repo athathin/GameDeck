@@ -73,8 +73,8 @@ public partial class MainWindow
             return;
         }
 
-        // hidden games stay hidden here too, like in the library
-        var games = _library.Games.Where(g => !g.IsHidden).ToList();
+        // all games: the hidden ones stay out of sight here too, until the "Hidden games" filter is turned on
+        var games = _library.Games.ToList();
 
         var hiddenKeys = _library.Games.Where(g => g.IsHidden)
             .Select(g => g.LaunchTarget)

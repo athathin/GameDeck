@@ -120,6 +120,7 @@ public partial class BigPictureWindow : Window
     private readonly HashSet<GameStatus> _statusFilters = [];
     private SortMode _sort = SettingsService.SortMode;
     private string _query = "";
+    private bool _showHidden;   // the "Hidden games" filter: hidden games are listed too (dimmed)
 
     private Overlay _overlay = Overlay.None;
 

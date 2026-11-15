@@ -90,7 +90,7 @@ public partial class BigPictureWindow
     {
         if (Carousel.SelectedItem is not Game game) return;
 
-        var ranked = _library.Where(g => g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
+        var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 

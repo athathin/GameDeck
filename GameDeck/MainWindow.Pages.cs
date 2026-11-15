@@ -313,7 +313,7 @@ public partial class MainWindow
             return null;
         },
         Uninstall: Uninstall,
-        GetLibrary: () => (_library.Games.Where(g => !g.IsHidden).ToList(),
+        GetLibrary: () => (_library.Games.ToList(),
                            _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
                                .ToHashSet(StringComparer.OrdinalIgnoreCase)));
 

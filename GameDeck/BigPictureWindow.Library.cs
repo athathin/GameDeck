@@ -19,7 +19,7 @@ public partial class BigPictureWindow
         ApplyTab(preserveSelection: false);
     }
 
-    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0;
+    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 || _showHidden;
 
     private void ApplyTab(bool preserveSelection)
     {
@@ -46,8 +46,14 @@ public partial class BigPictureWindow
         BuildMainHints();
         var keep = preserveSelection ? Carousel.SelectedItem as Game : null;
 
+        // a launcher / category that no longer has any games (after a scan, an edit...) stops being a filter
+        _launcherFilters.RemoveWhere(l => l != ManualSource && !_library.Any(g => g.Source == l));
+        _categoryFilters.RemoveWhere(c => !_library.Any(g => g.Tags.Contains(c, StringComparer.CurrentCultureIgnoreCase)));
+
         // narrow the library down by the filters and the search, like the desktop library does
         IEnumerable<Game> source = _library;
+        if (!_showHidden)
+            source = source.Where(g => !g.IsHidden);
         if (_launcherFilters.Count > 0)
             source = source.Where(g => _launcherFilters.Contains(g.Source));
         if (_categoryFilters.Count > 0)
@@ -102,7 +108,9 @@ public partial class BigPictureWindow
 
     private static string ByName(Game game) => game.DisplayName;
 
-    private static string LauncherName(string source) => source == "Manual" ? "Other" : source;
+    private const string ManualSource = "Manual";   // games added by hand: shown as "Other"
+
+    private static string LauncherName(string source) => source == ManualSource ? "Other" : source;
 
     /// <summary>A line under the tabs saying what the list is narrowed down by.</summary>
     private void UpdateFilterSummary()
@@ -113,6 +121,8 @@ public partial class BigPictureWindow
         parts.AddRange(_launcherFilters.Select(LauncherName).Order());
         parts.AddRange(_categoryFilters.Order());
         parts.AddRange(_statusFilters.OrderBy(s => s).Select(s => s.Label()));
+        if (_showHidden)
+            parts.Add("Hidden games");
 
         FilterSummary.Text = "Showing: " + string.Join("  ·  ", parts);
         FilterSummary.Visibility = parts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -179,12 +189,13 @@ public partial class BigPictureWindow
 
     private void BuildStats()
     {
-        var played = _library.Where(g => g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
+        var visible = _library.Where(g => !g.IsHidden).ToList();   // (hidden games stay out of the stats, as before)
+        var played = visible.Where(g => g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         var total = played.Sum(g => g.PlaytimeSeconds);
 
         StatTotal.Text = total <= 0 ? "0 min" : Game.FormatPlaytime(total);
         StatPlayed.Text = played.Count.ToString();
-        StatLibrary.Text = _library.Count.ToString();
+        StatLibrary.Text = visible.Count.ToString();
 
         var week = _sessions.SecondsThisWeek();
         StatWeek.Text = week <= 0 ? "0 min" : week < 3600 ? $"{week / 60} min" : $"{week / 3600.0:0.#} h";
