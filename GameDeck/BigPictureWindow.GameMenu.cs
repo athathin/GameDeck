@@ -258,7 +258,7 @@ public partial class BigPictureWindow
         if (turnedOff)
             CloseOverlay();
         else
-            PowerTitle.Text = "Couldn't switch the controller off. It may be wired.";
+            PowerTitle.Text = "Couldn't switch the controller off. It may be wired, or Windows doesn't allow it for this model.";
     }
 
     private void RenderPower()

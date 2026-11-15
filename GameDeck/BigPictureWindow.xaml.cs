@@ -45,7 +45,7 @@ public record BigPictureGameActions(
 
 public partial class BigPictureWindow : Window
 {
-    private const double Pitch = 248;   // one tile (228: the 220 card and its 4 ring) plus its side margins (2 x 10), see BigItem in the XAML
+    private const double Pitch = 248;   // one tile slot (228 + 2 x 10), see BigItem in the XAML
 
     // the same tabs as the desktop library
     private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];

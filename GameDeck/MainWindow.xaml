@@ -154,6 +154,7 @@
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="BigPictureButton" Style="{StaticResource PillButton}" Padding="12,8"
+                            FocusVisualStyle="{x:Null}"
                             FontFamily="Segoe MDL2 Assets" FontSize="16" Content="&#xE7FC;"
                             Click="BigPictureButton_Click" ToolTip="Big Picture mode: full screen, for a controller (F11)"/>
                     <Button x:Name="SettingsButton" Style="{StaticResource PillButton}" Padding="12,8"

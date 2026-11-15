@@ -31,28 +31,34 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Grid x:Name="Root" Margin="10,44" Width="228" Height="338" Background="Transparent" UseLayoutRounding="False"
-                              RenderTransformOrigin="0.5,0.5">
-                            <!-- ClipToBounds only clips to a rectangle, so the cover needs a real rounded clip to match the ring -->
-                            <Border CornerRadius="9" Margin="3">
-                                <Border.Clip>
-                                    <RectangleGeometry Rect="0,0,222,332" RadiusX="9" RadiusY="9"/>
-                                </Border.Clip>
-                                <ContentPresenter/>
-                            </Border>
-                            <!-- the card (222 x 332) sits 3 inside this tile and the ring (4 wide) is drawn over its outer edge, so no
-                                 hairline of background can show between the two (two antialiased edges on the same curve leave one). A stroke is centered on its line (2 in, radius 10), so it
-                                 spans radius 8 to 12 and its inner edge follows the card's corners; unlike a border it
-                                 isn't pixel-snapped, so it can't drift from the card at a fractional position -->
-                            <Rectangle x:Name="Ring" Margin="2" RadiusX="10" RadiusY="10" Stroke="#8037FE" StrokeThickness="4"
-                                       SnapsToDevicePixels="False" IsHitTestVisible="False" Visibility="Collapsed"/>
-                        </Grid>
+                        <!-- The tile keeps a fixed slot (248 x 426) in the row. Selecting it makes the card really bigger (layout, not a
+                             scale transform): a scaled ring has a fractional width, and its two sides then land on different fractions of
+                             a screen pixel, so one looked thinner than the other. With layout rounding both sides snap to whole pixels. -->
+                        <Canvas Width="248" Height="426" UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <Grid x:Name="Root" Canvas.Left="10" Canvas.Top="44" Width="228" Height="338" Background="Transparent">
+                                <!-- ClipToBounds only clips to a rectangle, so the cover needs a real rounded clip -->
+                                <Border x:Name="Card" CornerRadius="9" Margin="3">
+                                    <Border.Clip>
+                                        <RectangleGeometry Rect="0,0,222,332" RadiusX="9" RadiusY="9"/>
+                                    </Border.Clip>
+                                    <ContentPresenter/>
+                                </Border>
+                                <!-- the ring (4 wide, inner radius 9 = the card's) is drawn over the card's outer 1 px, so no hairline of
+                                     background can show between the two -->
+                                <Border x:Name="Ring" CornerRadius="13" BorderBrush="#8037FE" BorderThickness="4"
+                                        IsHitTestVisible="False" Visibility="Collapsed"/>
+                            </Grid>
+                        </Canvas>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="Root" Property="RenderTransform">
+                                <Setter TargetName="Root" Property="Canvas.Left" Value="-4"/>
+                                <Setter TargetName="Root" Property="Canvas.Top" Value="23"/>
+                                <Setter TargetName="Root" Property="Width" Value="256"/>
+                                <Setter TargetName="Root" Property="Height" Value="380"/>
+                                <Setter TargetName="Card" Property="Clip">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="1.12" ScaleY="1.12"/>
+                                        <RectangleGeometry Rect="0,0,250,374" RadiusX="9" RadiusY="9"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
