@@ -204,6 +204,11 @@ public partial class BigPictureWindow
         StatStreak.Text = current == 1 ? "1 day" : $"{current} days";
         StatLongest.Text = longest == 1 ? "1 day" : $"{longest} days";
 
+        var weekly = _sessions.ThisWeek(_hiddenKeys);
+        WeekHeadline.Text = weekly.Headline;
+        WeekCompare.Text = weekly.Compare;
+        WeekLines.ItemsSource = weekly.Lines;
+
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
 

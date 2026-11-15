@@ -213,6 +213,21 @@
                             </Border>
                         </UniformGrid>
 
+                        <TextBlock Text="THIS WEEK" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,30,0,10"/>
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="26,20">
+                            <StackPanel>
+                                <TextBlock x:Name="WeekHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="28" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="WeekCompare" Foreground="{DynamicResource TextSecondary}" FontSize="17" Margin="0,4,0,0"/>
+                                <ItemsControl x:Name="WeekLines" Margin="0,12,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="17" Margin="0,0,0,4"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <Grid Margin="0,30,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

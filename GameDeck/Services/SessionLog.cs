@@ -7,6 +7,9 @@ namespace GameDeck.Services;
 /// <summary>One line of the "recent sessions" lists.</summary>
 public record SessionRow(string Game, string When, string Duration);
 
+/// <summary>The "this week" card of the Stats tab: a headline, how it compares with last week, and a few facts.</summary>
+public record WeekSummary(string Headline, string Compare, IReadOnlyList<string> Lines);
+
 /// <summary>One bar of a stats chart.</summary>
 public record ChartBar(string Label, string Value, double Height, double Opacity, string ToolTip);
 
@@ -144,6 +147,61 @@ public class SessionLog
         var perDay = SecondsPerDay();
         var monday = MondayOf(DateOnly.FromDateTime(DateTime.Now));
         return Enumerable.Range(0, 7).Sum(d => perDay.GetValueOrDefault(monday.AddDays(d)));
+    }
+
+    /// <summary>
+    /// This week (Monday to now) against last week, plus a few facts: days played, most played game, longest session, busiest day.
+    /// Sessions of the games in <paramref name="excludeKeys"/> (hidden ones) are left out of the facts.
+    /// </summary>
+    public WeekSummary ThisWeek(IReadOnlySet<string>? excludeKeys = null)
+    {
+        var perDay = SecondsPerDay();
+        var monday = MondayOf(DateOnly.FromDateTime(DateTime.Now));
+
+        long WeekSeconds(DateOnly start) => Enumerable.Range(0, 7).Sum(d => perDay.GetValueOrDefault(start.AddDays(d)));
+
+        var thisWeek = WeekSeconds(monday);
+        var lastWeek = WeekSeconds(monday.AddDays(-7));
+
+        var headline = thisWeek <= 0 ? "Nothing played yet this week" : Game.FormatPlaytime(thisWeek) + " this week";
+
+        string compare;
+        if (lastWeek <= 0)
+            compare = thisWeek <= 0 ? "No play last week either" : "No play last week";
+        else if (Math.Abs(thisWeek - lastWeek) < 60)
+            compare = "About the same as last week";
+        else
+            compare = thisWeek > lastWeek
+                ? $"▲ {Game.FormatPlaytime(thisWeek - lastWeek)} more than last week"
+                : $"▼ {Game.FormatPlaytime(lastWeek - thisWeek)} less than last week";
+
+        var lines = new List<string>();
+
+        var daysPlayed = Enumerable.Range(0, 7).Count(d => perDay.GetValueOrDefault(monday.AddDays(d)) > 0);
+        if (daysPlayed > 0)
+            lines.Add(daysPlayed == 1 ? "Played on 1 day" : $"Played on {daysPlayed} days");
+
+        var week = _sessions
+            .Where(s => DateOnly.FromDateTime(s.StartUtc.ToLocalTime()) >= monday)
+            .Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key))
+            .ToList();
+
+        if (week.Count > 0)
+        {
+            var top = week.GroupBy(s => s.Key).Select(g => (Name: g.First().Name, Seconds: g.Sum(s => s.Seconds)))
+                .OrderByDescending(g => g.Seconds).First();
+            lines.Add($"Most played: {top.Name} ({Game.FormatPlaytime(top.Seconds)})");
+
+            var longest = week.OrderByDescending(s => s.Seconds).First();
+            lines.Add($"Longest session: {Game.FormatPlaytime(longest.Seconds)} ({longest.Name})");
+        }
+
+        var busiest = Enumerable.Range(0, 7).Select(d => (Day: monday.AddDays(d), Seconds: perDay.GetValueOrDefault(monday.AddDays(d))))
+            .OrderByDescending(d => d.Seconds).First();
+        if (busiest.Seconds > 0)
+            lines.Add($"Busiest day: {busiest.Day:dddd} ({Game.FormatPlaytime(busiest.Seconds)})");
+
+        return new WeekSummary(headline, compare, lines);
     }
 
     /// <summary>Days in a row with some play. The streak is still alive if you played yesterday but not yet today.</summary>
