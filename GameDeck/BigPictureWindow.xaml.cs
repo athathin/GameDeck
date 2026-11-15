@@ -237,6 +237,7 @@ public partial class BigPictureWindow : Window
 
     private readonly DispatcherTimer _cursorTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private Point _cursorPosition;
+    private bool _mouseMoved;   // the last mouse event was a real move (set before the tiles see it)
 
     /// <summary>Hides the pointer on the whole screen (it also hides the hand over buttons).</summary>
     private void HideCursor()
@@ -260,7 +261,8 @@ public partial class BigPictureWindow : Window
     {
         // tiles that glide under a still mouse also raise this event: only a real move shows the pointer
         var position = e.GetPosition(this);
-        if (position == _cursorPosition) return;
+        _mouseMoved = position != _cursorPosition;
+        if (!_mouseMoved) return;
 
         _cursorPosition = position;
         ShowCursor();

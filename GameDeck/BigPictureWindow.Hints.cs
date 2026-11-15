@@ -83,6 +83,9 @@ public partial class BigPictureWindow
         if (_tab != StatsTab && !_topFocus)
             items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU"));
 
+        if (_tab == StatsTab && !_topFocus)
+            items.Add((RoundButton(l.X, onController), "REFRESH"));
+
         if (_tab != StatsTab || _topFocus)
             items.Add((RoundButton(l.Confirm, onController), "SELECT"));
 

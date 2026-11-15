@@ -27,6 +27,7 @@ public partial class BigPictureWindow
         var stats = _tab == StatsTab;
         Carousel.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
         StatsScroll.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
+        RefreshStatsButton.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
 
         if (stats)
         {
@@ -162,6 +163,17 @@ public partial class BigPictureWindow
     }
 
     // ---------- the Stats tab ----------
+
+    /// <summary>Reloads the play sessions (a game may have ended since) and redraws the numbers and charts.</summary>
+    private void RefreshStats()
+    {
+        _sessions.Load();
+        var offset = StatsScroll.VerticalOffset;
+        BuildStats();
+        StatsScroll.ScrollToVerticalOffset(offset);
+    }
+
+    private void RefreshStatsButton_Click(object sender, MouseButtonEventArgs e) => RefreshStats();
 
     private void BuildStats()
     {

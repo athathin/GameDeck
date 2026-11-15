@@ -37,7 +37,7 @@ public partial class BigPictureWindow
             case PadButton.Down: UpOrDown(1); break;
             case PadButton.Confirm: OpenDetails(); break;   // like desktop mode: the game's page first, Play from there
             case PadButton.Back: AskToExit(); break;   // not instantly: it could be a stray press
-            case PadButton.X: ToggleFavorite(); break;
+            case PadButton.X: if (_tab == StatsTab) RefreshStats(); else ToggleFavorite(); break;
             case PadButton.Y: OpenSearch(); break;
             case PadButton.Select: OpenFilters(); break;
             case PadButton.Start: OpenGameMenu(); break;   // the right-click menu of the desktop library
@@ -191,7 +191,6 @@ public partial class BigPictureWindow
 
     // ---------- the mouse on the row of games ----------
 
-    private Point _lastMouse;
     private Game? _pressedTile;
     private bool _hoverSelecting;   // the mouse chose the tile: the row must not glide to center it under the pointer
 
@@ -204,9 +203,8 @@ public partial class BigPictureWindow
     /// <summary>The tile under the mouse becomes the selected one, as with the stick (the row only follows when you move the mouse).</summary>
     private void Carousel_PreviewMouseMove(object sender, MouseEventArgs e)
     {
-        var position = e.GetPosition(this);
-        if (position == _lastMouse) return;   // tiles gliding past a mouse that isn't moving are not a choice
-        _lastMouse = position;
+        // only a real move of a visible pointer chooses a tile (not tiles gliding under the hidden one)
+        if (!_mouseMoved || Mouse.OverrideCursor is not null) return;
 
         if (_overlay != Overlay.None || TileUnder(e.OriginalSource) is not { } game ||
             ReferenceEquals(game, Carousel.SelectedItem))
