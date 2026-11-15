@@ -31,18 +31,15 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <!-- The tile keeps a fixed slot (248 x 426) in the row. Selecting it makes the card really bigger (layout, not a
-                             scale transform): a scaled ring has a fractional width, and its two sides then land on different fractions of
-                             a screen pixel, so one looked thinner than the other. With layout rounding both sides snap to whole pixels. -->
-                        <Canvas Width="248" Height="426" UseLayoutRounding="True" SnapsToDevicePixels="True">
-                            <Grid x:Name="Root" Canvas.Left="10" Canvas.Top="44" Width="228" Height="338" Background="Transparent">
-                                <!-- ClipToBounds only clips to a rectangle, so the cover needs a real rounded clip -->
-                                <Border x:Name="Card" CornerRadius="9" Margin="3">
-                                    <Border.Clip>
-                                        <RectangleGeometry Rect="0,0,222,332" RadiusX="9" RadiusY="9"/>
-                                    </Border.Clip>
+                        <!-- The tile is a fixed slot (248 x 440) in the row, and nothing in it changes size: the selected card is simply
+                             the bigger one (less margin around it), drawn with real layout rather than a scale transform (a scaled ring
+                             has a fractional width, and its two sides then land on different fractions of a screen pixel). With layout
+                             rounding both sides snap to whole pixels. -->
+                        <Canvas Width="248" Height="440" UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <Grid Canvas.Left="-4" Canvas.Top="30" Width="256" Height="380">
+                                <views:RoundedClipBorder x:Name="Card" CornerRadius="9" Margin="17,24" Background="Transparent">
                                     <ContentPresenter/>
-                                </Border>
+                                </views:RoundedClipBorder>
                                 <!-- the ring (4 wide, inner radius 9 = the card's) is drawn over the card's outer 1 px, so no hairline of
                                      background can show between the two -->
                                 <Border x:Name="Ring" CornerRadius="13" BorderBrush="#8037FE" BorderThickness="4"
@@ -52,15 +49,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="Root" Property="Canvas.Left" Value="-4"/>
-                                <Setter TargetName="Root" Property="Canvas.Top" Value="23"/>
-                                <Setter TargetName="Root" Property="Width" Value="256"/>
-                                <Setter TargetName="Root" Property="Height" Value="380"/>
-                                <Setter TargetName="Card" Property="Clip">
-                                    <Setter.Value>
-                                        <RectangleGeometry Rect="0,0,250,374" RadiusX="9" RadiusY="9"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="Card" Property="Margin" Value="3"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -129,7 +118,7 @@
                              PreviewMouseRightButtonUp="Carousel_RightClick">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <VirtualizingStackPanel Orientation="Horizontal"/>
+                                <VirtualizingStackPanel Orientation="Horizontal" Margin="6,0"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
 

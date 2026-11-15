@@ -20,7 +20,7 @@
 		<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
 		<!-- 32-bit (win-x86) and 64-bit (win-x64) builds: see publish.ps1 -->
 		<RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
-		<Version>1.0.16</Version>
+		<Version>1.0.17</Version>
 		<!-- a desktop app doesn't need a background garbage-collector thread or extra JIT profiling memory -->
 		<ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
 		<TieredPGO>false</TieredPGO>

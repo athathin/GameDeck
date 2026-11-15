@@ -45,7 +45,8 @@ public record BigPictureGameActions(
 
 public partial class BigPictureWindow : Window
 {
-    private const double Pitch = 248;   // one tile slot (228 + 2 x 10), see BigItem in the XAML
+    private const double Pitch = 248;   // one tile slot, see BigItem in the XAML
+    private const double EdgePad = 6;   // room before the first and after the last tile: the selected one is wider than its slot
 
     // the same tabs as the desktop library
     private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];

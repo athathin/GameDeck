@@ -132,9 +132,9 @@ public partial class BigPictureWindow
         if (Carousel.SelectedIndex < 0) return;
 
         var viewport = _scroll?.ViewportWidth is > 0 ? _scroll.ViewportWidth : Carousel.ActualWidth;
-        var max = Math.Max(0, _items.Count * Pitch - viewport);
+        var max = Math.Max(0, _items.Count * Pitch + 2 * EdgePad - viewport);
 
-        _targetOffset = Math.Clamp(Carousel.SelectedIndex * Pitch + Pitch / 2 - viewport / 2, 0, max);
+        _targetOffset = Math.Clamp(EdgePad + Carousel.SelectedIndex * Pitch + Pitch / 2 - viewport / 2, 0, max);
     }
 
     private void UpdateDetails()
@@ -167,7 +167,9 @@ public partial class BigPictureWindow
     /// <summary>Reloads the play sessions (a game may have ended since) and redraws the numbers and charts.</summary>
     private void RefreshStats()
     {
-        _sessions.Load();
+        try { _sessions.Load(); }
+        catch (System.IO.IOException) { }   // the file is being written right now: the numbers already shown stay
+
         var offset = StatsScroll.VerticalOffset;
         BuildStats();
         StatsScroll.ScrollToVerticalOffset(offset);
