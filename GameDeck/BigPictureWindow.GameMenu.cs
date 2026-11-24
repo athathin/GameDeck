@@ -224,9 +224,12 @@ public partial class BigPictureWindow
         RenderPower();
     }
 
-    /// <summary>The menu, in three groups like Steam's: the PC, GameDeck, and Cancel. Dangerous ones ask again first.</summary>
+    /// <summary>The menu, in groups like Steam's: the controller's shortcuts, the PC, GameDeck, and Cancel. Dangerous ones ask again first.</summary>
     private List<List<PowerEntry>> PowerMenu() =>
     [
+        [
+            new PowerEntry("Show Controller Shortcuts", OpenShortcuts)
+        ],
         [
             new PowerEntry("Suspend System", () => { CloseOverlay(); SystemPower.Suspend(); }),
             new PowerEntry("Turn Off System", SystemPower.TurnOff, "Turn off this PC?", "Turn off now"),

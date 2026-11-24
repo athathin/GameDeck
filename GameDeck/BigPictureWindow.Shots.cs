@@ -29,7 +29,8 @@ public partial class BigPictureWindow
     private void FillShotHints()
     {
         var l = Labels();
-        FillHints(ShotHints, (l.Left, "Previous"), (l.Right, "Next"), (l.Back, "Back"));
+        var keyboard = ShownKind == ControllerKind.None;   // (PgUp and PgDn do nothing here: the arrow keys do)
+        FillHints(ShotHints, (keyboard ? "←" : l.Left, "Previous"), (keyboard ? "→" : l.Right, "Next"), (l.Back, "Back"));
     }
 
     private void ShowShot()

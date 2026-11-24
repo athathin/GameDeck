@@ -154,12 +154,10 @@
                            FontSize="14" Margin="16,6,0,0" VerticalAlignment="Center"/>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button x:Name="BigPictureButton" Style="{StaticResource PillButton}" Padding="12,8"
-                            FocusVisualStyle="{x:Null}"
-                            FontFamily="Segoe MDL2 Assets" FontSize="16" Content="&#xE7FC;"
+                    <Button x:Name="BigPictureButton" Style="{StaticResource IconButton}"
+                            FocusVisualStyle="{x:Null}" Content="&#xE7FC;"
                             Click="BigPictureButton_Click" ToolTip="Big Picture mode: full screen, for a controller (F11)"/>
-                    <Button x:Name="SettingsButton" Style="{StaticResource PillButton}" Padding="12,8"
-                            FontFamily="Segoe MDL2 Assets" FontSize="16" Content="&#xE713;"
+                    <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Content="&#xE713;"
                             Click="SettingsButton_Click" ToolTip="Settings"/>
                 </StackPanel>
             </DockPanel>
@@ -198,7 +196,7 @@
                             <Grid>
                                 <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0"
                                          Foreground="{DynamicResource TextPrimary}" CaretBrush="{DynamicResource TextPrimary}" FontSize="14"
-                                         Padding="10,7,30,7" VerticalContentAlignment="Center"
+                                         Height="{StaticResource ToolbarHeight}" Padding="10,0,30,0" VerticalContentAlignment="Center"
                                          TextChanged="SearchBox_TextChanged" KeyDown="SearchBox_KeyDown"/>
 
                                 <!-- hint text, only shown while the box is empty -->
@@ -236,11 +234,10 @@
                     </Border>
 
                     <!-- filter icon (like Steam): sort, launcher, category and hidden games live in its menu -->
-                    <Button x:Name="FilterButton" Padding="11,7" Margin="8,0,0,0" VerticalAlignment="Top"
-                            FontFamily="Segoe MDL2 Assets" FontSize="16" Content="&#xE71C;"
+                    <Button x:Name="FilterButton" Margin="8,0,0,0" VerticalAlignment="Top" Content="&#xE71C;"
                             Click="FilterButton_Click" ToolTip="Sort and filter">
                         <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource PillButton}">
+                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
                                 <Style.Triggers>
                                     <!-- while the panel is open, a click on the icon lands outside the panel: it closes it, and does not reopen it -->
                                     <DataTrigger Binding="{Binding IsOpen, ElementName=FilterPopup}" Value="True">
@@ -473,48 +470,48 @@
                 <!-- full width, so the refresh button can sit at the far right while the content stays on the left -->
                 <Grid>
                 <StackPanel Margin="8,4,8,0" MaxWidth="760" HorizontalAlignment="Left">
-                    <StackPanel Orientation="Horizontal">
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,0" MinWidth="170">
+                    <!-- six boxes of one size: every cell of the grid is as wide as the widest box. The 14 px gaps are the
+                         boxes' own right and bottom margins; the grid's negative margins take the outer ones back. -->
+                    <UniformGrid Columns="3" Margin="0,0,-14,-14">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14" MinWidth="170">
                             <StackPanel>
                                 <TextBlock x:Name="StatTotal" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="total playtime" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,0" MinWidth="130">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14">
                             <StackPanel>
                                 <TextBlock x:Name="StatPlayed" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="games played" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" MinWidth="130">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14">
                             <StackPanel>
                                 <TextBlock x:Name="StatLibrary" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="games in library" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                    </StackPanel>
 
-                    <!-- over time (from the dated play sessions) -->
-                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,0" MinWidth="170">
+                        <!-- over time (from the dated play sessions) -->
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14">
                             <StackPanel>
                                 <TextBlock x:Name="StatWeek" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="played this week" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,0" MinWidth="130">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14">
                             <StackPanel>
                                 <TextBlock x:Name="StatStreak" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="current streak" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" MinWidth="130">
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14">
                             <StackPanel>
                                 <TextBlock x:Name="StatLongestStreak" Foreground="{DynamicResource TextPrimary}" FontSize="26" FontWeight="SemiBold"/>
                                 <TextBlock Text="longest streak" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
-                    </StackPanel>
+                    </UniformGrid>
 
                     <TextBlock Text="THIS WEEK" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold" Margin="2,24,0,10"/>
                     <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="22,16">

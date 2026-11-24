@@ -7,8 +7,16 @@
 
             <!-- title with a back button -->
             <DockPanel Margin="0,0,0,22">
-                <Button DockPanel.Dock="Left" Style="{StaticResource PillButton}" Margin="0,0,16,0" Padding="14,8"
-                        Content="←" FontSize="16" Click="BackButton_Click" ToolTip="Back to the library (Esc)"/>
+                <Button x:Name="BackButton" DockPanel.Dock="Left" Style="{StaticResource PillButton}" Margin="0,0,16,0" Padding="14,8"
+                        FontSize="16" Click="BackButton_Click" ToolTip="Back to the library (Esc)">
+                    <!-- the font draws the arrow 2 px below the middle of its line: lifted back to the middle of the box
+                         (a render offset, so the button keeps its size) -->
+                    <TextBlock Text="←">
+                        <TextBlock.RenderTransform>
+                            <TranslateTransform Y="-2"/>
+                        </TextBlock.RenderTransform>
+                    </TextBlock>
+                </Button>
                 <TextBlock Text="Settings" Foreground="{DynamicResource TextPrimary}" FontSize="28" FontWeight="SemiBold"
                            VerticalAlignment="Center"/>
             </DockPanel>
@@ -148,15 +156,29 @@
                               Content="Confirm with B and go back with A (swap the two buttons)"
                               Checked="SwapButtonsCheckBox_Changed" Unchecked="SwapButtonsCheckBox_Changed"/>
 
-                    <CheckBox x:Name="NavSoundsCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,0,0,14"
+                    <!-- (left-aligned, so it is only as wide as its text: the volume slider below takes that width) -->
+                    <CheckBox x:Name="NavSoundsCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" HorizontalAlignment="Left"
                               Content="Play sounds in Big Picture mode (moving, selecting, going back, starting a game)"
                               Checked="NavSoundsCheckBox_Changed" Unchecked="NavSoundsCheckBox_Changed"/>
+
+                    <!-- the sounds' volume: a slider that snaps to SettingsService.SoundVolumes, like the tile size slider -->
+                    <Slider x:Name="SoundVolumeSlider" Style="{StaticResource SlimSlider}" HorizontalAlignment="Left" Margin="0,8,0,14"
+                            Width="{Binding ActualWidth, ElementName=NavSoundsCheckBox}"
+                            IsEnabled="{Binding IsChecked, ElementName=NavSoundsCheckBox}"
+                            Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True"
+                            SmallChange="1" LargeChange="1" ValueChanged="SoundVolumeSlider_ValueChanged"/>
 
                     <CheckBox x:Name="ControllerWakeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
                               Content="Open Big Picture mode from a controller"
                               Checked="ControllerWakeCheckBox_Changed" Unchecked="ControllerWakeCheckBox_Changed"/>
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
                                Text="Press the Home button (Xbox, PlayStation or Home button), or hold View + Menu (Back + Start) for a second, while GameDeck is in the tray. It never listens while a game from GameDeck is running or a full-screen app is in front."/>
+
+                    <CheckBox x:Name="ControllerShortcutsCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,14,0,0"
+                              Content="Controller shortcuts: hold Home and press a button (volume, songs, Alt-Tab, keyboard, screenshot)"
+                              Checked="ControllerShortcutsCheckBox_Changed" Unchecked="ControllerShortcutsCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                               Text="They also work during games (GameDeck only reads the controller). The full list: Big Picture › Power › Show Controller Shortcuts."/>
 
                 </StackPanel>
             </Border>
@@ -165,7 +187,7 @@
             <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,20">
                 <StackPanel>
                     <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="15" TextWrapping="Wrap"
-                               Text="Save your favorites, playtime, names, hidden games, categories, launch options and games you added yourself to a file, or restore them from one."/>
+                               Text="Save your favorites, playtime, names, hidden games, categories, status, ratings, notes, launch options, launch routines and games you added yourself to a file, or restore them from one."/>
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"
                                Text="Useful when moving to a new PC. The file stays wherever you save it."/>
                     <StackPanel Orientation="Horizontal" Margin="0,16,0,0">

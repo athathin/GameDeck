@@ -44,13 +44,15 @@ if ((-not (Test-Path $betaData) -or $SyncData) -and (Test-Path $mainData)) {
     Write-Host "Copied the normal GameDeck's data to $betaData"
 }
 
-# a shortcut on the desktop, once
+# the desktop shortcut, made again every time with the icon as a file of its own: Windows remembers a program's icon by its path,
+# so an icon that changed would keep showing the old picture (a new path is looked at fresh)
+$iconFile = Join-Path $out 'GameDeckBeta.ico'
+Copy-Item (Join-Path $PSScriptRoot 'GameDeck\Assets\beta-icon.ico') $iconFile -Force
 $shortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'GameDeck Beta.lnk'
-if (-not (Test-Path $shortcut)) {
-    $link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
-    $link.TargetPath = Join-Path $out 'GameDeckBeta.exe'
-    $link.WorkingDirectory = $out
-    $link.Save()
-}
+$link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
+$link.TargetPath = Join-Path $out 'GameDeckBeta.exe'
+$link.WorkingDirectory = $out
+$link.IconLocation = "$iconFile,0"
+$link.Save()
 
 Write-Host "GameDeck Beta is ready: $out\GameDeckBeta.exe"

@@ -1,8 +1,12 @@
 ﻿<Application x:Class="GameDeck.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:GameDeck">
+             xmlns:local="clr-namespace:GameDeck"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <Application.Resources>
+
+        <!-- the height of everything in the library's top bars: the icon buttons and the search box -->
+        <sys:Double x:Key="ToolbarHeight">37</sys:Double>
 
         <!-- buttons in the pop-up dialogs (set Background / Foreground where it's used) -->
         <Style x:Key="DialogButton" TargetType="Button">
@@ -53,6 +57,15 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- a square-ish icon button in the library's top bars (Big Picture, Settings, filters): one size for all of them -->
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource PillButton}">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="{StaticResource ToolbarHeight}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="16"/>
         </Style>
 
         <!-- dark rounded checkbox with a blue tick -->
@@ -349,6 +362,12 @@
                                 </Track.IncreaseRepeatButton>
                             </Track>
                         </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- switched off (the volume while the sounds are off): faded, like a disabled button -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

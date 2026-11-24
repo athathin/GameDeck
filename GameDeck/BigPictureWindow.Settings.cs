@@ -117,9 +117,22 @@ public partial class BigPictureWindow
                     BuildOverlayHints();
                 }),
             new("Sounds  (moving, selecting, going back, starting a game)", IsOn: () => SettingsService.NavSounds,
-                Activate: () => SettingsService.NavSounds = !SettingsService.NavSounds),
+                Activate: () => SettingsService.NavSounds = !SettingsService.NavSounds)
+        ]);
+
+        if (SettingsService.NavSounds)   // (like the desktop slider, only while the sounds are on)
+            rows.Add(new($"Sound volume  {SettingsService.SoundVolume * 100:0}%  (left / right)",
+                Steps: () => (SettingsService.StepIndex(SettingsService.SoundVolumes, SettingsService.SoundVolume), SettingsService.SoundVolumes.Length),
+                Adjust: step => ChangeVolume(step, wrap: false),
+                Activate: () => ChangeVolume(1, wrap: true)));
+
+        rows.AddRange(
+        [
             new("Open Big Picture mode from a controller", IsOn: () => SettingsService.ControllerWake,
                 Activate: () => SettingsService.ControllerWake = !SettingsService.ControllerWake),
+            new("Controller shortcuts: hold Home and press a button  (also in games; the list: Power menu)",
+                IsOn: () => SettingsService.ControllerShortcuts,
+                Activate: () => SettingsService.ControllerShortcuts = !SettingsService.ControllerShortcuts),
 
             new("BACKUP", IsHeader: true),
             new("Export backup…", Activate: () => RunSettingsAction(() =>
@@ -186,9 +199,29 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveSetting(-1); break;
             case PadButton.Down: MoveSetting(1); break;
+            case PadButton.Left or PadButton.Right when _settingsRows[_settingsIndex].Adjust is { } adjust:
+                adjust(button == PadButton.Left ? -1 : 1);
+                RenderSettings();
+                break;
             case PadButton.Confirm: ActivateSettingsRow(); break;
             case PadButton.Back: CloseOverlay(); break;
         }
+    }
+
+    /// <summary>
+    /// One step quieter (-1) or louder (+1), on the same steps as the desktop slider; <paramref name="wrap"/> goes from the loudest
+    /// back to the quietest (pressing the row) instead of stopping. The sound of the press is played again at the new volume.
+    /// </summary>
+    private static void ChangeVolume(int step, bool wrap)
+    {
+        var steps = SettingsService.SoundVolumes;
+        var current = SettingsService.StepIndex(steps, SettingsService.SoundVolume);
+        var index = current + step;
+        index = wrap ? (index + steps.Length) % steps.Length : Math.Clamp(index, 0, steps.Length - 1);
+        if (index == current) return;   // already the quietest / loudest: nothing to save
+
+        SettingsService.SoundVolume = steps[index];
+        NavSounds.Play(wrap ? NavSound.Select : NavSound.Move);   // (it just rang at the old volume)
     }
 
     private bool _busy;

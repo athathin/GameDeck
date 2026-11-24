@@ -17,8 +17,6 @@ public static class CrashLog
     private static readonly string Folder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "logs");
 
-    public static string LogFolder => Folder;
-
     /// <summary>Saves the error and returns the file's path (null if even that failed). Never throws.</summary>
     public static string? Write(Exception? error, string where)
     {

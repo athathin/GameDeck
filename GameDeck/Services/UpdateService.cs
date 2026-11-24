@@ -205,7 +205,7 @@ public static class UpdateService
             }
 
             // the new version must show that it starts (MarkHealthy); until then the old file is kept to go back to
-            SaveState(new UpdateState { PendingVersion = VersionText(update.Version), Notes = update.Notes, From = CurrentVersionText });
+            SaveState(new UpdateState { PendingVersion = VersionText(update.Version), Notes = update.Notes });
 
             return true;
         }
@@ -284,26 +284,8 @@ public static class UpdateService
     {
         try
         {
-            var root = Path.Combine(Path.GetTempPath(), ".net") + Path.DirectorySeparatorChar;
-
-            // the folder this version runs from: wherever one of its own loaded libraries lives
-            string? current = null;
-            using (var process = Process.GetCurrentProcess())
-            {
-                foreach (ProcessModule module in process.Modules)
-                {
-                    if (module.FileName.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-                    {
-                        current = Path.GetDirectoryName(module.FileName);
-                        break;
-                    }
-                }
-            }
-
-            // only ever look at this program's own folder: %TEMP%\.net\<name>\<id>, one level below the app's name
-            var appFolder = current is null ? null : Path.GetDirectoryName(current);
-            if (appFolder is null || !Path.GetDirectoryName(appFolder)!.Equals(root.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
-                return;
+            var (appFolder, current) = UnpackedFolders();
+            if (appFolder is null) return;
 
             foreach (var folder in Directory.EnumerateDirectories(appFolder))
             {
@@ -319,6 +301,37 @@ public static class UpdateService
         }
     }
 
+    /// <summary>
+    /// Where this single-file program unpacked its native libraries: the app's folder %TEMP%\.net\&lt;name&gt; (named after
+    /// the .exe, so it changes when the file is renamed) and the version's folder &lt;id&gt; in it. Both null when nothing was
+    /// unpacked (not a single-file run).
+    /// </summary>
+    internal static (string? AppFolder, string? Current) UnpackedFolders()
+    {
+        var root = Path.Combine(Path.GetTempPath(), ".net") + Path.DirectorySeparatorChar;
+
+        // the folder this version runs from: wherever one of its own loaded libraries lives
+        string? current = null;
+        using (var process = Process.GetCurrentProcess())
+        {
+            foreach (ProcessModule module in process.Modules)
+            {
+                if (module.FileName.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                {
+                    current = Path.GetDirectoryName(module.FileName);
+                    break;
+                }
+            }
+        }
+
+        // only ever this program's own folder: %TEMP%\.net\<name>\<id>, one level below the app's name
+        var appFolder = current is null ? null : Path.GetDirectoryName(current);
+        if (appFolder is null || !Path.GetDirectoryName(appFolder)!.Equals(root.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            return (null, null);
+
+        return (appFolder, current);
+    }
+
     // ---------- a version that doesn't start is rolled back ----------
 
     private sealed class UpdateState
@@ -329,7 +342,6 @@ public static class UpdateService
         public string? NotesFor { get; set; }          // the version the saved notes belong to (kept until they have been shown)
         public string? SkipVersion { get; set; }       // a version that was rolled back: not offered again
         public string? Notes { get; set; }             // what's new in the pending version
-        public string? From { get; set; }              // the version that was replaced
     }
 
     private static readonly string StatePath = Path.Combine(

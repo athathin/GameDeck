@@ -7,42 +7,50 @@ using SDL2;
 namespace GameDeck.Services;
 
 /// <summary>
-/// Lets a controller open Big Picture mode while GameDeck sits in the tray: press the controller's Home button
-/// (Xbox, PlayStation or Home button), or hold View + Menu (Back + Start) for a second.
+/// The controller while Big Picture isn't the window in front:
+///  - opens Big Picture mode while GameDeck sits in the tray: press the controller's Home button (Xbox, PlayStation or Home
+///    button), or hold View + Menu (Back + Start) for a second;
+///  - runs the Home-button shortcuts (<see cref="ControllerShortcuts"/>: volume, songs, Alt + Tab...), also during games.
 ///
 /// It is careful not to get in the way of games:
-///  - it only listens when <c>canListen</c> says so (no game started from GameDeck is running, Big Picture isn't open,
+///  - it only opens Big Picture when <c>canWake</c> says so (no game started from GameDeck is running, Big Picture isn't open,
 ///    the setting is on) and never while a full-screen program is in front;
-///  - it uses SDL's gentle drivers (XInput / DirectInput), which only read the controller. The special drivers for
-///    PlayStation and Switch controllers, which switch them into another mode, are only used by Big Picture itself;
-///  - the moment it must not listen, SDL is shut down and the controllers are let go.
+///  - it only reads the controller, with SDL's gentle drivers (XInput / DirectInput). The special drivers for PlayStation and
+///    Switch controllers, which switch them into another mode, are only used by Big Picture itself;
+///  - when neither may happen (both settings off, Big Picture in front), SDL is shut down and the controllers are let go.
 /// </summary>
 public sealed class ControllerWakeService : IDisposable
 {
     private static readonly TimeSpan HoldTime = TimeSpan.FromSeconds(1);
 
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(100) };
-    private readonly Func<bool> _canListen;
+    // 20 times a second: a quick tap of a button (about a tenth of a second) is never missed
+    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private readonly Func<bool> _canWake;
+    private readonly Func<bool> _canUseShortcuts;
     private readonly List<(IntPtr Handle, int InstanceId)> _pads = [];
     private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private readonly HashSet<PadButton> _held = [];
+    private readonly HashSet<PadButton> _padHeld = [];
 
     private bool _started;
     private bool _unavailable;      // SDL can't be loaded: stop trying
     private bool _primed;           // the first reading after starting only records what is already held
-    private bool _homeDown;
     private bool _comboFired;
     private TimeSpan? _comboSince;
 
     /// <summary>Raised on the UI thread when the controller asked for Big Picture mode.</summary>
     public event Action? WakeRequested;
 
-    public ControllerWakeService(Func<bool> canListen)
+    /// <param name="canWake">May a controller open Big Picture now (asked many times a second)?</param>
+    /// <param name="canUseShortcuts">May the Home-button shortcuts run now (games included)?</param>
+    public ControllerWakeService(Func<bool> canWake, Func<bool> canUseShortcuts)
     {
-        _canListen = canListen;
+        _canWake = canWake;
+        _canUseShortcuts = canUseShortcuts;
         _timer.Tick += (_, _) => Tick();
     }
 
-    /// <summary>Start checking (about ten times a second; it costs next to nothing while it has nothing to listen to).</summary>
+    /// <summary>Start checking (20 times a second; it costs next to nothing while it has nothing to listen to).</summary>
     public void Begin() => _timer.Start();
 
     /// <summary>Lets go of the controllers right now (Big Picture mode is about to take them, with its own settings).</summary>
@@ -52,6 +60,7 @@ public sealed class ControllerWakeService : IDisposable
     {
         _timer.Stop();
         Stop();
+        ControllerShortcuts.Reset();   // GameDeck is closing: never leave Alt held down
     }
 
     private void Tick()
@@ -64,16 +73,19 @@ public sealed class ControllerWakeService : IDisposable
                 return;
             }
 
-            if (!_canListen() || FullScreenInFront())
+            var shortcuts = _canUseShortcuts();
+            var wake = _canWake() && !FullScreenInFront();
+
+            if (!shortcuts && !wake)
             {
-                Stop();   // let the controllers go while a game (or a video, or Big Picture itself) has them
+                Stop();   // let the controllers go: nothing to listen for (or Big Picture has them)
                 return;
             }
 
             if (!_started && !Start()) return;
 
             HandleEvents();
-            Check();
+            Check(wake, shortcuts);
         }
         catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
         {
@@ -121,7 +133,6 @@ public sealed class ControllerWakeService : IDisposable
         try { SDL.SDL_QuitSubSystem(SDL.SDL_INIT_GAMECONTROLLER); }
         catch { }
 
-        _homeDown = false;
         _comboFired = false;
         _comboSince = null;
     }
@@ -162,34 +173,54 @@ public sealed class ControllerWakeService : IDisposable
             _pads.Add((handle, instanceId));
     }
 
-    /// <summary>Looks for the Home button, or View + Menu held for a second.</summary>
-    private void Check()
+    /// <summary>
+    /// Passes the held buttons to the Home-button shortcuts, and looks for a plain press of Home or View + Menu held for a
+    /// second (both open Big Picture, only when <paramref name="wake"/> allows it).
+    /// </summary>
+    private void Check(bool wake, bool shortcuts)
     {
-        bool Held(IntPtr pad, SDL.SDL_GameControllerButton button) => SDL.SDL_GameControllerGetButton(pad, button) != 0;
+        // No controller found yet (SDL announces them a moment after starting): nothing is known to be held, so the shortcuts
+        // aren't told "nothing held" either. Taking over from Big Picture with Home still held, that would read as Home let go.
+        if (_pads.Count == 0) return;
 
-        var home = _pads.Any(p => Held(p.Handle, SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_GUIDE));
-        var combo = _pads.Any(p => Held(p.Handle, SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK) &&
-                                   Held(p.Handle, SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_START));
+        _held.Clear();
+        var combo = false;
+        foreach (var (handle, _) in _pads)
+        {
+            _padHeld.Clear();
+            GamepadService.ReadButtons(handle, _padHeld);
+            combo |= _padHeld.Contains(PadButton.Select) && _padHeld.Contains(PadButton.Start);   // (on one controller)
+            _held.UnionWith(_padHeld);
+        }
+
         var now = _clock.Elapsed;
 
         if (!_primed)
         {
-            // whatever is held right now (a button pressed while connecting) doesn't count: only new presses do
+            // whatever is held right now (a button pressed while connecting) doesn't count: only new presses do. (The first
+            // reading after starting can also come back empty while the controller wakes up: it isn't passed on.)
             _primed = true;
-            _homeDown = home;
             _comboFired = combo;
             _comboSince = combo ? now : null;
             return;
         }
 
-        if (home && !_homeDown)
+        // a press of Home on its own (let go without a shortcut) opens Big Picture; with a shortcut it was the shortcut's
+        // (with the shortcuts off, they are told nothing is held but Home, so Home still opens Big Picture)
+        if (!shortcuts)
+            _held.IntersectWith([PadButton.Home]);
+
+        if (ControllerShortcuts.Update(_held) && wake)
         {
-            _homeDown = true;
             WakeRequested?.Invoke();
             return;
         }
 
-        _homeDown = home;
+        if (!wake || ControllerShortcuts.HomeHeld)
+        {
+            _comboSince = null;   // (View + Menu with Home held is a shortcut, not a request for Big Picture)
+            return;
+        }
 
         if (!combo)
         {

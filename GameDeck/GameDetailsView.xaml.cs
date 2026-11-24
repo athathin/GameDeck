@@ -167,14 +167,6 @@ public partial class GameDetailsView : UserControl
         PlayButton.Background = PlayPressed;
     }
 
-    /// <summary>Back to the normal look (the desktop page never calls <see cref="SelectPlay"/>).</summary>
-    public void ResetPlay()
-    {
-        PlayButton.ClearValue(BackgroundProperty);
-        PlayButton.ClearValue(EffectProperty);
-        PlayButton.RenderTransform = Transform.Identity;
-    }
-
     private void BackButton_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
 
     private void PlayButton_Click(object sender, RoutedEventArgs e)

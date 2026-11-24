@@ -110,6 +110,7 @@ public static class NavSounds
 
     private static void Restart(Voice voice)
     {
+        voice.Player.Volume = SettingsService.SoundVolume;   // read each time: a change in Settings is heard at once
         voice.Player.Position = TimeSpan.Zero;
         voice.Player.Play();
     }

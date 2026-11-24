@@ -344,17 +344,27 @@
                 <StackPanel MaxWidth="1100">
                     <Border Background="{DynamicResource RaisedBg}" CornerRadius="8" Padding="20,12">
                         <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- the text with its cursor (built in UpdateQueryUi); a long note wraps instead of being cut off -->
                             <TextBlock x:Name="QueryText" Foreground="{DynamicResource TextPrimary}" FontSize="28" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" Margin="0,0,160,0"/>
+                                       TextWrapping="Wrap" Margin="0,0,20,0"/>
                             <TextBlock x:Name="QueryHint" Text="Type to search your games" Foreground="{DynamicResource TextHint}" FontSize="28"
-                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
-                            <TextBlock x:Name="ResultCountText" Foreground="{DynamicResource TextMuted}" FontSize="16" HorizontalAlignment="Right"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center" IsHitTestVisible="False" Margin="4,0,0,0"/>
+
+                            <!-- the buttons that move the cursor, and the number of games / letters -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel x:Name="CaretHints" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,22,0"/>
+                                <TextBlock x:Name="ResultCountText" Foreground="{DynamicResource TextMuted}" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
+                    <!-- (no hint row: each key shows the controller button that does the same) -->
                     <StackPanel x:Name="KeyRows" Margin="0,18,0,0"/>
-                    <StackPanel x:Name="SearchHints" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,18,0,0"/>
                 </StackPanel>
             </Border>
         </Grid>
@@ -452,6 +462,30 @@
                                TextAlignment="Center" TextWrapping="Wrap" Margin="20,24,20,18"/>
                     <StackPanel x:Name="PowerList"/>
                 </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ======================= the controller's shortcuts (Power menu > Show Controller Shortcuts) ======================= -->
+        <Grid x:Name="ShortcutsOverlay" Visibility="Collapsed" Background="{DynamicResource ScrimStrong}">
+            <Border MaxWidth="1180" Margin="60,50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{DynamicResource PanelBg}"
+                    CornerRadius="10" Padding="56,40,56,26">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Controller Shortcuts" Foreground="{DynamicResource TextPrimary}" FontSize="32"
+                               FontWeight="SemiBold" Margin="0,0,0,18"/>
+                    <StackPanel x:Name="ShortcutsHints" DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    <!-- two columns of rows (built in BigPictureWindow.Shortcuts.cs); scrolls when the screen is short -->
+                    <ScrollViewer x:Name="ShortcutsScroll" VerticalScrollBarVisibility="Hidden" Focusable="False">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="64"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel x:Name="ShortcutsLeft"/>
+                            <StackPanel x:Name="ShortcutsRight" Grid.Column="2"/>
+                        </Grid>
+                    </ScrollViewer>
+                </DockPanel>
             </Border>
         </Grid>
     </Grid>

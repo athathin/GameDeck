@@ -26,7 +26,7 @@ public static class ScreenshotService
     {
         var found = new List<string>();
 
-        found.AddRange(Pictures(FolderOf(game), "*", null));
+        found.AddRange(Pictures(FolderOf(game), "*"));
 
         // Game Bar names its files after the window's title, which is nearly always the game's name. The folder can hold
         // thousands of captures of other games: only the files that start with this game's name are asked for.
@@ -37,7 +37,7 @@ public static class ScreenshotService
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
         foreach (var name in names)
-            found.AddRange(Pictures(CapturesFolder, name + "*", null));
+            found.AddRange(Pictures(CapturesFolder, name + "*"));
 
         found = found.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -48,6 +48,81 @@ public static class ScreenshotService
             .Take(max)
             .ToList();
     }
+
+    /// <summary>
+    /// Takes a picture of the screen the program in front is on (the controller's Home + RT) and saves it as a .png: in the
+    /// game's own folder when a game from GameDeck is running (so its page shows it), otherwise in Pictures\Screenshots, where
+    /// Windows keeps its own. A game in exclusive full screen may come out black: most games today run borderless and are fine.
+    /// </summary>
+    /// <returns>The saved file, or null when it couldn't be taken or saved.</returns>
+    /// <remarks>The picture is taken at once (on the calling thread); turning it into a .png and saving it happens in the background.</remarks>
+    public static async Task<string?> CaptureAsync(Game? game)
+    {
+        System.Drawing.Bitmap? picture = null;
+        try
+        {
+            picture = GrabScreen();
+
+            var folder = game is not null
+                ? FolderOf(game)
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
+            var name = $"{(game is not null ? SafeName(game.Name) : "Screenshot")} {DateTime.Now:yyyy-MM-dd HH-mm-ss}";
+
+            var shot = picture;
+            return await Task.Run(() =>
+            {
+                Directory.CreateDirectory(folder);
+
+                var file = Path.Combine(folder, name + ".png");
+                for (var n = 2; File.Exists(file); n++)   // two in the same second
+                    file = Path.Combine(folder, $"{name} ({n}).png");
+
+                shot.Save(file, System.Drawing.Imaging.ImageFormat.Png);
+                return file;
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or
+                                   ArgumentException or System.Runtime.InteropServices.ExternalException)
+        {
+            CrashLog.Write(ex, "Screenshot");
+            return null;
+        }
+        finally
+        {
+            picture?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// The screen the program in front is on, pixel for pixel. Measured as a per-monitor DPI aware thread: GameDeck itself
+    /// isn't, and would get the size of a screen whose scaling differs from the main one's wrong (a cropped picture).
+    /// </summary>
+    private static System.Drawing.Bitmap GrabScreen()
+    {
+        var previous = SetThreadDpiAwarenessContext(PerMonitorAwareV2);
+        try
+        {
+            var screen = System.Windows.Forms.Screen.FromHandle(GetForegroundWindow()).Bounds;
+
+            var picture = new System.Drawing.Bitmap(screen.Width, screen.Height);
+            using var graphics = System.Drawing.Graphics.FromImage(picture);
+            graphics.CopyFromScreen(screen.Location, System.Drawing.Point.Empty, screen.Size);
+            return picture;
+        }
+        finally
+        {
+            if (previous != IntPtr.Zero)
+                SetThreadDpiAwarenessContext(previous);
+        }
+    }
+
+    private static readonly IntPtr PerMonitorAwareV2 = -4;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 
     /// <summary>Copies pictures into the game's own folder. Returns how many were added.</summary>
     public static int Add(Game game, IEnumerable<string> files)
@@ -77,14 +152,14 @@ public static class ScreenshotService
         return added;
     }
 
-    private static IEnumerable<string> Pictures(string folder, string pattern, Func<string, bool>? filter)
+    private static IEnumerable<string> Pictures(string folder, string pattern)
     {
         try
         {
             if (!Directory.Exists(folder)) return [];
 
             return Directory.EnumerateFiles(folder, pattern)
-                .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase) && (filter?.Invoke(f) ?? true))
+                .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
                 .ToList();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

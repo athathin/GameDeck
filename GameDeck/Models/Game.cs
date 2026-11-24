@@ -76,10 +76,7 @@ public class Game : INotifyPropertyChanged
         set
         {
             if (Set(ref _customName, value))
-            {
                 Notify(nameof(DisplayName));
-                Notify(nameof(InfoText));
-            }
         }
     }
 
@@ -216,10 +213,7 @@ public class Game : INotifyPropertyChanged
         set
         {
             if (Set(ref _lastPlayed, value))
-            {
-                Notify(nameof(InfoText));
                 Notify(nameof(LastPlayedText));
-            }
         }
     }
 
@@ -241,7 +235,6 @@ public class Game : INotifyPropertyChanged
         {
             if (Set(ref _playtimeSeconds, value))
             {
-                Notify(nameof(InfoText));
                 Notify(nameof(PlaytimeShort));
                 Notify(nameof(PlaytimeText));
                 Notify(nameof(HasPlaytime));
@@ -266,27 +259,11 @@ public class Game : INotifyPropertyChanged
         _ => $"{seconds / 3600} h {seconds % 3600 / 60} min"
     };
 
-    /// <summary>Tooltip text: name, total playtime and when the game was last played.</summary>
-    [JsonIgnore]
-    public string InfoText
-    {
-        get
-        {
-            var played = PlaytimeSeconds switch
-            {
-                <= 0 => LastPlayed is null ? "Not played yet" : "No playtime recorded yet",
-                < 60 => "Played less than a minute",
-                < 3600 => $"Played {PlaytimeSeconds / 60} min",
-                _ => $"Played {PlaytimeSeconds / 3600} h {PlaytimeSeconds % 3600 / 60} min"
-            };
-
-            return LastPlayed is { } time
-                ? $"{DisplayName}\n{played}\nLast played {time.ToLocalTime():d MMM yyyy}"
-                : $"{DisplayName}\n{played}";
-        }
-    }
-
     // ---------- helpers ----------
+
+    /// <summary>Where the game comes from, as shown to the user: "Steam", "Epic"... or "Added by hand".</summary>
+    [JsonIgnore]
+    public string SourceText => Source == "Manual" ? "Added by hand" : Source;
 
     /// <summary>The Steam app id for Steam games, otherwise null.</summary>
     [JsonIgnore]

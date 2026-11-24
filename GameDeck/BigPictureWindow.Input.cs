@@ -71,6 +71,7 @@ public partial class BigPictureWindow
             case Overlay.GameMenu: HandleGameMenu(button); break;
             case Overlay.Browse: HandleBrowse(button); break;
             case Overlay.Shots: HandleShots(button); break;
+            case Overlay.Shortcuts: HandleShortcuts(button); break;
         }
     }
 
@@ -139,6 +140,7 @@ public partial class BigPictureWindow
             case Overlay.Details: FillDetailsHints(); break;
             case Overlay.Browse: FillBrowseHints(); break;
             case Overlay.Shots: FillShotHints(); break;
+            case Overlay.Shortcuts: RenderShortcuts(); break;   // (the card shows the buttons of the controller in use)
         }
     }
 
@@ -170,6 +172,9 @@ public partial class BigPictureWindow
             Key.Space when _overlay != Overlay.Search => PadButton.Confirm,
             Key.S when _overlay == Overlay.Details => PadButton.Y,      // the game's screenshots
             Key.Back when _overlay == Overlay.Search => PadButton.X,    // backspace
+            Key.F when _overlay == Overlay.Browse => PadButton.X,       // add the picked games
+            Key.PageUp when _overlay == Overlay.Search => PadButton.LeftTrigger,     // the text cursor one place left
+            Key.PageDown when _overlay == Overlay.Search => PadButton.RightTrigger,  // and right
             Key.Tab => PadButton.Select,
             _ => null
         };
@@ -203,8 +208,8 @@ public partial class BigPictureWindow
 
         foreach (var c in e.Text)
         {
-            if (char.IsLetterOrDigit(c) || " '-.,:".Contains(c))
-                TypeText(_noteGame is not null ? c.ToString() : char.ToLowerInvariant(c).ToString());   // (a note keeps the capitals typed)
+            if (char.IsLetterOrDigit(c) || " '-.,:!@#$%^&*()\"<>_".Contains(c))   // (every symbol the on-screen keys have)
+                TypeText(c.ToString());   // (as typed: the real keyboard has its own Shift and Caps Lock)
         }
 
         e.Handled = true;
@@ -326,8 +331,10 @@ public partial class BigPictureWindow
             _topIndex = Math.Clamp(_topIndex, 0, TopIcons.Length - 1);
             _stripFocus = false;
             ContinueList.SelectedIndex = -1;
-            HideTileRing(false);
         }
+
+        // the selected tile has no ring while an icon is the selected one (two rings look like two selections)
+        HideTileRing(on);
 
         UpdateTopBar();
         BuildMainHints();

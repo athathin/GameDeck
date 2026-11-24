@@ -23,17 +23,34 @@ public partial class MainWindow
     private ControllerWakeService? _wake;
 
     /// <summary>
-    /// Lets a controller open Big Picture mode while GameDeck sits in the tray (Home button, or View + Menu held).
-    /// It only listens while that's safe: setting on, Big Picture closed, no game from GameDeck running.
+    /// The controller outside Big Picture: it opens Big Picture while GameDeck sits in the tray (Home button, or View + Menu
+    /// held), only while that's safe (setting on, Big Picture closed, no game from GameDeck running); and the Home-button
+    /// shortcuts work whenever Big Picture isn't the window in front, games included (Big Picture runs them itself).
     /// </summary>
     private void StartControllerWake()
     {
-        // (the Beta leaves the button to the normal GameDeck while that one is running: two programs must not both answer it)
-        _wake = new ControllerWakeService(() =>
-            SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning);
+        // (the Beta leaves the button and the shortcuts to the normal GameDeck while that one is running: two programs must not
+        // both answer them)
+        _wake = new ControllerWakeService(
+            canWake: () => SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning,
+            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true });
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();
+
+        ControllerShortcuts.TakeScreenshot = TakeScreenshot;
+    }
+
+    /// <summary>The controller's Home + RT: a picture of the screen, kept with the running game's screenshots when there is one.</summary>
+    private async void TakeScreenshot()
+    {
+        var game = _tracker.RunningGame;
+        var file = await ScreenshotService.CaptureAsync(game);
+
+        if (file is null)
+            GameToastWindow.ShowMessage("Screenshot", "It couldn't be taken.");
+        else
+            GameToastWindow.ShowMessage("Screenshot saved", game?.DisplayName ?? "Pictures › Screenshots", Path.GetFileName(file));
     }
 
     // ---------- coming back after a game ----------
@@ -99,6 +116,8 @@ public partial class MainWindow
             quickLaunchChanged: ApplyQuickLaunchHotkey);
 
         _wake?.Suspend();   // Big Picture reads the controllers itself now
+        // (and each time it comes back to the front: the background listener, which reads it meanwhile, lets go first)
+        _bigPicture.TakingController += () => _wake?.Suspend();
 
         var screen = _bigPicture;
         screen.Closed += (_, _) =>

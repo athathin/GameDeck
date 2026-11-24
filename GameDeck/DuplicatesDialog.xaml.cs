@@ -97,7 +97,7 @@ public partial class DuplicatesDialog : Window
     /// <summary>One line per entry: where it comes from, how long it was played, and where it is.</summary>
     private static UIElement Describe(Game game)
     {
-        var source = game.Source == "Manual" ? "Added by hand" : game.Source;
+        var source = game.SourceText;
         var where = game.InstallDir ?? (System.IO.File.Exists(game.LaunchTarget) ? game.LaunchTarget : null);
 
         var panel = new StackPanel();

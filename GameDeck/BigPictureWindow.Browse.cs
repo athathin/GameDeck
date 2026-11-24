@@ -31,7 +31,12 @@ public partial class BigPictureWindow
     private void FillBrowseHints()
     {
         var l = Labels();
-        FillHints(BrowseHints, (l.Confirm, "Open / pick"), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
+
+        // "Add picked" only once something is picked (X does nothing before); the keyboard's F does the same as X here
+        if (_browsePicked.Count > 0)
+            FillHints(BrowseHints, (l.Confirm, "Open / pick"), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
+        else
+            FillHints(BrowseHints, (l.Confirm, "Open / pick"), (l.Back, _browsePath is null ? "Close" : "Up"));
     }
 
     /// <summary>Builds the rows of the current folder (or the start page) and draws them.</summary>

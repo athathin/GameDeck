@@ -245,7 +245,7 @@ public sealed class TrayIcon : IDisposable
     {
         try
         {
-            var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/icon.ico"))!.Stream;
+            var stream = Application.GetResourceStream(new Uri(AppInfo.IconUri))!.Stream;
             using (stream)
                 return new Drawing.Icon(stream, Forms.SystemInformation.SmallIconSize);
         }

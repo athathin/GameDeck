@@ -556,8 +556,13 @@ public partial class MainWindow
         if (_view == "Recent" || _sort == SortMode.LastPlayed)
             Refresh();                  // the game moves to the front of the list
 
+        // GameDeck ends up in the tray when it hides itself below, or when it was there already. Started from Big Picture,
+        // the hidden window comes back afterwards unless it minimizes (LaunchGameAsync).
+        var hiddenForBigPicture = from == ResumeMode.BigPicture && _mainHiddenForBigPicture;
+        var inTray = SettingsService.MinimizeOnLaunch || (!IsVisible && !hiddenForBigPicture);
+
         if (SettingsService.ShowLaunchToast)
-            GameToastWindow.ShowFor(game.DisplayName, routine.Summary);
+            GameToastWindow.ShowFor(game.DisplayName, routine.Summary, inTray);
 
         // get out of the way: GameDeck waits in the tray (it keeps timing the game from there)
         if (SettingsService.MinimizeOnLaunch && IsVisible)

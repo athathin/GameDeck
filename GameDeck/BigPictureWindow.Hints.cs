@@ -29,10 +29,11 @@ public partial class BigPictureWindow
     }
 
     // built once: the labels are asked for every time a hint bar, a tab row or a panel is drawn
-    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "Share", "Options", "R2", "PS");
-    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "−", "+", "ZR", "Home");
-    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "RT", "Xbox");
-    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "P", "R", "P");   // no controller
+    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "L2", "R2", "Share", "Options", "PS");
+    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "ZL", "ZR", "−", "+", "Home");
+    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "Xbox");
+    // no controller: the keys of the main screen (PgUp / PgDn move the text cursor in the search box, see Window_PreviewKeyDown)
+    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "PgUp", "PgDn", "Tab", "M", "P");
 
     // the same with the confirm and back buttons swapped (the keyboard is never swapped)
     private static readonly ButtonLabels PlayStationSwapped = PlayStationLabels with { Confirm = PlayStationLabels.Back, Back = PlayStationLabels.Confirm };
@@ -42,11 +43,14 @@ public partial class BigPictureWindow
     /// <summary>The controller the hints are drawn for; none while the keyboard or mouse was used last.</summary>
     private ControllerKind ShownKind => _padInUse ? _pad.ActiveKind : ControllerKind.None;
 
-    private ButtonLabels Labels()
+    private ButtonLabels Labels() => LabelsFor(ShownKind);
+
+    /// <summary>The button names of a controller family (the keyboard's keys for None), with confirm and back swapped if set.</summary>
+    private static ButtonLabels LabelsFor(ControllerKind kind)
     {
         var swap = SettingsService.SwapConfirmBack;
 
-        return ShownKind switch
+        return kind switch
         {
             ControllerKind.PlayStation => swap ? PlayStationSwapped : PlayStationLabels,
             ControllerKind.Nintendo => swap ? NintendoSwapped : NintendoLabels,
@@ -134,13 +138,13 @@ public partial class BigPictureWindow
         };
     }
 
-    /// <summary>The Home button of the controller in use: the Xbox button, the PS button, or Home (a house).</summary>
-    private UIElement HomeIcon(ButtonLabels labels, bool onController)
+    /// <summary>The Home button of the controller in use (or of <paramref name="kind"/>): the Xbox button, the PS button, or Home (a house).</summary>
+    private UIElement HomeIcon(ButtonLabels labels, bool onController, ControllerKind? kind = null)
     {
         if (!onController)
             return Chip(labels.Home);
 
-        return ShownKind switch
+        return (kind ?? ShownKind) switch
         {
             ControllerKind.Xbox => Logo(XboxLogo, 34),
             ControllerKind.PlayStation => Logo(PlayStationLogo, 30),
@@ -176,13 +180,16 @@ public partial class BigPictureWindow
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    /// <summary>The hints inside the search keyboard and the filters panel (the Power menu needs none).</summary>
+    /// <summary>
+    /// The hints of the filters panel, and the buttons drawn inside the on-screen keyboard's keys (it has no hint row: each key
+    /// shows its own button). The Power menu needs none.
+    /// </summary>
     private void BuildOverlayHints()
     {
         var l = Labels();
 
-        var note = _noteGame is not null;
-        FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, note ? "Save" : "Done"), (l.Back, note ? "Cancel" : "Close"));
+        UpdateKeyboardSelection();   // the keys' buttons follow the controller in use
+        ShowCaretHints();            // (and the text cursor's)
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 

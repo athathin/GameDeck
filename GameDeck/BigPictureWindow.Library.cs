@@ -166,7 +166,7 @@ public partial class BigPictureWindow
 
         var parts = new List<string>
         {
-            game.Source == "Manual" ? "Added by hand" : game.Source,
+            game.SourceText,
             game.PlaytimeSeconds > 0 ? $"{game.PlaytimeText} played" : "Not played yet"
         };
 

@@ -47,7 +47,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <DockPanel LastChildFill="True">
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding Source}" Foreground="{DynamicResource TextSecondary}" Opacity="0.7"
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding SourceText}" Foreground="{DynamicResource TextSecondary}" Opacity="0.7"
                                        FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
                             <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="16"
                                        TextTrimming="CharacterEllipsis"/>
