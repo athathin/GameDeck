@@ -55,6 +55,7 @@ public static class SettingsService
 
         public bool ControllerWake { get; set; } = true;
         public bool ControllerShortcuts { get; set; } = true;
+        public string? ScreenshotFolder { get; set; }
         public bool NavSounds { get; set; } = true;
         public double SoundVolume { get; set; } = 1.0;
 
@@ -194,6 +195,17 @@ public static class SettingsService
         set
         {
             Current.ControllerShortcuts = value;
+            Save();
+        }
+    }
+
+    /// <summary>The folder the controller's screenshots are saved in; null = the default places (see ScreenshotService.CaptureAsync).</summary>
+    public static string? ScreenshotFolder
+    {
+        get => Current.ScreenshotFolder;
+        set
+        {
+            Current.ScreenshotFolder = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
             Save();
         }
     }

@@ -73,8 +73,29 @@ public partial class SettingsView : UserControl
         QuickLaunchCheckBox.IsChecked = SettingsService.QuickLaunchEnabled;
         StopCapturing();
         ShowQuickLaunchOptions();
+        ShowScreenshotFolder();
 
         _updating = false;
+    }
+
+    // ---------- where the controller's screenshots go ----------
+
+    private void ShowScreenshotFolder()
+    {
+        ScreenshotFolderText.Text = ScreenshotService.SaveFolderText;
+        ScreenshotDefaultButton.Visibility = SettingsService.ScreenshotFolder is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ScreenshotFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ScreenshotService.ChooseSaveFolder(Window.GetWindow(this)))
+            ShowScreenshotFolder();
+    }
+
+    private void ScreenshotDefaultButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsService.ScreenshotFolder = null;
+        ShowScreenshotFolder();
     }
 
     // ---------- quick launch shortcut ----------

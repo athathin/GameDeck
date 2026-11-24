@@ -50,7 +50,7 @@ public partial class MainWindow
         if (file is null)
             GameToastWindow.ShowMessage("Screenshot", "It couldn't be taken.");
         else
-            GameToastWindow.ShowMessage("Screenshot saved", game?.DisplayName ?? "Pictures › Screenshots", Path.GetFileName(file));
+            GameToastWindow.ShowMessage("Screenshot saved", game?.DisplayName ?? Path.GetDirectoryName(file) ?? "", Path.GetFileName(file));
     }
 
     // ---------- coming back after a game ----------

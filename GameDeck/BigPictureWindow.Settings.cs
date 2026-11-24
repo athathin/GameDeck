@@ -133,7 +133,15 @@ public partial class BigPictureWindow
             new("Controller shortcuts: hold Home and press a button  (also in games; the list: Power menu)",
                 IsOn: () => SettingsService.ControllerShortcuts,
                 Activate: () => SettingsService.ControllerShortcuts = !SettingsService.ControllerShortcuts),
+            new("Screenshots are saved in: " + ScreenshotService.SaveFolderText + "  (choose another folder…)",
+                Activate: () => ScreenshotService.ChooseSaveFolder(this))
+        ]);
 
+        if (SettingsService.ScreenshotFolder is not null)   // (only a chosen folder can go back to the default places)
+            rows.Add(new("Save screenshots in the default places again", Activate: () => SettingsService.ScreenshotFolder = null));
+
+        rows.AddRange(
+        [
             new("BACKUP", IsHeader: true),
             new("Export backup…", Activate: () => RunSettingsAction(() =>
             {
