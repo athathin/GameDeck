@@ -204,7 +204,7 @@ public partial class BigPictureWindow
 
         foreach (var c in e.Text)
         {
-            if (char.IsLetterOrDigit(c) || " '-.,:".Contains(c))
+            if (char.IsLetterOrDigit(c) || " '-.,:!@#$%^&*()\"<>_".Contains(c))   // (every symbol the on-screen keys have)
                 TypeText(c.ToString());   // (as typed: the real keyboard has its own Shift and Caps Lock)
         }
 

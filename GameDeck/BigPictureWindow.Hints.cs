@@ -176,17 +176,15 @@ public partial class BigPictureWindow
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    /// <summary>The hints inside the search keyboard and the filters panel (the Power menu needs none).</summary>
+    /// <summary>
+    /// The hints of the filters panel, and the buttons drawn inside the on-screen keyboard's keys (it has no hint row: each key
+    /// shows its own button). The Power menu needs none.
+    /// </summary>
     private void BuildOverlayHints()
     {
         var l = Labels();
 
-        var note = _noteGame is not null;
-        if (ShownKind == ControllerKind.None)
-            // on a real keyboard the letters type themselves: Backspace and Space do the rest, the "Done" key saves
-            FillHints(SearchHints, (l.Confirm, "Press key"), ("Backspace", "Delete"), ("Space", "Space"), (l.Back, note ? "Cancel" : "Close"));
-        else
-            FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, note ? "Save" : "Done"), (l.Back, note ? "Cancel" : "Close"));
+        UpdateKeyboardSelection();   // the keys' buttons follow the controller in use
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 

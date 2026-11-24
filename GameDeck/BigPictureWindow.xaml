@@ -353,8 +353,8 @@
                         </Grid>
                     </Border>
 
+                    <!-- (no hint row: each key shows the controller button that does the same) -->
                     <StackPanel x:Name="KeyRows" Margin="0,18,0,0"/>
-                    <StackPanel x:Name="SearchHints" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,18,0,0"/>
                 </StackPanel>
             </Border>
         </Grid>

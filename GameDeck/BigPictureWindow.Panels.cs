@@ -18,7 +18,9 @@ public partial class BigPictureWindow
         if (_tab == StatsTab) return;   // nothing to search there
 
         _noteGame = null;
-        _shift = _capsLock = false;   // every search starts in lowercase
+        _shift = false;
+        _caps = CapsMode.Off;
+        AutoCapital();   // an empty search starts with a capital
         ShowOverlay(Overlay.Search);
         UpdateQueryUi();
         UpdateKeyboardSelection();
@@ -34,8 +36,9 @@ public partial class BigPictureWindow
     {
         _noteGame = game;
         _noteText = game.Notes ?? "";
-        _capsLock = false;
-        AutoShift();
+        _shift = false;
+        _caps = CapsMode.Off;
+        AutoCapital();
         ShowOverlay(Overlay.Search);
         UpdateQueryUi();
         UpdateKeyboardSelection();
@@ -67,17 +70,13 @@ public partial class BigPictureWindow
 
             for (var c = 0; c < Rows[r].Length; c++)
             {
+                // (what a key shows is drawn by UpdateKeyboardSelection: it changes with the case, Shift and the controller)
                 var cell = new Border
                 {
                     Margin = new Thickness(4),
-                    Padding = new Thickness(0, 14, 0, 14),
+                    Height = 62,
                     CornerRadius = new CornerRadius(8),
-                    Background = KeyBackground,
-                    Child = new TextBlock
-                    {
-                        Text = KeyLabel(Rows[r][c]), Foreground = ThemeService.TextPrimary, FontSize = 22,
-                        HorizontalAlignment = HorizontalAlignment.Center
-                    }
+                    Background = KeyBackground
                 };
 
                 var (row0, col0) = (r, c);
@@ -95,7 +94,7 @@ public partial class BigPictureWindow
                     _keyRow = row0;
                     _keyCol = col0;
                     UpdateKeyboardSelection();
-                    PressKey();
+                    PressKey(Rows[row0][col0]);
                 };
 
                 _keyCells[r][c] = cell;
@@ -104,52 +103,148 @@ public partial class BigPictureWindow
 
             KeyRows.Children.Add(row);
         }
+
+        UpdateKeyboardSelection();
     }
 
     // (named so the code above reads naturally)
     private static string[][] Rows => KeyLayout;
 
-    // ---- capitals: Shift makes the next letter the other case, Caps switches capitals on until pressed again ----
+    // ---- capitals and second symbols ----
+    // Caps: one press = the next letter is a capital, a second press = capitals stay on (Caps Lock), a third = off.
+    // The keyboard starts with one capital (an empty box, and in a note the start of each sentence), then goes to lowercase.
+    // Shift: the next key types its second symbol (1 → !, ' → "...), or a letter in the other case, as on a real keyboard.
 
-    private bool _shift;      // the next letter only
-    private bool _capsLock;   // until switched off
+    private enum CapsMode { Off, Once, Locked }
 
-    private bool Capitals => _shift != _capsLock;   // (Shift while Caps is on types one small letter, as on a real keyboard)
+    private CapsMode _caps;
+    private bool _shift;   // the next key only
 
-    /// <summary>What a key shows: its letter in the case it would type now, and whether Caps is on.</summary>
-    private string KeyLabel(string key) => key switch
+    private bool Capitals => (_caps != CapsMode.Off) != _shift;   // (Shift during Caps Lock types one small letter)
+
+    /// <summary>The second symbol of the keys that have one, as on a US keyboard.</summary>
+    private static readonly Dictionary<string, string> ShiftedSymbols = new()
     {
-        "Caps" => _capsLock ? "Caps: On" : "Caps: Off",
-        _ when key.Length == 1 && char.IsLetter(key[0]) => Capitals ? key.ToUpperInvariant() : key.ToLowerInvariant(),
-        _ => key
+        ["1"] = "!", ["2"] = "@", ["3"] = "#", ["4"] = "$", ["5"] = "%", ["6"] = "^", ["7"] = "&", ["8"] = "*", ["9"] = "(", ["0"] = ")",
+        ["'"] = "\"", [","] = "<", ["."] = ">", ["-"] = "_"
     };
 
-    /// <summary>In a note, Shift switches itself on at the start and after the end of a sentence (a capital comes next).</summary>
-    private void AutoShift()
-    {
-        if (_noteGame is null) return;
+    private static bool IsLetterKey(string key) => key.Length == 1 && char.IsLetter(key[0]);
 
-        _shift = _noteText.Length == 0 || _noteText.EndsWith(". ") || _noteText.EndsWith("! ") || _noteText.EndsWith("? ");
+    /// <summary>What a letter or symbol key types right now (and shows big): the letter in its case, or the symbol Shift picks.</summary>
+    private string KeyText(string key) =>
+        IsLetterKey(key) ? (Capitals ? key.ToUpperInvariant() : key.ToLowerInvariant())
+        : _shift && ShiftedSymbols.TryGetValue(key, out var second) ? second
+        : key;
+
+    /// <summary>A capital comes next at the start of the box, and in a note after the end of a sentence (never switches Caps off).</summary>
+    private void AutoCapital()
+    {
+        if (_caps == CapsMode.Locked) return;
+
+        var text = _noteGame is not null ? _noteText : _query;
+        var sentenceStart = text.Length == 0 ||
+            (_noteGame is not null && (text.EndsWith(". ") || text.EndsWith("! ") || text.EndsWith("? ")));
+
+        if (sentenceStart)
+            _caps = CapsMode.Once;
     }
 
+    /// <summary>Draws every key: the selected one, Shift / Caps lit while on, the letters' case and each key's controller button.</summary>
     private void UpdateKeyboardSelection()
     {
         for (var r = 0; r < _keyCells.Length; r++)
         {
             for (var c = 0; c < _keyCells[r].Length; c++)
             {
+                var key = Rows[r][c];
                 var selected = r == _keyRow && c == _keyCol;
+                var lit = key switch { "Shift" => _shift, "Caps" => _caps != CapsMode.Off, _ => false };
+
                 var cell = _keyCells[r][c];
-                var label = (TextBlock)cell.Child;
-
-                // Shift and Caps light up while they are on
-                var lit = Rows[r][c] switch { "Shift" => _shift, "Caps" => _capsLock, _ => false };
-
                 cell.Background = selected ? ThemeService.SelectBg : lit ? Purple : KeyBackground;
-                label.Foreground = selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary;
-                label.Text = KeyLabel(Rows[r][c]);
+                cell.Child = KeyContent(key, selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary);
             }
         }
+    }
+
+    /// <summary>
+    /// A key's face: what it types (or its name), the button that does the same on the controller in use (X for Delete...),
+    /// and on a key with two symbols the other one, small in the corner.
+    /// </summary>
+    private UIElement KeyContent(string key, Brush color)
+    {
+        var caption = key switch
+        {
+            "Caps" => _caps == CapsMode.Locked ? "Caps Lock" : "Caps",
+            "⌫ Delete" => "Delete",   // (room for its button: "Backspace" on a keyboard)
+            "Shift" or "Space" or "Clear" or "Done" => key,
+            _ => KeyText(key)
+        };
+
+        var line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        line.Children.Add(new TextBlock { Text = caption, Foreground = color, FontSize = 22, VerticalAlignment = VerticalAlignment.Center });
+
+        var button = KeyButton(key);
+        if (button is not null)
+            line.Children.Add(ButtonCap(button, color));
+
+        var face = new Grid();
+        face.Children.Add(line);
+
+        if (ShiftedSymbols.TryGetValue(key, out var second))
+            face.Children.Add(new TextBlock
+            {
+                Text = _shift ? key : second, Foreground = color, Opacity = 0.55, FontSize = 13,
+                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(10, 5, 0, 0)
+            });
+
+        return face;
+    }
+
+    /// <summary>
+    /// The controller button (or keyboard key) that does what this on-screen key does, for the device in use; null when there is
+    /// none. The same buttons as in HandleSearch.
+    /// </summary>
+    private string? KeyButton(string key)
+    {
+        var l = Labels();
+
+        if (ShownKind == ControllerKind.None)   // a real keyboard: only Delete and Space have a key of their own
+            return key switch { "⌫ Delete" => "Backspace", "Space" => "Space", _ => null };
+
+        return key switch
+        {
+            "⌫ Delete" => l.X,
+            "Space" => l.Y,
+            "Done" => MenuGlyph,   // the Menu / Options / + button: three lines (drawn in the icon font)
+            "Shift" => l.Left,
+            "Caps" => l.Right,
+            _ => null
+        };
+    }
+
+    private const string MenuGlyph = "\uE700";   // three lines, in Segoe MDL2 Assets
+
+    /// <summary>A button's label drawn inside a key: an outlined circle for one character, an outlined pill for a word.</summary>
+    private static Border ButtonCap(string label, Brush color)
+    {
+        var icon = label == MenuGlyph;
+        var round = label.Length == 1;
+
+        return new Border
+        {
+            BorderBrush = color, BorderThickness = new Thickness(1.5), Opacity = 0.8,
+            Width = round ? 28 : double.NaN, Height = 28, CornerRadius = new CornerRadius(14),
+            Padding = round ? new Thickness(0) : new Thickness(8, 0, 8, 0),
+            Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = label, Foreground = color, FontSize = icon ? 13 : round ? 14 : 13, FontWeight = FontWeights.SemiBold,
+                FontFamily = icon ? new FontFamily("Segoe MDL2 Assets") : SystemFonts.MessageFontFamily,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            }
+        };
     }
 
     private void HandleSearch(PadButton button)
@@ -160,10 +255,13 @@ public partial class BigPictureWindow
             case PadButton.Right: MoveKey(0, 1); break;
             case PadButton.Up: MoveKey(-1, 0); break;
             case PadButton.Down: MoveKey(1, 0); break;
-            case PadButton.Confirm: PressKey(); break;
-            case PadButton.X: Backspace(); break;
-            case PadButton.Y: TypeText(" "); break;
-            case PadButton.Start: if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
+            case PadButton.Confirm: PressKey(Rows[_keyRow][_keyCol]); break;
+            // (the buttons drawn inside the keys, see KeyButton)
+            case PadButton.X: PressKey("⌫ Delete"); break;
+            case PadButton.Y: PressKey("Space"); break;
+            case PadButton.LeftShoulder: PressKey("Shift"); break;
+            case PadButton.RightShoulder: PressKey("Caps"); break;
+            case PadButton.Start: PressKey("Done"); break;
             case PadButton.Back: if (_noteGame is not null) FinishNote(save: false); else CloseOverlay(); break;
         }
     }
@@ -190,52 +288,61 @@ public partial class BigPictureWindow
         UpdateKeyboardSelection();
     }
 
-    private void PressKey()
+    /// <summary>Does what an on-screen key does (the selected one, or the one a controller button stands for).</summary>
+    private void PressKey(string key)
     {
-        var key = Rows[_keyRow][_keyCol];
-
         switch (key)
         {
             case "Shift": _shift = !_shift; UpdateKeyboardSelection(); break;
-            case "Caps": _capsLock = !_capsLock; _shift = false; UpdateKeyboardSelection(); break;
+            case "Caps":
+                _caps = _caps switch { CapsMode.Off => CapsMode.Once, CapsMode.Once => CapsMode.Locked, _ => CapsMode.Off };
+                UpdateKeyboardSelection();
+                break;
             case "Space": TypeText(" "); break;
             case "⌫ Delete": Backspace(); break;
-            case "Clear": if (_noteGame is not null) { _noteText = ""; AfterNoteEdit(); } else SetQuery(""); break;
+            case "Clear":
+                if (_noteGame is not null) _noteText = ""; else SetQuery("");
+                AfterEdit();
+                break;
             case "Done": if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
             default:
-                var capital = Capitals;
-                _shift = false;   // (one letter only; in a note it may switch on again for the next sentence)
-                TypeText(capital ? key.ToUpperInvariant() : key.ToLowerInvariant());
-                UpdateKeyboardSelection();
+                var text = KeyText(key);
+                _shift = false;   // (one key only)
+                TypeText(text);
                 break;
         }
     }
 
-    /// <summary>A note's text changed: the box shows it and Shift follows the sentence (on after ". ").</summary>
-    private void AfterNoteEdit()
+    /// <summary>The text changed: the box shows it, a capital comes next where a sentence starts, the keys show the case.</summary>
+    private void AfterEdit()
     {
         UpdateQueryUi();
-        AutoShift();
+        AutoCapital();
         UpdateKeyboardSelection();
     }
 
     private void TypeText(string text)
     {
+        // a letter uses up a single Caps press: back to lowercase
+        if (_caps == CapsMode.Once && text.Any(char.IsLetter))
+            _caps = CapsMode.Off;
+
         if (_noteGame is not null)
         {
             if (_noteText.Length + text.Length > NoteLimit) return;
             if (text == " " && (_noteText.Length == 0 || _noteText.EndsWith(' '))) return;
 
-            // (the capital at the start of a sentence comes from Shift, which switches itself on there: AutoShift)
             _noteText += text;
-            AfterNoteEdit();
-            return;
+        }
+        else
+        {
+            if (_query.Length + text.Length > 40) return;
+            if (text == " " && (_query.Length == 0 || _query.EndsWith(' '))) return;   // no leading or double spaces
+
+            SetQuery(_query + text);
         }
 
-        if (_query.Length + text.Length > 40) return;
-        if (text == " " && (_query.Length == 0 || _query.EndsWith(' '))) return;   // no leading or double spaces
-
-        SetQuery(_query + text);
+        AfterEdit();
     }
 
     private void Backspace()
@@ -243,16 +350,12 @@ public partial class BigPictureWindow
         if (_noteGame is not null)
         {
             if (_noteText.Length > 0)
-            {
                 _noteText = _noteText[..^1];
-                AfterNoteEdit();
-            }
-
-            return;
         }
-
-        if (_query.Length > 0)
+        else if (_query.Length > 0)
             SetQuery(_query[..^1]);
+
+        AfterEdit();
     }
 
     /// <summary>The list follows the search as it is typed.</summary>
