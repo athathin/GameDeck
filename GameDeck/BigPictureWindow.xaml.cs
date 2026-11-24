@@ -56,7 +56,8 @@ public partial class BigPictureWindow : Window
 
     private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots }
 
-    private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right, string Select, string Start, string Home);
+    private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right,
+                                string LeftTrigger, string RightTrigger, string Select, string Start, string Home);
 
     /// <summary>
     /// One line of the filters panel: a heading, a tick box, a radio button or a plain action. With <paramref name="Steps"/> it is

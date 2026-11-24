@@ -18,6 +18,7 @@ public partial class BigPictureWindow
         if (_tab == StatsTab) return;   // nothing to search there
 
         _noteGame = null;
+        _caret = _query.Length;   // the cursor after what is typed already
         _shift = false;
         _caps = CapsMode.Off;
         AutoCapital();   // an empty search starts with a capital
@@ -36,6 +37,7 @@ public partial class BigPictureWindow
     {
         _noteGame = game;
         _noteText = game.Notes ?? "";
+        _caret = _noteText.Length;
         _shift = false;
         _caps = CapsMode.Off;
         AutoCapital();
@@ -137,12 +139,15 @@ public partial class BigPictureWindow
         : _shift && ShiftedSymbols.TryGetValue(key, out var second) ? second
         : key;
 
-    /// <summary>A capital comes next at the start of the box, and in a note after the end of a sentence (never switches Caps off).</summary>
+    /// <summary>
+    /// A capital comes next where the cursor is at the start of the box, and in a note after the end of a sentence
+    /// (never switches Caps off).
+    /// </summary>
     private void AutoCapital()
     {
         if (_caps == CapsMode.Locked) return;
 
-        var text = _noteGame is not null ? _noteText : _query;
+        var text = EditText[..Caret];   // (what comes before the cursor)
         var sentenceStart = text.Length == 0 ||
             (_noteGame is not null && (text.EndsWith(". ") || text.EndsWith("! ") || text.EndsWith("? ")));
 
@@ -264,6 +269,8 @@ public partial class BigPictureWindow
             case PadButton.RightShoulder: PressKey("Caps"); break;
             case PadButton.Start: PressKey("Done"); break;
             case PadButton.Select: PressKey("Clear"); break;   // (View / Share / −; Tab on a keyboard)
+            case PadButton.LeftTrigger: MoveCaret(-1); break;   // the text cursor (PgUp / PgDn on a keyboard)
+            case PadButton.RightTrigger: MoveCaret(1); break;
             case PadButton.Back: if (_noteGame is not null) FinishNote(save: false); else CloseOverlay(); break;
         }
     }
@@ -302,10 +309,7 @@ public partial class BigPictureWindow
                 break;
             case "Space": TypeText(" "); break;
             case "⌫ Delete": Backspace(); break;
-            case "Clear":
-                if (_noteGame is not null) _noteText = ""; else SetQuery("");
-                AfterEdit();
-                break;
+            case "Clear": SetEditText("", 0); break;
             case "Done": if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
             default:
                 var text = KeyText(key);
@@ -323,41 +327,56 @@ public partial class BigPictureWindow
         UpdateKeyboardSelection();
     }
 
+    // ---- the text being typed (the search, or the note) and the cursor in it ----
+
+    private int _caret;   // where the next letter goes: 0 = before the first one, the length = after the last
+
+    private string EditText => _noteGame is not null ? _noteText : _query;
+
+    private int Caret => Math.Clamp(_caret, 0, EditText.Length);   // (the search can be changed from elsewhere)
+
+    /// <summary>Replaces the text being typed and puts the cursor at <paramref name="caret"/>; the list follows a search.</summary>
+    private void SetEditText(string text, int caret)
+    {
+        _caret = caret;
+
+        if (_noteGame is not null)
+            _noteText = text;
+        else
+            SetQuery(text);
+
+        AfterEdit();
+    }
+
+    /// <summary>The cursor one place left (-1) or right (+1), stopping at the ends.</summary>
+    private void MoveCaret(int step)
+    {
+        _caret = Math.Clamp(Caret + step, 0, EditText.Length);
+        AfterEdit();   // (a capital may come next at the new place)
+    }
+
+    /// <summary>Types at the cursor (a letter, a symbol, a space), within the box's length and without double spaces.</summary>
     private void TypeText(string text)
     {
         // a letter uses up a single Caps press: back to lowercase
         if (_caps == CapsMode.Once && text.Any(char.IsLetter))
             _caps = CapsMode.Off;
 
-        if (_noteGame is not null)
-        {
-            if (_noteText.Length + text.Length > NoteLimit) return;
-            if (text == " " && (_noteText.Length == 0 || _noteText.EndsWith(' '))) return;
+        var (before, after) = (EditText[..Caret], EditText[Caret..]);
 
-            _noteText += text;
-        }
-        else
-        {
-            if (_query.Length + text.Length > 40) return;
-            if (text == " " && (_query.Length == 0 || _query.EndsWith(' '))) return;   // no leading or double spaces
+        if (EditText.Length + text.Length > (_noteGame is not null ? NoteLimit : 40)) return;
+        if (text == " " && (before.Length == 0 || before.EndsWith(' ') || after.StartsWith(' '))) return;   // no leading or double spaces
 
-            SetQuery(_query + text);
-        }
-
-        AfterEdit();
+        SetEditText(before + text + after, before.Length + text.Length);
     }
 
+    /// <summary>Deletes the letter before the cursor.</summary>
     private void Backspace()
     {
-        if (_noteGame is not null)
-        {
-            if (_noteText.Length > 0)
-                _noteText = _noteText[..^1];
-        }
-        else if (_query.Length > 0)
-            SetQuery(_query[..^1]);
+        if (Caret == 0) return;
 
-        AfterEdit();
+        var caret = Caret;
+        SetEditText(EditText.Remove(caret - 1, 1), caret - 1);
     }
 
     /// <summary>The list follows the search as it is typed.</summary>
@@ -370,9 +389,10 @@ public partial class BigPictureWindow
 
     private void UpdateQueryUi()
     {
+        ShowTextWithCaret();
+
         if (_noteGame is not null)
         {
-            QueryText.Text = _noteText;
             QueryHint.Text = "Type a note about " + _noteGame.DisplayName;
             QueryHint.Visibility = _noteText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             ResultCountText.Text = $"{_noteText.Length} / {NoteLimit}";
@@ -380,9 +400,42 @@ public partial class BigPictureWindow
         }
 
         QueryHint.Text = "Type to search your games";
-        QueryText.Text = _query;
         QueryHint.Visibility = _query.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         ResultCountText.Text = _items.Count == 1 ? "1 game" : $"{_items.Count} games";
+    }
+
+    /// <summary>The text with a blinking bar at the cursor (made anew each time, so it shows solid right after a change).</summary>
+    private void ShowTextWithCaret()
+    {
+        var caret = new Border { Width = 2.5, Height = 32, Background = ThemeService.TextPrimary, Margin = new Thickness(1, 0, 1, 0) };
+
+        var blink = new System.Windows.Media.Animation.DoubleAnimationUsingKeyFrames
+        {
+            Duration = TimeSpan.FromSeconds(1.1), RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+        };
+        blink.KeyFrames.Add(new System.Windows.Media.Animation.DiscreteDoubleKeyFrame(1, TimeSpan.Zero));
+        blink.KeyFrames.Add(new System.Windows.Media.Animation.DiscreteDoubleKeyFrame(0, TimeSpan.FromSeconds(0.6)));
+        caret.BeginAnimation(OpacityProperty, blink);
+
+        QueryText.Inlines.Clear();
+        QueryText.Inlines.Add(new System.Windows.Documents.Run(EditText[..Caret]));
+        QueryText.Inlines.Add(new System.Windows.Documents.InlineUIContainer(caret) { BaselineAlignment = BaselineAlignment.Center });
+        QueryText.Inlines.Add(new System.Windows.Documents.Run(EditText[Caret..]));
+    }
+
+    /// <summary>The buttons that move the cursor, shown in the text box: LT ← → RT (PgUp / PgDn on a keyboard).</summary>
+    private void ShowCaretHints()
+    {
+        var l = Labels();
+        var color = ThemeService.TextPrimary;
+
+        CaretHints.Children.Clear();
+        CaretHints.Children.Add(ButtonCap(l.LeftTrigger, color));
+        CaretHints.Children.Add(new TextBlock
+        {
+            Text = "←  →", Foreground = Muted, FontSize = 18, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0)
+        });
+        CaretHints.Children.Add(ButtonCap(l.RightTrigger, color));
     }
 
     // ---------- filters ----------

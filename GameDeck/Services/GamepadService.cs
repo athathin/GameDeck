@@ -16,6 +16,7 @@ public enum PadButton
     Y,              // Xbox Y, PlayStation △, Nintendo Y
     LeftShoulder,   // LB / L1 / L
     RightShoulder,  // RB / R1 / R
+    LeftTrigger,    // LT / L2 / ZL
     RightTrigger,   // RT / R2 / ZR
     Select,         // View / Share (Create) / −
     Start,          // Menu / Options / +
@@ -355,6 +356,7 @@ public sealed class GamepadService : IDisposable
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_START)) down.Add(PadButton.Start);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK)) down.Add(PadButton.Select);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_GUIDE)) down.Add(PadButton.Home);
+        if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERLEFT) > StickThreshold) down.Add(PadButton.LeftTrigger);
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > StickThreshold) down.Add(PadButton.RightTrigger);
     }
 

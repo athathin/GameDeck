@@ -29,10 +29,11 @@ public partial class BigPictureWindow
     }
 
     // built once: the labels are asked for every time a hint bar, a tab row or a panel is drawn
-    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "Share", "Options", "PS");
-    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "−", "+", "Home");
-    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "Xbox");
-    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "M", "P");   // no controller (the keys of the main screen)
+    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "L2", "R2", "Share", "Options", "PS");
+    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "ZL", "ZR", "−", "+", "Home");
+    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "LT", "RT", "View", "Menu", "Xbox");
+    // no controller: the keys of the main screen (PgUp / PgDn move the text cursor in the search box, see Window_PreviewKeyDown)
+    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "PgUp", "PgDn", "Tab", "M", "P");
 
     // the same with the confirm and back buttons swapped (the keyboard is never swapped)
     private static readonly ButtonLabels PlayStationSwapped = PlayStationLabels with { Confirm = PlayStationLabels.Back, Back = PlayStationLabels.Confirm };
@@ -185,6 +186,7 @@ public partial class BigPictureWindow
         var l = Labels();
 
         UpdateKeyboardSelection();   // the keys' buttons follow the controller in use
+        ShowCaretHints();            // (and the text cursor's)
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 

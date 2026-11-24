@@ -344,12 +344,22 @@
                 <StackPanel MaxWidth="1100">
                     <Border Background="{DynamicResource RaisedBg}" CornerRadius="8" Padding="20,12">
                         <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- the text with its cursor (built in UpdateQueryUi); a long note wraps instead of being cut off -->
                             <TextBlock x:Name="QueryText" Foreground="{DynamicResource TextPrimary}" FontSize="28" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" Margin="0,0,160,0"/>
+                                       TextWrapping="Wrap" Margin="0,0,20,0"/>
                             <TextBlock x:Name="QueryHint" Text="Type to search your games" Foreground="{DynamicResource TextHint}" FontSize="28"
-                                       VerticalAlignment="Center" IsHitTestVisible="False"/>
-                            <TextBlock x:Name="ResultCountText" Foreground="{DynamicResource TextMuted}" FontSize="16" HorizontalAlignment="Right"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center" IsHitTestVisible="False" Margin="4,0,0,0"/>
+
+                            <!-- the buttons that move the cursor, and the number of games / letters -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel x:Name="CaretHints" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,22,0"/>
+                                <TextBlock x:Name="ResultCountText" Foreground="{DynamicResource TextMuted}" FontSize="16" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
