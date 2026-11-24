@@ -205,7 +205,7 @@ public static class UpdateService
             }
 
             // the new version must show that it starts (MarkHealthy); until then the old file is kept to go back to
-            SaveState(new UpdateState { PendingVersion = VersionText(update.Version), Notes = update.Notes, From = CurrentVersionText });
+            SaveState(new UpdateState { PendingVersion = VersionText(update.Version), Notes = update.Notes });
 
             return true;
         }
@@ -329,7 +329,6 @@ public static class UpdateService
         public string? NotesFor { get; set; }          // the version the saved notes belong to (kept until they have been shown)
         public string? SkipVersion { get; set; }       // a version that was rolled back: not offered again
         public string? Notes { get; set; }             // what's new in the pending version
-        public string? From { get; set; }              // the version that was replaced
     }
 
     private static readonly string StatePath = Path.Combine(

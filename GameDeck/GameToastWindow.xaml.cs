@@ -63,7 +63,8 @@ public partial class GameToastWindow : Window
     }
 
     /// <summary>Shows the notice. <paramref name="optimizedSummary"/> is what the launch routine did (null = nothing).</summary>
-    public static void ShowFor(string gameName, string? optimizedSummary)
+    /// <param name="inTray">GameDeck waits in the tray while the game runs (only then does the notice say so).</param>
+    public static void ShowFor(string gameName, string? optimizedSummary, bool inTray)
     {
         // the same game announced twice within a moment (a double press, two launch paths): show it once
         if (_current is { _closing: false } current && current._gameName == gameName &&
@@ -73,7 +74,7 @@ public partial class GameToastWindow : Window
         _current?.CloseNow();
 
         var toast = optimizedSummary is null
-            ? new GameToastWindow(RandomHeadline(), gameName, "GameDeck is running quietly in the system tray.")
+            ? new GameToastWindow(RandomHeadline(), gameName, inTray ? "GameDeck is running quietly in the system tray." : null)
             : new GameToastWindow("PC optimized", gameName, optimizedSummary);
 
         _current = toast;

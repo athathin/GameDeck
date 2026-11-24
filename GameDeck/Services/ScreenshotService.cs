@@ -26,7 +26,7 @@ public static class ScreenshotService
     {
         var found = new List<string>();
 
-        found.AddRange(Pictures(FolderOf(game), "*", null));
+        found.AddRange(Pictures(FolderOf(game), "*"));
 
         // Game Bar names its files after the window's title, which is nearly always the game's name. The folder can hold
         // thousands of captures of other games: only the files that start with this game's name are asked for.
@@ -37,7 +37,7 @@ public static class ScreenshotService
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
         foreach (var name in names)
-            found.AddRange(Pictures(CapturesFolder, name + "*", null));
+            found.AddRange(Pictures(CapturesFolder, name + "*"));
 
         found = found.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -77,14 +77,14 @@ public static class ScreenshotService
         return added;
     }
 
-    private static IEnumerable<string> Pictures(string folder, string pattern, Func<string, bool>? filter)
+    private static IEnumerable<string> Pictures(string folder, string pattern)
     {
         try
         {
             if (!Directory.Exists(folder)) return [];
 
             return Directory.EnumerateFiles(folder, pattern)
-                .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase) && (filter?.Invoke(f) ?? true))
+                .Where(f => Extensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
                 .ToList();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

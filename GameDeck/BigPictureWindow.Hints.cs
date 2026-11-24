@@ -29,10 +29,10 @@ public partial class BigPictureWindow
     }
 
     // built once: the labels are asked for every time a hint bar, a tab row or a panel is drawn
-    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "Share", "Options", "R2", "PS");
-    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "−", "+", "ZR", "Home");
-    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "View", "Menu", "RT", "Xbox");
-    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "Tab", "P", "R", "P");   // no controller
+    private static readonly ButtonLabels PlayStationLabels = new("✕", "○", "□", "△", "L1", "R1", "Options", "PS");
+    private static readonly ButtonLabels NintendoLabels = new("A", "B", "X", "Y", "L", "R", "+", "Home");
+    private static readonly ButtonLabels XboxLabels = new("A", "B", "X", "Y", "LB", "RB", "Menu", "Xbox");
+    private static readonly ButtonLabels KeyboardLabels = new("Enter", "Esc", "F", "S", "PgUp", "PgDn", "M", "P");   // no controller (the keys of the main screen)
 
     // the same with the confirm and back buttons swapped (the keyboard is never swapped)
     private static readonly ButtonLabels PlayStationSwapped = PlayStationLabels with { Confirm = PlayStationLabels.Back, Back = PlayStationLabels.Confirm };
@@ -182,7 +182,11 @@ public partial class BigPictureWindow
         var l = Labels();
 
         var note = _noteGame is not null;
-        FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, note ? "Save" : "Done"), (l.Back, note ? "Cancel" : "Close"));
+        if (ShownKind == ControllerKind.None)
+            // on a real keyboard the letters type themselves: Backspace and Space do the rest, the "Done" key saves
+            FillHints(SearchHints, (l.Confirm, "Press key"), ("Backspace", "Delete"), ("Space", "Space"), (l.Back, note ? "Cancel" : "Close"));
+        else
+            FillHints(SearchHints, (l.Confirm, "Type"), (l.X, "Delete"), (l.Y, "Space"), (l.Start, note ? "Save" : "Done"), (l.Back, note ? "Cancel" : "Close"));
         FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
     }
 

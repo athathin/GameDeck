@@ -5,8 +5,8 @@ using GameDeck.Models;
 namespace GameDeck.Services;
 
 /// <summary>
-/// Saves / restores everything personal in one .json file: favorites, playtime, names, hidden games, categories,
-/// launch options and the games added by hand. Nothing leaves the PC: the file goes where the user puts it.
+/// Saves / restores everything personal in one .json file: favorites, playtime, names, hidden games, categories, status,
+/// ratings, notes, launch options, launch routines and the games added by hand. Nothing leaves the PC: the file goes where the user puts it.
 /// </summary>
 public static class BackupService
 {

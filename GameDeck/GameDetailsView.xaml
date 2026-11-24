@@ -64,7 +64,7 @@
                 <StackPanel Grid.Column="1">
                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="SemiBold"
                                TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding Source}" Foreground="{DynamicResource TextMuted}" FontSize="15" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding SourceText}" Foreground="{DynamicResource TextMuted}" FontSize="15" Margin="0,4,0,0"/>
 
                     <Button x:Name="PlayButton" Content="▶  Play" Style="{StaticResource PlayButton}"
                             HorizontalAlignment="Left" Margin="0,22,0,0" Click="PlayButton_Click"/>

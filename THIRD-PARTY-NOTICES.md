@@ -6,7 +6,6 @@ artwork, which stay under their own licenses.
 | Component | Used for | License |
 | --- | --- | --- |
 | [.NET runtime and libraries](https://github.com/dotnet/runtime) and [WPF](https://github.com/dotnet/wpf) (Microsoft) | The runtime that is built into the program, so nothing has to be installed | MIT |
-| [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (Microsoft, .NET Foundation) | Helpers for the user interface code | MIT |
 | [SDL2](https://www.libsdl.org/) (Simple DirectMedia Layer) | Reading Xbox, PlayStation and Nintendo controllers | zlib |
 | [SDL2-CS](https://github.com/ppy/SDL2-CS) (ppy Pty Ltd, flibitijibibo) | The .NET wrapper around SDL2 | zlib |
 | [Simple Icons](https://github.com/simple-icons/simple-icons) | The Xbox and PlayStation button shapes in Big Picture mode | CC0 1.0 (public domain) |

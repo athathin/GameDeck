@@ -401,7 +401,7 @@ public partial class MainWindow
         {
             CategoryList.Children.Add(new TextBlock
             {
-                Text = "None yet. Right-click a game, then Edit game…",
+                Text = "None yet. Right-click a game, then Categories › New category…",
                 Foreground = ThemeService.TextMuted,
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap

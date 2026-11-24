@@ -273,7 +273,7 @@ public partial class BigPictureWindow
 
         rows.Add(new FilterRow("CATEGORY", IsHeader: true));
         if (categories.Count == 0)
-            rows.Add(new FilterRow("None yet. Edit a game from its menu to add some."));
+            rows.Add(new FilterRow("None yet. Open a game's menu, then Categories › New category…"));
 
         foreach (var category in categories)
         {

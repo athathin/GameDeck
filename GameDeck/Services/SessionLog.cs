@@ -35,8 +35,6 @@ public class SessionLog
 
     private List<Session> _sessions = [];
 
-    public int Count => _sessions.Count;
-
     /// <summary>Total seconds that are recorded here (compared with the running totals to tell old, undated playtime apart).</summary>
     public long LoggedSeconds => _sessions.Sum(s => s.Seconds);
 
