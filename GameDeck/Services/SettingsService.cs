@@ -54,6 +54,7 @@ public static class SettingsService
         public bool ShowLaunchToast { get; set; } = true;
 
         public bool ControllerWake { get; set; } = true;
+        public bool ControllerShortcuts { get; set; } = true;
         public bool NavSounds { get; set; } = true;
         public double SoundVolume { get; set; } = 1.0;
 
@@ -182,6 +183,17 @@ public static class SettingsService
         set
         {
             Current.ControllerWake = value;
+            Save();
+        }
+    }
+
+    /// <summary>The Home-button shortcuts (Home + a button: volume, songs, Alt + Tab, keyboard, screenshot), also during games.</summary>
+    public static bool ControllerShortcuts
+    {
+        get => Current.ControllerShortcuts;
+        set
+        {
+            Current.ControllerShortcuts = value;
             Save();
         }
     }

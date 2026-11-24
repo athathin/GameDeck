@@ -688,6 +688,7 @@ public partial class BigPictureWindow
         GameMenuOverlay.Visibility = overlay == Overlay.GameMenu ? Visibility.Visible : Visibility.Collapsed;
         BrowseOverlay.Visibility = overlay == Overlay.Browse ? Visibility.Visible : Visibility.Collapsed;
         ShotOverlay.Visibility = overlay == Overlay.Shots ? Visibility.Visible : Visibility.Collapsed;
+        ShortcutsOverlay.Visibility = overlay == Overlay.Shortcuts ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CloseOverlay()

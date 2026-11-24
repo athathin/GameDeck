@@ -54,7 +54,7 @@ public partial class BigPictureWindow : Window
     private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];
     private const int StatsTab = 3;
 
-    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots }
+    private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots, Shortcuts }
 
     private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right,
                                 string LeftTrigger, string RightTrigger, string Select, string Start, string Home);
@@ -230,11 +230,15 @@ public partial class BigPictureWindow : Window
 
     // ---------- window / controller life cycle ----------
 
+    /// <summary>Raised just before this screen starts reading the controllers (the background listener must let them go first).</summary>
+    public event Action? TakingController;
+
     // Controllers are only read while this screen is in front, so they aren't touched while a game is running.
     private void Window_Activated(object? sender, EventArgs e)
     {
         if (_closing) return;
 
+        TakingController?.Invoke();
         _pad.Start();
         _timer.Start();
         UpdateControllerUi();
@@ -325,12 +329,26 @@ public partial class BigPictureWindow : Window
 
     private void Timer_Tick(object? sender, EventArgs e)
     {
-        foreach (var button in _pad.Poll())
+        var pressed = _pad.Poll();
+
+        // Home + a button is a shortcut (volume, Alt + Tab...): those buttons aren't presses here. Home's own job (the Power
+        // menu) happens when it is let go without a shortcut.
+        var homeTapped = ControllerShortcuts.Update(_pad.Held);
+        var shortcutsOn = SettingsService.ControllerShortcuts;
+
+        foreach (var button in pressed)
         {
             if (_closing) break;   // an earlier button already closed this screen (launch, exit...): the rest are stale
+            if (button == PadButton.Home || (shortcutsOn && ControllerShortcuts.HomeHeld)) continue;
 
             SetPadInUse(true);
             Handle(button);
+        }
+
+        if (homeTapped && !_closing)
+        {
+            SetPadInUse(true);
+            Handle(PadButton.Home);
         }
 
         // glide towards the selected tile instead of jumping

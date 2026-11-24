@@ -66,6 +66,7 @@ public partial class SettingsView : UserControl
         LaunchToastCheckBox.IsChecked = SettingsService.ShowLaunchToast;
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
+        ControllerShortcutsCheckBox.IsChecked = SettingsService.ControllerShortcuts;
         NavSoundsCheckBox.IsChecked = SettingsService.NavSounds;
         ShowSoundVolume();
         SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
@@ -87,6 +88,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.NavSounds = NavSoundsCheckBox.IsChecked == true;   // Big Picture checks this each time a sound would play
+    }
+
+    private void ControllerShortcutsCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.ControllerShortcuts = ControllerShortcutsCheckBox.IsChecked == true;   // the listeners check this on their own
     }
 
     /// <summary>Puts the volume slider on the saved volume and names it in the slider's tooltip ("Volume: 75%").</summary>

@@ -71,6 +71,7 @@ public partial class BigPictureWindow
             case Overlay.GameMenu: HandleGameMenu(button); break;
             case Overlay.Browse: HandleBrowse(button); break;
             case Overlay.Shots: HandleShots(button); break;
+            case Overlay.Shortcuts: HandleShortcuts(button); break;
         }
     }
 
@@ -139,6 +140,7 @@ public partial class BigPictureWindow
             case Overlay.Details: FillDetailsHints(); break;
             case Overlay.Browse: FillBrowseHints(); break;
             case Overlay.Shots: FillShotHints(); break;
+            case Overlay.Shortcuts: RenderShortcuts(); break;   // (the card shows the buttons of the controller in use)
         }
     }
 

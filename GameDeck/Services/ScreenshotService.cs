@@ -49,6 +49,46 @@ public static class ScreenshotService
             .ToList();
     }
 
+    /// <summary>
+    /// Takes a picture of the screen the program in front is on (the controller's Home + RT) and saves it as a .png: in the
+    /// game's own folder when a game from GameDeck is running (so its page shows it), otherwise in Pictures\Screenshots, where
+    /// Windows keeps its own. A game in exclusive full screen may come out black: most games today run borderless and are fine.
+    /// </summary>
+    /// <returns>The saved file, or null when it couldn't be taken or saved.</returns>
+    public static string? Capture(Game? game)
+    {
+        try
+        {
+            var screen = System.Windows.Forms.Screen.FromHandle(GetForegroundWindow()).Bounds;
+
+            using var picture = new System.Drawing.Bitmap(screen.Width, screen.Height);
+            using (var graphics = System.Drawing.Graphics.FromImage(picture))
+                graphics.CopyFromScreen(screen.Location, System.Drawing.Point.Empty, screen.Size);
+
+            var folder = game is not null
+                ? FolderOf(game)
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
+            Directory.CreateDirectory(folder);
+
+            var name = $"{(game is not null ? SafeName(game.Name) : "Screenshot")} {DateTime.Now:yyyy-MM-dd HH-mm-ss}";
+            var file = Path.Combine(folder, name + ".png");
+            for (var n = 2; File.Exists(file); n++)   // two in the same second
+                file = Path.Combine(folder, $"{name} ({n}).png");
+
+            picture.Save(file, System.Drawing.Imaging.ImageFormat.Png);
+            return file;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or
+                                   ArgumentException or System.Runtime.InteropServices.ExternalException)
+        {
+            CrashLog.Write(ex, "Screenshot");
+            return null;
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
     /// <summary>Copies pictures into the game's own folder. Returns how many were added.</summary>
     public static int Add(Game game, IEnumerable<string> files)
     {

@@ -81,6 +81,14 @@ public partial class GameToastWindow : Window
         toast.Show();
     }
 
+    /// <summary>Shows a short notice that isn't about a game starting ("Screenshot saved"), the same way.</summary>
+    public static void ShowMessage(string headline, string text, string? detail = null)
+    {
+        _current?.CloseNow();
+        _current = new GameToastWindow(headline, text, detail);
+        _current.Show();
+    }
+
     private static string RandomHeadline()
     {
         string[] lines = ["Game on!", "Have fun!", "Good luck out there!", "Let's play!", "Enjoy the game!"];

@@ -130,6 +130,9 @@ public partial class BigPictureWindow
         [
             new("Open Big Picture mode from a controller", IsOn: () => SettingsService.ControllerWake,
                 Activate: () => SettingsService.ControllerWake = !SettingsService.ControllerWake),
+            new("Controller shortcuts: hold Home and press a button  (also in games; the list: Power menu)",
+                IsOn: () => SettingsService.ControllerShortcuts,
+                Activate: () => SettingsService.ControllerShortcuts = !SettingsService.ControllerShortcuts),
 
             new("BACKUP", IsHeader: true),
             new("Export backup…", Activate: () => RunSettingsAction(() =>

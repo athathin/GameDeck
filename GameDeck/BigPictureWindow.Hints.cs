@@ -43,11 +43,14 @@ public partial class BigPictureWindow
     /// <summary>The controller the hints are drawn for; none while the keyboard or mouse was used last.</summary>
     private ControllerKind ShownKind => _padInUse ? _pad.ActiveKind : ControllerKind.None;
 
-    private ButtonLabels Labels()
+    private ButtonLabels Labels() => LabelsFor(ShownKind);
+
+    /// <summary>The button names of a controller family (the keyboard's keys for None), with confirm and back swapped if set.</summary>
+    private static ButtonLabels LabelsFor(ControllerKind kind)
     {
         var swap = SettingsService.SwapConfirmBack;
 
-        return ShownKind switch
+        return kind switch
         {
             ControllerKind.PlayStation => swap ? PlayStationSwapped : PlayStationLabels,
             ControllerKind.Nintendo => swap ? NintendoSwapped : NintendoLabels,
@@ -135,13 +138,13 @@ public partial class BigPictureWindow
         };
     }
 
-    /// <summary>The Home button of the controller in use: the Xbox button, the PS button, or Home (a house).</summary>
-    private UIElement HomeIcon(ButtonLabels labels, bool onController)
+    /// <summary>The Home button of the controller in use (or of <paramref name="kind"/>): the Xbox button, the PS button, or Home (a house).</summary>
+    private UIElement HomeIcon(ButtonLabels labels, bool onController, ControllerKind? kind = null)
     {
         if (!onController)
             return Chip(labels.Home);
 
-        return ShownKind switch
+        return (kind ?? ShownKind) switch
         {
             ControllerKind.Xbox => Logo(XboxLogo, 34),
             ControllerKind.PlayStation => Logo(PlayStationLogo, 30),

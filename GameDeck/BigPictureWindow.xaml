@@ -464,5 +464,29 @@
                 </StackPanel>
             </Border>
         </Grid>
+
+        <!-- ======================= the controller's shortcuts (Power menu > Show Controller Shortcuts) ======================= -->
+        <Grid x:Name="ShortcutsOverlay" Visibility="Collapsed" Background="{DynamicResource ScrimStrong}">
+            <Border MaxWidth="1180" Margin="60,50" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{DynamicResource PanelBg}"
+                    CornerRadius="10" Padding="56,40,56,26">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Controller Shortcuts" Foreground="{DynamicResource TextPrimary}" FontSize="32"
+                               FontWeight="SemiBold" Margin="0,0,0,18"/>
+                    <StackPanel x:Name="ShortcutsHints" DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0"/>
+                    <!-- two columns of rows (built in BigPictureWindow.Shortcuts.cs); scrolls when the screen is short -->
+                    <ScrollViewer x:Name="ShortcutsScroll" VerticalScrollBarVisibility="Hidden" Focusable="False">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="64"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel x:Name="ShortcutsLeft"/>
+                            <StackPanel x:Name="ShortcutsRight" Grid.Column="2"/>
+                        </Grid>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

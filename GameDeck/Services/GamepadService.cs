@@ -20,7 +20,8 @@ public enum PadButton
     RightTrigger,   // RT / R2 / ZR
     Select,         // View / Share (Create) / −
     Start,          // Menu / Options / +
-    Home            // Xbox button / PS button / Home
+    Home,           // Xbox button / PS button / Home
+    LeftStick       // pressing the left stick in (LS / L3)
 }
 
 /// <summary>Which family the controller being used belongs to (decides the button names shown on screen).</summary>
@@ -74,6 +75,9 @@ public sealed class GamepadService : IDisposable
 
     /// <summary>Raised when a controller is plugged in, removed, or another one is used.</summary>
     public event Action? ControllerChanged;
+
+    /// <summary>The buttons held at the last <see cref="Poll"/> (on every controller together), for the Home-button shortcuts.</summary>
+    public IReadOnlySet<PadButton> Held => _down;
 
     public bool Start()
     {
@@ -152,7 +156,7 @@ public sealed class GamepadService : IDisposable
             foreach (var pad in _pads)
             {
                 _padDown.Clear();
-                ReadButtons(pad, _padDown);
+                ReadButtons(pad.Handle, _padDown);
                 if (_padDown.Count > 0 && !ReferenceEquals(pad, _activePad))
                     SetActive(pad);   // this controller is the one in use now
 
@@ -332,10 +336,14 @@ public sealed class GamepadService : IDisposable
         ControllerChanged?.Invoke();
     }
 
-    private static void ReadButtons(Pad pad, HashSet<PadButton> down)
+    /// <summary>
+    /// Adds the buttons held on one controller to <paramref name="down"/> (the stick counts as the d-pad). Shared by Big Picture
+    /// and the background listener (<see cref="ControllerWakeService"/>), so both read a controller the same way.
+    /// </summary>
+    public static void ReadButtons(IntPtr pad, HashSet<PadButton> down)
     {
-        bool Held(SDL.SDL_GameControllerButton b) => SDL.SDL_GameControllerGetButton(pad.Handle, b) != 0;
-        short Axis(SDL.SDL_GameControllerAxis a) => SDL.SDL_GameControllerGetAxis(pad.Handle, a);
+        bool Held(SDL.SDL_GameControllerButton b) => SDL.SDL_GameControllerGetButton(pad, b) != 0;
+        short Axis(SDL.SDL_GameControllerAxis a) => SDL.SDL_GameControllerGetAxis(pad, a);
 
         var stickX = Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTX);
         var stickY = Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTY);
@@ -356,6 +364,7 @@ public sealed class GamepadService : IDisposable
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_START)) down.Add(PadButton.Start);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK)) down.Add(PadButton.Select);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_GUIDE)) down.Add(PadButton.Home);
+        if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSTICK)) down.Add(PadButton.LeftStick);
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERLEFT) > StickThreshold) down.Add(PadButton.LeftTrigger);
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > StickThreshold) down.Add(PadButton.RightTrigger);
     }
