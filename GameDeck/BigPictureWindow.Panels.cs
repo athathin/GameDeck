@@ -210,13 +210,14 @@ public partial class BigPictureWindow
     {
         var l = Labels();
 
-        if (ShownKind == ControllerKind.None)   // a real keyboard: only Delete and Space have a key of their own
-            return key switch { "⌫ Delete" => "Backspace", "Space" => "Space", _ => null };
+        if (ShownKind == ControllerKind.None)   // a real keyboard: only Delete, Space and Clear have a key of their own
+            return key switch { "⌫ Delete" => "Backspace", "Space" => "Space", "Clear" => l.Select, _ => null };
 
         return key switch
         {
             "⌫ Delete" => l.X,
             "Space" => l.Y,
+            "Clear" => l.Select,
             "Done" => MenuGlyph,   // the Menu / Options / + button: three lines (drawn in the icon font)
             "Shift" => l.Left,
             "Caps" => l.Right,
@@ -262,6 +263,7 @@ public partial class BigPictureWindow
             case PadButton.LeftShoulder: PressKey("Shift"); break;
             case PadButton.RightShoulder: PressKey("Caps"); break;
             case PadButton.Start: PressKey("Done"); break;
+            case PadButton.Select: PressKey("Clear"); break;   // (View / Share / −; Tab on a keyboard)
             case PadButton.Back: if (_noteGame is not null) FinishNote(save: false); else CloseOverlay(); break;
         }
     }
