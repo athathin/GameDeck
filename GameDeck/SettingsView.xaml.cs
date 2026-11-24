@@ -67,6 +67,7 @@ public partial class SettingsView : UserControl
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
         NavSoundsCheckBox.IsChecked = SettingsService.NavSounds;
+        ShowSoundVolume();
         SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
         QuickLaunchCheckBox.IsChecked = SettingsService.QuickLaunchEnabled;
         StopCapturing();
@@ -86,6 +87,22 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.NavSounds = NavSoundsCheckBox.IsChecked == true;   // Big Picture checks this each time a sound would play
+    }
+
+    /// <summary>Puts the volume slider on the saved volume and names it in the slider's tooltip ("Volume: 75%").</summary>
+    private void ShowSoundVolume()
+    {
+        SoundVolumeSlider.Value = SettingsService.StepIndex(SettingsService.SoundVolumes, SettingsService.SoundVolume);
+        SoundVolumeSlider.ToolTip = $"Volume: {SettingsService.SoundVolume * 100:0}%";
+    }
+
+    private void SoundVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updating) return;   // (Reload putting it on the saved volume)
+
+        SettingsService.SoundVolume = SettingsService.StepAt(SettingsService.SoundVolumes, e.NewValue);
+        ShowSoundVolume();
+        NavSounds.Play(NavSound.Select);   // a sample at the new volume
     }
 
     private void ControllerWakeCheckBox_Changed(object sender, RoutedEventArgs e)

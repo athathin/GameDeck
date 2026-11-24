@@ -27,6 +27,9 @@ public static class SettingsService
     /// <summary>The tile sizes to choose from (1 = normal).</summary>
     public static readonly double[] TileScales = [0.25, 0.5, 1, 1.25, 1.5];
 
+    /// <summary>The Big Picture sound volumes to choose from (1 = full).</summary>
+    public static readonly double[] SoundVolumes = [0.25, 0.5, 0.75, 1];
+
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "settings.json");
 
@@ -52,6 +55,7 @@ public static class SettingsService
 
         public bool ControllerWake { get; set; } = true;
         public bool NavSounds { get; set; } = true;
+        public double SoundVolume { get; set; } = 1.0;
 
         public bool AutoUpdate { get; set; } = true;
 
@@ -86,10 +90,21 @@ public static class SettingsService
     /// <summary>How big the game tiles are drawn (1 = normal).</summary>
     public static double TileScale
     {
-        get => Snap(Current.TileScale);   // an old saved value from the slider days becomes the nearest scale
+        get => Snap(TileScales, Current.TileScale);   // an old saved value from the slider days becomes the nearest scale
         set
         {
-            Current.TileScale = Snap(value);
+            Current.TileScale = Snap(TileScales, value);
+            Save();
+        }
+    }
+
+    /// <summary>How loud Big Picture's sounds play: one of <see cref="SoundVolumes"/> (1 = full).</summary>
+    public static double SoundVolume
+    {
+        get => Snap(SoundVolumes, Current.SoundVolume);
+        set
+        {
+            Current.SoundVolume = Snap(SoundVolumes, value);
             Save();
         }
     }
@@ -248,7 +263,17 @@ public static class SettingsService
         Save();
     }
 
-    private static double Snap(double value) => TileScales.MinBy(s => Math.Abs(s - value));
+    /// <summary>The step of <paramref name="steps"/> nearest to <paramref name="value"/> (a saved value that is no step becomes one).</summary>
+    public static double Snap(double[] steps, double value) => steps.MinBy(s => Math.Abs(s - value));
+
+    // ---------- a slider that picks one of a few steps (tile size, sound volume): its value is the step's index ----------
+
+    /// <summary>The slider position (0, 1, 2...) of <paramref name="value"/> among <paramref name="steps"/>, the nearest step if it is none.</summary>
+    public static int StepIndex(double[] steps, double value) => Array.IndexOf(steps, Snap(steps, value));
+
+    /// <summary>The step at a slider position, which is rounded and kept inside the steps.</summary>
+    public static double StepAt(double[] steps, double sliderValue) =>
+        steps[Math.Clamp((int)Math.Round(sliderValue), 0, steps.Length - 1)];
 
     private static Data Load()
     {

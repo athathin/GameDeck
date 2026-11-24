@@ -148,9 +148,17 @@
                               Content="Confirm with B and go back with A (swap the two buttons)"
                               Checked="SwapButtonsCheckBox_Changed" Unchecked="SwapButtonsCheckBox_Changed"/>
 
-                    <CheckBox x:Name="NavSoundsCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,0,0,14"
+                    <!-- (left-aligned, so it is only as wide as its text: the volume slider below takes that width) -->
+                    <CheckBox x:Name="NavSoundsCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" HorizontalAlignment="Left"
                               Content="Play sounds in Big Picture mode (moving, selecting, going back, starting a game)"
                               Checked="NavSoundsCheckBox_Changed" Unchecked="NavSoundsCheckBox_Changed"/>
+
+                    <!-- the sounds' volume: a slider that snaps to SettingsService.SoundVolumes, like the tile size slider -->
+                    <Slider x:Name="SoundVolumeSlider" Style="{StaticResource SlimSlider}" HorizontalAlignment="Left" Margin="0,8,0,14"
+                            Width="{Binding ActualWidth, ElementName=NavSoundsCheckBox}"
+                            IsEnabled="{Binding IsChecked, ElementName=NavSoundsCheckBox}"
+                            Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True"
+                            SmallChange="1" LargeChange="1" ValueChanged="SoundVolumeSlider_ValueChanged"/>
 
                     <CheckBox x:Name="ControllerWakeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
                               Content="Open Big Picture mode from a controller"

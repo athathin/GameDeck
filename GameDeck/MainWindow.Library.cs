@@ -254,10 +254,9 @@ public partial class MainWindow
 
     private void UpdateTileSizeButton()
     {
-        var index = Array.FindIndex(SettingsService.TileScales, s => Math.Abs(s - TileScale) < 0.001);
-        if (TileSlider is null || index < 0) return;
+        if (TileSlider is null) return;
 
-        TileSlider.Value = index;
+        TileSlider.Value = SettingsService.StepIndex(SettingsService.TileScales, TileScale);
         TileSlider.ToolTip = $"Tile size: {FormatScale(TileScale)}×";
     }
 
@@ -265,8 +264,7 @@ public partial class MainWindow
     {
         if (!_ready) return;   // ignore the slider's own start-up values
 
-        var index = Math.Clamp((int)Math.Round(e.NewValue), 0, SettingsService.TileScales.Length - 1);
-        TileScale = SettingsService.TileScales[index];
+        TileScale = SettingsService.StepAt(SettingsService.TileScales, e.NewValue);
     }
 
     private static string FormatScale(double scale) => scale.ToString("0.##", CultureInfo.InvariantCulture);
