@@ -205,7 +205,7 @@ public partial class BigPictureWindow
         foreach (var c in e.Text)
         {
             if (char.IsLetterOrDigit(c) || " '-.,:".Contains(c))
-                TypeText(_noteGame is not null ? c.ToString() : char.ToLowerInvariant(c).ToString());   // (a note keeps the capitals typed)
+                TypeText(c.ToString());   // (as typed: the real keyboard has its own Shift and Caps Lock)
         }
 
         e.Handled = true;

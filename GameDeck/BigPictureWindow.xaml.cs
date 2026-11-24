@@ -58,8 +58,13 @@ public partial class BigPictureWindow : Window
 
     private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right, string Start, string Home);
 
-    /// <summary>One line of the filters panel: a heading, a tick box, a radio button or a plain action.</summary>
-    private record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false);
+    /// <summary>
+    /// One line of the filters panel: a heading, a tick box, a radio button or a plain action. With <paramref name="Steps"/> it is
+    /// a stepped slider (the sound volume): a bar of that many segments, filled up to the current one, that left / right move
+    /// with <paramref name="Adjust"/> (-1 or +1).
+    /// </summary>
+    private record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false,
+                             Func<(int Index, int Count)>? Steps = null, Action<int>? Adjust = null);
 
     /// <summary>One entry of the Power menu. With a ConfirmTitle it asks "are you sure?" first.</summary>
     private record PowerEntry(string Text, Action Run, string? ConfirmTitle = null, string? ConfirmButton = null);
@@ -70,7 +75,7 @@ public partial class BigPictureWindow : Window
         ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
         ["A", "S", "D", "F", "G", "H", "J", "K", "L", "'"],
         ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "-"],
-        ["Space", "⌫ Delete", "Clear", "Done"]
+        ["Shift", "Caps", "Space", "⌫ Delete", "Clear", "Done"]
     ];
 
     // Frozen brushes are cheaper for WPF (no change tracking) and can be shared by every element that uses them

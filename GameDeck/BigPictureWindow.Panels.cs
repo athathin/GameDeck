@@ -18,6 +18,7 @@ public partial class BigPictureWindow
         if (_tab == StatsTab) return;   // nothing to search there
 
         _noteGame = null;
+        _shift = _capsLock = false;   // every search starts in lowercase
         ShowOverlay(Overlay.Search);
         UpdateQueryUi();
         UpdateKeyboardSelection();
@@ -33,6 +34,8 @@ public partial class BigPictureWindow
     {
         _noteGame = game;
         _noteText = game.Notes ?? "";
+        _capsLock = false;
+        AutoShift();
         ShowOverlay(Overlay.Search);
         UpdateQueryUi();
         UpdateKeyboardSelection();
@@ -72,7 +75,7 @@ public partial class BigPictureWindow
                     Background = KeyBackground,
                     Child = new TextBlock
                     {
-                        Text = Rows[r][c], Foreground = ThemeService.TextPrimary, FontSize = 22,
+                        Text = KeyLabel(Rows[r][c]), Foreground = ThemeService.TextPrimary, FontSize = 22,
                         HorizontalAlignment = HorizontalAlignment.Center
                     }
                 };
@@ -106,6 +109,29 @@ public partial class BigPictureWindow
     // (named so the code above reads naturally)
     private static string[][] Rows => KeyLayout;
 
+    // ---- capitals: Shift makes the next letter the other case, Caps switches capitals on until pressed again ----
+
+    private bool _shift;      // the next letter only
+    private bool _capsLock;   // until switched off
+
+    private bool Capitals => _shift != _capsLock;   // (Shift while Caps is on types one small letter, as on a real keyboard)
+
+    /// <summary>What a key shows: its letter in the case it would type now, and whether Caps is on.</summary>
+    private string KeyLabel(string key) => key switch
+    {
+        "Caps" => _capsLock ? "Caps: On" : "Caps: Off",
+        _ when key.Length == 1 && char.IsLetter(key[0]) => Capitals ? key.ToUpperInvariant() : key.ToLowerInvariant(),
+        _ => key
+    };
+
+    /// <summary>In a note, Shift switches itself on at the start and after the end of a sentence (a capital comes next).</summary>
+    private void AutoShift()
+    {
+        if (_noteGame is null) return;
+
+        _shift = _noteText.Length == 0 || _noteText.EndsWith(". ") || _noteText.EndsWith("! ") || _noteText.EndsWith("? ");
+    }
+
     private void UpdateKeyboardSelection()
     {
         for (var r = 0; r < _keyCells.Length; r++)
@@ -114,9 +140,14 @@ public partial class BigPictureWindow
             {
                 var selected = r == _keyRow && c == _keyCol;
                 var cell = _keyCells[r][c];
+                var label = (TextBlock)cell.Child;
 
-                cell.Background = selected ? ThemeService.SelectBg : KeyBackground;
-                ((TextBlock)cell.Child).Foreground = selected ? Dark : ThemeService.TextPrimary;
+                // Shift and Caps light up while they are on
+                var lit = Rows[r][c] switch { "Shift" => _shift, "Caps" => _capsLock, _ => false };
+
+                cell.Background = selected ? ThemeService.SelectBg : lit ? Purple : KeyBackground;
+                label.Foreground = selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary;
+                label.Text = KeyLabel(Rows[r][c]);
             }
         }
     }
@@ -165,12 +196,27 @@ public partial class BigPictureWindow
 
         switch (key)
         {
+            case "Shift": _shift = !_shift; UpdateKeyboardSelection(); break;
+            case "Caps": _capsLock = !_capsLock; _shift = false; UpdateKeyboardSelection(); break;
             case "Space": TypeText(" "); break;
             case "⌫ Delete": Backspace(); break;
-            case "Clear": if (_noteGame is not null) { _noteText = ""; UpdateQueryUi(); } else SetQuery(""); break;
+            case "Clear": if (_noteGame is not null) { _noteText = ""; AfterNoteEdit(); } else SetQuery(""); break;
             case "Done": if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
-            default: TypeText(key.ToLowerInvariant()); break;
+            default:
+                var capital = Capitals;
+                _shift = false;   // (one letter only; in a note it may switch on again for the next sentence)
+                TypeText(capital ? key.ToUpperInvariant() : key.ToLowerInvariant());
+                UpdateKeyboardSelection();
+                break;
         }
+    }
+
+    /// <summary>A note's text changed: the box shows it and Shift follows the sentence (on after ". ").</summary>
+    private void AfterNoteEdit()
+    {
+        UpdateQueryUi();
+        AutoShift();
+        UpdateKeyboardSelection();
     }
 
     private void TypeText(string text)
@@ -180,13 +226,9 @@ public partial class BigPictureWindow
             if (_noteText.Length + text.Length > NoteLimit) return;
             if (text == " " && (_noteText.Length == 0 || _noteText.EndsWith(' '))) return;
 
-            // a capital at the start and after a full stop (the on-screen keys are lowercase)
-            if (text.Length == 1 && char.IsLower(text[0]) &&
-                (_noteText.Length == 0 || _noteText.EndsWith(". ") || _noteText.EndsWith("! ") || _noteText.EndsWith("? ")))
-                text = text.ToUpperInvariant();
-
+            // (the capital at the start of a sentence comes from Shift, which switches itself on there: AutoShift)
             _noteText += text;
-            UpdateQueryUi();
+            AfterNoteEdit();
             return;
         }
 
@@ -203,7 +245,7 @@ public partial class BigPictureWindow
             if (_noteText.Length > 0)
             {
                 _noteText = _noteText[..^1];
-                UpdateQueryUi();
+                AfterNoteEdit();
             }
 
             return;
@@ -385,6 +427,25 @@ public partial class BigPictureWindow
                     Foreground = selected ? Dark : on ? Purple : Muted,
                     Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
                 });
+            }
+
+            if (row.Steps is not null)
+            {
+                // a stepped slider: one segment per step on the right, filled up to the current one
+                var (current, count) = row.Steps();
+                var bar = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
+                for (var step = 0; step < count; step++)
+                {
+                    bar.Children.Add(new Border
+                    {
+                        Width = 34, Height = 8, CornerRadius = new CornerRadius(4), Margin = new Thickness(5, 0, 0, 0),
+                        Background = step <= current ? (selected ? Dark : Purple) : Muted,
+                        Opacity = step <= current ? 1 : 0.5
+                    });
+                }
+
+                DockPanel.SetDock(bar, Dock.Right);
+                line.Children.Add(bar);
             }
 
             line.Children.Add(new TextBlock
