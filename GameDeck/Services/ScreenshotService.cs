@@ -55,28 +55,31 @@ public static class ScreenshotService
     /// Windows keeps its own. A game in exclusive full screen may come out black: most games today run borderless and are fine.
     /// </summary>
     /// <returns>The saved file, or null when it couldn't be taken or saved.</returns>
-    public static string? Capture(Game? game)
+    /// <remarks>The picture is taken at once (on the calling thread); turning it into a .png and saving it happens in the background.</remarks>
+    public static async Task<string?> CaptureAsync(Game? game)
     {
+        System.Drawing.Bitmap? picture = null;
         try
         {
-            var screen = System.Windows.Forms.Screen.FromHandle(GetForegroundWindow()).Bounds;
-
-            using var picture = new System.Drawing.Bitmap(screen.Width, screen.Height);
-            using (var graphics = System.Drawing.Graphics.FromImage(picture))
-                graphics.CopyFromScreen(screen.Location, System.Drawing.Point.Empty, screen.Size);
+            picture = GrabScreen();
 
             var folder = game is not null
                 ? FolderOf(game)
                 : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots");
-            Directory.CreateDirectory(folder);
-
             var name = $"{(game is not null ? SafeName(game.Name) : "Screenshot")} {DateTime.Now:yyyy-MM-dd HH-mm-ss}";
-            var file = Path.Combine(folder, name + ".png");
-            for (var n = 2; File.Exists(file); n++)   // two in the same second
-                file = Path.Combine(folder, $"{name} ({n}).png");
 
-            picture.Save(file, System.Drawing.Imaging.ImageFormat.Png);
-            return file;
+            var shot = picture;
+            return await Task.Run(() =>
+            {
+                Directory.CreateDirectory(folder);
+
+                var file = Path.Combine(folder, name + ".png");
+                for (var n = 2; File.Exists(file); n++)   // two in the same second
+                    file = Path.Combine(folder, $"{name} ({n}).png");
+
+                shot.Save(file, System.Drawing.Imaging.ImageFormat.Png);
+                return file;
+            });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or
                                    ArgumentException or System.Runtime.InteropServices.ExternalException)
@@ -84,10 +87,42 @@ public static class ScreenshotService
             CrashLog.Write(ex, "Screenshot");
             return null;
         }
+        finally
+        {
+            picture?.Dispose();
+        }
     }
+
+    /// <summary>
+    /// The screen the program in front is on, pixel for pixel. Measured as a per-monitor DPI aware thread: GameDeck itself
+    /// isn't, and would get the size of a screen whose scaling differs from the main one's wrong (a cropped picture).
+    /// </summary>
+    private static System.Drawing.Bitmap GrabScreen()
+    {
+        var previous = SetThreadDpiAwarenessContext(PerMonitorAwareV2);
+        try
+        {
+            var screen = System.Windows.Forms.Screen.FromHandle(GetForegroundWindow()).Bounds;
+
+            var picture = new System.Drawing.Bitmap(screen.Width, screen.Height);
+            using var graphics = System.Drawing.Graphics.FromImage(picture);
+            graphics.CopyFromScreen(screen.Location, System.Drawing.Point.Empty, screen.Size);
+            return picture;
+        }
+        finally
+        {
+            if (previous != IntPtr.Zero)
+                SetThreadDpiAwarenessContext(previous);
+        }
+    }
+
+    private static readonly IntPtr PerMonitorAwareV2 = -4;
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
 
     /// <summary>Copies pictures into the game's own folder. Returns how many were added.</summary>
     public static int Add(Game game, IEnumerable<string> files)

@@ -91,13 +91,29 @@ public class ControllerShortcutsTests
     }
 
     [Fact]
-    public void A_button_without_a_shortcut_leaves_Home_a_plain_press()
+    public void Home_with_a_button_that_has_no_shortcut_is_no_plain_press_and_the_button_is_swallowed()
     {
         ControllerShortcuts.Reset();
 
         ControllerShortcuts.Update(Held(PadButton.Home));
         ControllerShortcuts.Update(Held(PadButton.Home, PadButton.Confirm));   // A has no shortcut
+        Assert.True(ControllerShortcuts.Swallows(PadButton.Confirm));          // (Big Picture doesn't get it either)
 
-        Assert.True(ControllerShortcuts.Update(Held()));
+        Assert.False(ControllerShortcuts.Update(Held(PadButton.Confirm)));      // Home let go: no Power menu
+        Assert.True(ControllerShortcuts.Swallows(PadButton.Confirm));          // still held: still not Big Picture's
+
+        ControllerShortcuts.Update(Held());
+        Assert.False(ControllerShortcuts.Swallows(PadButton.Confirm));         // let go: a normal button again
+    }
+
+    [Fact]
+    public void A_button_pressed_without_Home_is_never_swallowed()
+    {
+        ControllerShortcuts.Reset();
+
+        ControllerShortcuts.Update(Held(PadButton.Down));
+
+        Assert.False(ControllerShortcuts.Swallows(PadButton.Down));
+        Assert.True(ControllerShortcuts.Swallows(PadButton.Home));
     }
 }

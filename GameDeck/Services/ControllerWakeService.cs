@@ -50,7 +50,7 @@ public sealed class ControllerWakeService : IDisposable
         _timer.Tick += (_, _) => Tick();
     }
 
-    /// <summary>Start checking (about ten times a second; it costs next to nothing while it has nothing to listen to).</summary>
+    /// <summary>Start checking (20 times a second; it costs next to nothing while it has nothing to listen to).</summary>
     public void Begin() => _timer.Start();
 
     /// <summary>Lets go of the controllers right now (Big Picture mode is about to take them, with its own settings).</summary>
@@ -179,6 +179,10 @@ public sealed class ControllerWakeService : IDisposable
     /// </summary>
     private void Check(bool wake, bool shortcuts)
     {
+        // No controller found yet (SDL announces them a moment after starting): nothing is known to be held, so the shortcuts
+        // aren't told "nothing held" either. Taking over from Big Picture with Home still held, that would read as Home let go.
+        if (_pads.Count == 0) return;
+
         _held.Clear();
         var combo = false;
         foreach (var (handle, _) in _pads)
@@ -193,10 +197,12 @@ public sealed class ControllerWakeService : IDisposable
 
         if (!_primed)
         {
-            // whatever is held right now (a button pressed while connecting) doesn't count: only new presses do
+            // whatever is held right now (a button pressed while connecting) doesn't count: only new presses do. (The first
+            // reading after starting can also come back empty while the controller wakes up: it isn't passed on.)
             _primed = true;
             _comboFired = combo;
             _comboSince = combo ? now : null;
+            return;
         }
 
         // a press of Home on its own (let go without a shortcut) opens Big Picture; with a shortcut it was the shortcut's

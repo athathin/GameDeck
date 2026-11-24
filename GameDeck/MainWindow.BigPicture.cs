@@ -29,11 +29,11 @@ public partial class MainWindow
     /// </summary>
     private void StartControllerWake()
     {
-        // (the Beta leaves the button to the normal GameDeck while that one is running: two programs must not both answer it.
-        // The shortcuts are the Beta's own for now: once the normal GameDeck has them too, the Beta must leave those to it.)
+        // (the Beta leaves the button and the shortcuts to the normal GameDeck while that one is running: two programs must not
+        // both answer them)
         _wake = new ControllerWakeService(
             canWake: () => SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning,
-            canUseShortcuts: () => SettingsService.ControllerShortcuts && _bigPicture is not { IsActive: true });
+            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true });
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();
@@ -42,10 +42,10 @@ public partial class MainWindow
     }
 
     /// <summary>The controller's Home + RT: a picture of the screen, kept with the running game's screenshots when there is one.</summary>
-    private void TakeScreenshot()
+    private async void TakeScreenshot()
     {
         var game = _tracker.RunningGame;
-        var file = ScreenshotService.Capture(game);
+        var file = await ScreenshotService.CaptureAsync(game);
 
         if (file is null)
             GameToastWindow.ShowMessage("Screenshot", "It couldn't be taken.");

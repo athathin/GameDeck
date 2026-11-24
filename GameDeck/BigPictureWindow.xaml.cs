@@ -334,12 +334,11 @@ public partial class BigPictureWindow : Window
         // Home + a button is a shortcut (volume, Alt + Tab...): those buttons aren't presses here. Home's own job (the Power
         // menu) happens when it is let go without a shortcut.
         var homeTapped = ControllerShortcuts.Update(_pad.Held);
-        var shortcutsOn = SettingsService.ControllerShortcuts;
 
         foreach (var button in pressed)
         {
             if (_closing) break;   // an earlier button already closed this screen (launch, exit...): the rest are stale
-            if (button == PadButton.Home || (shortcutsOn && ControllerShortcuts.HomeHeld)) continue;
+            if (ControllerShortcuts.Swallows(button)) continue;
 
             SetPadInUse(true);
             Handle(button);

@@ -158,6 +158,10 @@ public partial class BigPictureWindow
     /// <summary>Draws every key: the selected one, Shift / Caps lit while on, the letters' case and each key's controller button.</summary>
     private void UpdateKeyboardSelection()
     {
+        // what every key's face depends on besides its own colors: a key is only drawn again when this or its colors changed
+        // (moving the selection repaints two keys, not all fifty)
+        var faces = (_shift, _caps, ShownKind, SettingsService.SwapConfirmBack);
+
         for (var r = 0; r < _keyCells.Length; r++)
         {
             for (var c = 0; c < _keyCells[r].Length; c++)
@@ -165,10 +169,16 @@ public partial class BigPictureWindow
                 var key = Rows[r][c];
                 var selected = r == _keyRow && c == _keyCol;
                 var lit = key switch { "Shift" => _shift, "Caps" => _caps != CapsMode.Off, _ => false };
+                var color = selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary;
 
                 var cell = _keyCells[r][c];
                 cell.Background = selected ? ThemeService.SelectBg : lit ? Purple : KeyBackground;
-                cell.Child = KeyContent(key, selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary);
+
+                var drawn = (faces, color);
+                if (cell.Tag is { } before && before.Equals(drawn)) continue;
+
+                cell.Tag = drawn;
+                cell.Child = KeyContent(key, color);
             }
         }
     }
@@ -358,14 +368,14 @@ public partial class BigPictureWindow
     /// <summary>Types at the cursor (a letter, a symbol, a space), within the box's length and without double spaces.</summary>
     private void TypeText(string text)
     {
-        // a letter uses up a single Caps press: back to lowercase
-        if (_caps == CapsMode.Once && text.Any(char.IsLetter))
-            _caps = CapsMode.Off;
-
         var (before, after) = (EditText[..Caret], EditText[Caret..]);
 
         if (EditText.Length + text.Length > (_noteGame is not null ? NoteLimit : 40)) return;
         if (text == " " && (before.Length == 0 || before.EndsWith(' ') || after.StartsWith(' '))) return;   // no leading or double spaces
+
+        // a letter typed uses up a single Caps press: back to lowercase (a letter that didn't fit leaves it on)
+        if (_caps == CapsMode.Once && text.Any(char.IsLetter))
+            _caps = CapsMode.Off;
 
         SetEditText(before + text + after, before.Length + text.Length);
     }

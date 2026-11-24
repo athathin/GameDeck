@@ -29,9 +29,10 @@ public static class ControllerShortcuts
     private static readonly HashSet<PadButton> Before = [];               // the buttons held at the last update
     private static readonly Dictionary<PadButton, TimeSpan> HeldSince = [];
     private static readonly Dictionary<PadButton, TimeSpan> LastRepeat = [];
+    private static readonly HashSet<PadButton> UsedUp = [];               // pressed while Home was held, not let go yet
 
     private static bool _homeHeld;
-    private static bool _used;       // a shortcut was used during this press of Home
+    private static bool _used;       // another button was pressed during this press of Home
     private static bool _altDown;    // Alt is held down for Alt + Tab
     private static TimeSpan _lastUpdate;
     private static DispatcherTimer? _altGuard;
@@ -41,6 +42,18 @@ public static class ControllerShortcuts
 
     /// <summary>True while Home is held: the other buttons are shortcuts then, not presses for Big Picture.</summary>
     public static bool HomeHeld => _homeHeld;
+
+    /// <summary>
+    /// True for a press Big Picture must ignore: Home itself (its job comes from <see cref="Update"/>), and a button pressed
+    /// while Home was held, until it is let go (a stick held down for the volume must not start scrolling once Home is let go).
+    /// </summary>
+    public static bool Swallows(PadButton button) => button == PadButton.Home || UsedUp.Contains(button);
+
+    /// <summary>
+    /// The setting is on, and this isn't the Beta while the normal GameDeck runs (that one answers the shortcuts: two programs
+    /// answering them would turn the volume up twice, take two screenshots...).
+    /// </summary>
+    public static bool Enabled => SettingsService.ControllerShortcuts && !AppInfo.NormalGameDeckRunning;
 
     /// <summary>
     /// Takes the buttons held right now (any rate; Big Picture 60 times a second, the background listener 20). Runs the
@@ -67,7 +80,7 @@ public static class ControllerShortcuts
             tapped = !_used;
         }
 
-        if (_homeHeld && SettingsService.ControllerShortcuts)
+        if (_homeHeld && Enabled)
         {
             foreach (var button in held)
             {
@@ -77,6 +90,8 @@ public static class ControllerShortcuts
                 {
                     HeldSince[button] = now;
                     LastRepeat[button] = now;
+                    UsedUp.Add(button);
+                    _used = true;   // (even a button without a shortcut: Home + A is no plain press of Home)
                     Run(button);
                 }
                 else if (button is PadButton.Up or PadButton.Down && HeldSince.TryGetValue(button, out var since) &&
@@ -88,10 +103,14 @@ public static class ControllerShortcuts
             }
         }
 
-        foreach (var button in Before.Where(b => !held.Contains(b)).ToList())
+        if (Before.Count > 0)   // (nothing to let go of: no work, this runs up to 60 times a second)
         {
-            HeldSince.Remove(button);
-            LastRepeat.Remove(button);
+            foreach (var button in Before.Where(b => !held.Contains(b)).ToList())
+            {
+                HeldSince.Remove(button);
+                LastRepeat.Remove(button);
+                UsedUp.Remove(button);
+            }
         }
 
         Before.Clear();
@@ -107,6 +126,7 @@ public static class ControllerShortcuts
         Before.Clear();
         HeldSince.Clear();
         LastRepeat.Clear();
+        UsedUp.Clear();
     }
 
     private static void Run(PadButton button)
@@ -121,10 +141,7 @@ public static class ControllerShortcuts
             case PadButton.Select: ToggleKeyboard(); break;
             case PadButton.Start: AltTab(); break;
             case PadButton.RightTrigger: TakeScreenshot?.Invoke(); break;
-            default: return;   // no shortcut on this button: Home still counts as a plain press
         }
-
-        _used = true;
     }
 
     // ---------- Alt + Tab ----------
@@ -136,10 +153,11 @@ public static class ControllerShortcuts
             Key(VkAlt, up: false);
             _altDown = true;
 
-            // if the controller goes quiet while Alt is down (unplugged, Big Picture handing over...), Alt is let go
+            // Alt is let go when the controller goes quiet while it is down (unplugged, Big Picture handing over...), and
+            // tried again while Windows refuses it (a program running as administrator in front blocks pressed keys)
             _altGuard ??= new DispatcherTimer(TimeSpan.FromMilliseconds(300), DispatcherPriority.Normal, (_, _) =>
             {
-                if (Clock.Elapsed - _lastUpdate > Silence) ReleaseAlt();
+                if (!_homeHeld || Clock.Elapsed - _lastUpdate > Silence) ReleaseAlt();
             }, Dispatcher.CurrentDispatcher);
             _altGuard.Start();
         }
@@ -149,11 +167,16 @@ public static class ControllerShortcuts
 
     private static void ReleaseAlt()
     {
-        _altGuard?.Stop();
-        if (!_altDown) return;
+        if (!_altDown)
+        {
+            _altGuard?.Stop();
+            return;
+        }
+
+        if (Key(VkAlt, up: true) == 0) return;   // refused: the guard tries again
 
         _altDown = false;
-        Key(VkAlt, up: true);
+        _altGuard?.Stop();
     }
 
     // ---------- Windows' on-screen keyboard ----------
@@ -198,9 +221,10 @@ public static class ControllerShortcuts
         Send(Input(key, extended ? KeyExtended : 0), Input(key, (extended ? KeyExtended : 0) | KeyUp));
     }
 
-    private static void Key(ushort key, bool up) => Send(Input(key, up ? KeyUp : 0));
+    /// <returns>0 when Windows refused the key.</returns>
+    private static uint Key(ushort key, bool up) => Send(Input(key, up ? KeyUp : 0));
 
-    private static void Send(params NativeInput[] inputs) => SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeInput>());
+    private static uint Send(params NativeInput[] inputs) => SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeInput>());
 
     private static NativeInput Input(ushort key, uint flags) => new()
     {

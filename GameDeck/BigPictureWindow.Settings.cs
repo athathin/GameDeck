@@ -215,8 +215,10 @@ public partial class BigPictureWindow
     private static void ChangeVolume(int step, bool wrap)
     {
         var steps = SettingsService.SoundVolumes;
-        var index = SettingsService.StepIndex(steps, SettingsService.SoundVolume) + step;
+        var current = SettingsService.StepIndex(steps, SettingsService.SoundVolume);
+        var index = current + step;
         index = wrap ? (index + steps.Length) % steps.Length : Math.Clamp(index, 0, steps.Length - 1);
+        if (index == current) return;   // already the quietest / loudest: nothing to save
 
         SettingsService.SoundVolume = steps[index];
         NavSounds.Play(wrap ? NavSound.Select : NavSound.Move);   // (it just rang at the old volume)
