@@ -8,8 +8,8 @@ namespace GameDeck.Services;
 /// "Uninstall GameDeck": GameDeck has no installer, so this is how it removes itself completely.
 /// Always removed:
 ///   - the "launch when Windows starts" entry in the registry
-///   - %TEMP%\.net\GameDeck        (where the single-file .exe unpacks its native libraries)
-///   - the GameDeck .exe itself (and its folder, if nothing else is in it)
+///   - %TEMP%\.net\&lt;exe name&gt;    (where the single-file .exe unpacks its native libraries)
+///   - the GameDeck .exe itself, the .old / .new / .bad copies updates leave, and its folder if nothing else is in it
 /// Removed unless the user chose to keep their data:
 ///   - %AppData%\GameDeck          (settings, library, user data, downloaded and custom covers)
 /// The files that are in use while GameDeck runs (the .exe, the unpacked libraries) and the settings GameDeck
@@ -27,7 +27,7 @@ public static class UninstallService
 
         var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName);
         var tempNet = Path.Combine(Path.GetTempPath(), ".net");
-        var extracted = Path.Combine(tempNet, "GameDeck");
+        var extracted = UpdateService.UnpackedFolders().AppFolder;   // named after the .exe ("GameDeck-win-x64"...), so asked, not guessed
 
         var script = new StringBuilder();
         script.AppendLine("@echo off");
@@ -45,11 +45,16 @@ public static class UninstallService
             script.AppendLine("    goto waitexe");
             script.AppendLine("  )");
             script.AppendLine(")");
+
+            // what self-updates can leave next to it (the replaced, downloaded or rolled-back .exe)
+            foreach (var leftover in new[] { ".old", ".new", ".bad" })
+                script.AppendLine($"del /f /q \"{exe}{leftover}\" >nul 2>&1");
         }
 
         if (!keepData)
             script.AppendLine($"rmdir /s /q \"{appData}\" >nul 2>&1");
-        script.AppendLine($"rmdir /s /q \"{extracted}\" >nul 2>&1");
+        if (extracted is not null)
+            script.AppendLine($"rmdir /s /q \"{extracted}\" >nul 2>&1");
         script.AppendLine($"rmdir \"{tempNet}\" >nul 2>&1");                      // only succeeds when empty
         if (exeFolder is not null)
             script.AppendLine($"rmdir \"{exeFolder}\" >nul 2>&1");                // only succeeds when empty
