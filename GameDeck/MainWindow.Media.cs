@@ -136,12 +136,46 @@ public partial class MainWindow
         }
     }
 
+    private const double MediaMinCellWidth = 220;   // the pictures are at least this wide; they stretch to fill the row
+    private const double MediaCellGap = 14;
+
+    /// <summary>The width that makes the pictures of a row fill it (with the gap after each), each at least the minimum.</summary>
+    private double MediaCellWidth
+    {
+        get
+        {
+            var width = MediaWrap.ActualWidth;
+            if (width <= 0) return MediaMinCellWidth;
+
+            var columns = Math.Max(1, (int)((width + 1) / (MediaMinCellWidth + MediaCellGap)));
+            return Math.Floor((width - 1) / columns - MediaCellGap);
+        }
+    }
+
+    /// <summary>The window's width changed: the pictures stretch again to fill the rows.</summary>
+    private void MediaWrap_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!e.WidthChanged) return;
+
+        var width = MediaCellWidth;
+        foreach (var cell in MediaWrap.Children.OfType<StackPanel>())
+        {
+            cell.Width = width;
+            if (cell.Children.Count > 0 && cell.Children[0] is FrameworkElement picture)
+            {
+                picture.Width = width;
+                picture.Height = width * 9 / 16;
+            }
+        }
+    }
+
     /// <summary>One picture: the thumbnail, then the game's name and the date. Click: open it. Right-click: open, folder, game page.</summary>
     private FrameworkElement MediaCell(ScreenshotService.MediaShot shot, ImageSource? thumbnail)
     {
+        var width = MediaCellWidth;
         var picture = new RoundedClipBorder
         {
-            Width = 220, Height = 124, CornerRadius = new CornerRadius(6), Background = (Brush)FindResource("PanelBg"),
+            Width = width, Height = width * 9 / 16, CornerRadius = new CornerRadius(6), Background = (Brush)FindResource("PanelBg"),
             Child = thumbnail is null
                 ? new TextBlock
                 {
@@ -153,7 +187,7 @@ public partial class MainWindow
 
         var cell = new StackPanel
         {
-            Width = 220, Margin = new Thickness(0, 0, 14, 18), Cursor = System.Windows.Input.Cursors.Hand,
+            Width = width, Margin = new Thickness(0, 0, MediaCellGap, 18), Cursor = System.Windows.Input.Cursors.Hand,
             ToolTip = Path.GetFileName(shot.File),
             Children =
             {

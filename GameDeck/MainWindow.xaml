@@ -484,7 +484,7 @@
                         <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap"
                                    VerticalAlignment="Center"/>
                     </DockPanel>
-                    <WrapPanel x:Name="MediaWrap"/>
+                    <WrapPanel x:Name="MediaWrap" SizeChanged="MediaWrap_SizeChanged"/>
                     <Button x:Name="MediaMoreButton" Style="{StaticResource PillButton}" Padding="16,8" FontSize="14"
                             HorizontalAlignment="Left" Margin="2,6,0,0" Visibility="Collapsed" Click="MediaMoreButton_Click"/>
                 </StackPanel>
