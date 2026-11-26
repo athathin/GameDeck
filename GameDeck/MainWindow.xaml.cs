@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private bool _exiting;          // true when the app is really quitting (tray "Exit", Windows shutting down)
     private TrayIcon? _tray;
     private readonly GlobalHotkey _hotkey = new();
+    private readonly LowBatteryWarning _lowBattery = new();
     private QuickLaunchWindow? _quickLaunch;
 
     public ObservableCollection<Game> Games { get; } = new();
@@ -118,6 +119,7 @@ public partial class MainWindow : Window
         ApplyQuickLaunchHotkey();
 
         StartControllerWake();   // Home button on a controller opens Big Picture mode
+        _lowBattery.Start();     // a notice when the controller's battery runs low (also during games)
 
         // Windows shutting down / signing out must never be blocked by the "minimize or close?" pop-up
         Application.Current.SessionEnding += (_, _) => _exiting = true;
@@ -167,6 +169,7 @@ public partial class MainWindow : Window
         SettingsService.TileScale = TileScale;
         _tracker.FlushAll();
         _hotkey.Dispose();
+        _lowBattery.Dispose();
         _wake?.Dispose();
         _tray?.Dispose();
     }

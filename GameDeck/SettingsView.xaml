@@ -192,6 +192,12 @@
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
                                Text="They also work during games (GameDeck only reads the controller). The full list: Big Picture › Power › Show Controller Shortcuts."/>
 
+                    <CheckBox x:Name="LowBatteryCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,14,0,0"
+                              Content="Warn when the controller's battery is low"
+                              Checked="LowBatteryCheckBox_Changed" Unchecked="LowBatteryCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                               Text="A notice in the corner at 15% and at 5%, also during games. For Xbox controllers over Bluetooth (the battery Windows' Bluetooth settings show)."/>
+
                 </StackPanel>
             </Border>
 

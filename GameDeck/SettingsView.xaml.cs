@@ -70,6 +70,7 @@ public partial class SettingsView : UserControl
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
         ControllerShortcutsCheckBox.IsChecked = SettingsService.ControllerShortcuts;
+        LowBatteryCheckBox.IsChecked = SettingsService.LowBatteryWarning;
         NavSoundsCheckBox.IsChecked = SettingsService.NavSounds;
         ShowSoundVolume();
         SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
@@ -119,6 +120,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.ControllerShortcuts = ControllerShortcutsCheckBox.IsChecked == true;   // the listeners check this on their own
+    }
+
+    private void LowBatteryCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.LowBatteryWarning = LowBatteryCheckBox.IsChecked == true;   // (checked on its own each minute)
     }
 
     /// <summary>Puts the volume slider on the saved volume and names it in the slider's tooltip ("Volume: 75%").</summary>

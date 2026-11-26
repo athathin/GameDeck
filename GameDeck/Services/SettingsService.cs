@@ -41,6 +41,8 @@ public static class SettingsService
 
         public bool SteamPlaytime { get; set; } = true;
 
+        public bool LowBatteryWarning { get; set; } = true;
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
@@ -169,6 +171,17 @@ public static class SettingsService
         set
         {
             Current.SteamPlaytime = value;
+            Save();
+        }
+    }
+
+    /// <summary>A notice when a connected Xbox controller's battery gets low (15%, then 5%), also during games.</summary>
+    public static bool LowBatteryWarning
+    {
+        get => Current.LowBatteryWarning;
+        set
+        {
+            Current.LowBatteryWarning = value;
             Save();
         }
     }

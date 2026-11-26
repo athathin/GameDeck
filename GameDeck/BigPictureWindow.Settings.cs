@@ -200,7 +200,11 @@ public partial class BigPictureWindow
         Toggle("Controller shortcuts", "Hold Home and press a button: volume, songs, Alt + Tab, keyboard, screenshot. In games too",
             () => SettingsService.ControllerShortcuts, on => SettingsService.ControllerShortcuts = on),
         new("Controller shortcuts list", "Every Home-button shortcut and what each button does in here", Button: "Show",
-            Activate: OpenShortcuts)
+            Activate: OpenShortcuts),
+
+        Heading("Battery"),
+        Toggle("Warn when the battery is low", "A notice at 15% and at 5%, also during games (Xbox controllers over Bluetooth)",
+            () => SettingsService.LowBatteryWarning, on => SettingsService.LowBatteryWarning = on)
     ];
 
     private List<SettingRow> SoundSettings()
