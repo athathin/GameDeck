@@ -104,10 +104,13 @@ public partial class BigPictureWindow
         var open = _browseFolder is not null ? "Open / choose" : "Open / pick";
 
         // "Add picked" only once something is picked (X does nothing before); the keyboard's F does the same as X here
+        var hints = new List<(string, string)> { (l.Confirm, open) };
         if (_browsePicked.Count > 0)
-            FillHints(BrowseHints, (l.Confirm, open), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
-        else
-            FillHints(BrowseHints, (l.Confirm, open), (l.Back, _browsePath is null ? "Close" : "Up"));
+            hints.Add((l.X, "Add picked"));
+        hints.Add((l.Back, _browsePath is null ? "Close" : "Up"));
+
+        AddScrollHint(hints, Scrollable(ScrollOf(BrowseList)));
+        FillHints(BrowseHints, hints.ToArray());
     }
 
     /// <summary>Builds the rows of the current folder (or the start page) and draws them.</summary>
@@ -338,6 +341,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveBrowse(-1); break;
             case PadButton.Down: MoveBrowse(1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: PageThrough(() => _browseIndex, MoveBrowse, TriggerDirection(button)); break;
             case PadButton.Confirm: ActivateBrowseRow(); break;
             case PadButton.X when _browsePicked.Count > 0: AddPicked(); break;
             case PadButton.Back:

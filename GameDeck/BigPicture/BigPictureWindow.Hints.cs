@@ -58,6 +58,14 @@ public partial class BigPictureWindow
         if (_tab == StatsTab && !_topFocus)
             items.Add((RoundButton(l.X, onController), "REFRESH"));
 
+        // LT / RT page through the Stats and Media tabs when they are longer than the screen (known once laid out)
+        if (_tab is StatsTab or MediaTab)
+        {
+            QueueHintRefresh();
+            if (Scrollable(_tab == StatsTab ? StatsScroll : MediaScroll))
+                items.Add((Chip($"{l.LeftTrigger} / {l.RightTrigger}"), "SCROLL"));
+        }
+
         if (_tab == MediaTab && !_topFocus)
         {
             items.Add((Chip(l.Select), "BY GAME"));
@@ -99,7 +107,15 @@ public partial class BigPictureWindow
 
         UpdateKeyboardSelection();   // the keys' buttons follow the controller in use
         ShowCaretHints();            // (and the text cursor's)
-        FillHints(FilterHints, (l.Confirm, "Choose"), (l.Back, "Close"));
+        FillFilterHints();
+    }
+
+    private void FillFilterHints()
+    {
+        var l = Labels();
+        var hints = new List<(string, string)> { (l.Confirm, "Choose"), (l.Back, "Close") };
+        AddScrollHint(hints, Scrollable(FilterScroll));
+        FillHints(FilterHints, hints.ToArray());
     }
 
     /// <summary>

@@ -65,7 +65,8 @@ public partial class BigPictureWindow
             ShortcutRow("Favorite", Face(l.X)),
             ShortcutRow("Search", Face(l.Y)),
             ShortcutRow("Previous / Next Tab", Chip(l.Left), "/", Chip(l.Right)),
-            ShortcutRow("Random Game", Chip(l.RightTrigger)),
+            ShortcutRow("Random Game (on the row of games)", Chip(l.RightTrigger)),
+            ShortcutRow("Scroll a Page (pages, lists, Stats, Media)", Chip(l.LeftTrigger), "/", Chip(l.RightTrigger)),
             ShortcutRow("Filters", Chip(l.Select)),
             ShortcutRow("Game Menu", Chip(l.Start)),
             ShortcutRow("Power Menu", Home()));
@@ -77,7 +78,9 @@ public partial class BigPictureWindow
             ShortcutRow("Clear", Chip(l.Select)),
             ShortcutRow("Done", Chip(l.Start)));
 
-        FillHints(ShortcutsHints, (Labels().Back, "Close"));
+        var hints = new List<(string, string)> { (Labels().Back, "Close") };
+        AddScrollHint(hints, Scrollable(ShortcutsScroll));
+        FillHints(ShortcutsHints, hints.ToArray());
     }
 
     /// <summary>A heading in capitals, then its rows.</summary>
@@ -130,6 +133,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset - 90); break;
             case PadButton.Down: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset + 90); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(ShortcutsScroll, TriggerDirection(button)); break;
             case PadButton.Back or PadButton.Confirm or PadButton.Home:
                 if (_shortcutsFromSettings && button != PadButton.Home)
                     OpenSettings(keepPlace: true);

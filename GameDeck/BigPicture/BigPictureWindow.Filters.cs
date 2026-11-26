@@ -133,6 +133,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveFilter(-1); break;
             case PadButton.Down: MoveFilter(1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: PageThrough(() => _filterIndex, MoveFilter, TriggerDirection(button)); break;
             case PadButton.Confirm: ActivateFilterRow(); break;
             case PadButton.Back or PadButton.Select: CloseOverlay(); break;
         }

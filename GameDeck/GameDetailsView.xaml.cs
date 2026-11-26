@@ -113,14 +113,14 @@ public partial class GameDetailsView : UserControl
 
     // ---- scrolling with a controller (Big Picture) ----
 
-    /// <summary>Scrolls a third of the page down (+1) or up (-1). False when it was already at that end.</summary>
-    public bool ScrollPage(int direction)
+    /// <summary>Scrolls a part of the screen's height (a third unless said) down (+1) or up (-1). False when it was already at that end.</summary>
+    public bool ScrollPage(int direction, double part = 1 / 3.0)
     {
         var before = PageScroll.VerticalOffset;
         var atEnd = direction > 0 ? before >= PageScroll.ScrollableHeight - 0.5 : before <= 0.5;
         if (atEnd) return false;
 
-        PageScroll.ScrollToVerticalOffset(before + direction * Math.Max(120, PageScroll.ViewportHeight / 3));
+        PageScroll.ScrollToVerticalOffset(before + direction * Math.Max(120, PageScroll.ViewportHeight * part));
         return true;
     }
 

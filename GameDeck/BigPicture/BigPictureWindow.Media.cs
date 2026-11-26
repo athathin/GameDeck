@@ -146,6 +146,9 @@ public partial class BigPictureWindow
                 AddMediaCell(page[i], thumbnails[i], first + i);
 
             UpdateMediaSelection(scroll: first == 0);
+
+            if (_overlay == Overlay.None)
+                QueueHintRefresh();   // the "Scroll" hint appears once the pictures are more than the screen holds
         }
         finally
         {
@@ -291,8 +294,15 @@ public partial class BigPictureWindow
 
             case PadButton.Select: OpenMediaFilter(); return true;   // the game filter
 
-            // nothing to search or open a game menu for here
-            case PadButton.Start or PadButton.RightTrigger: return true;
+            // LT / RT: three rows of pictures up / down (the same column)
+            case PadButton.LeftTrigger or PadButton.RightTrigger when _mediaCells.Count > 0:
+                var rows = TriggerDirection(button) * columns * 3;
+                var target = _mediaIndex + rows;
+                SelectMedia(target < 0 ? _mediaIndex % columns : Math.Min(target, _mediaCells.Count - 1));
+                return true;
+
+            // nothing to search, open a game menu for or pick at random here
+            case PadButton.Start or PadButton.LeftTrigger or PadButton.RightTrigger: return true;
 
             default: return false;
         }

@@ -91,11 +91,96 @@ public partial class BigPictureWindow
             cells[selectedIndex].BringIntoView();
     }
 
+    // ---------- LT / RT: a page up / down, wherever something is longer than the screen ----------
+    // (the exceptions keep their own jobs: RT picks a random game on the row of games, and LT / RT move the text cursor in the
+    // on-screen keyboard; anywhere else nothing scrolls, so the triggers do nothing)
+
+    /// <summary>How many rows a trigger press moves through in a list (settings, filters, menus, the file browser).</summary>
+    private const int PageRows = 6;
+
+    /// <summary>LT = -1, RT = +1, anything else 0.</summary>
+    private static int TriggerDirection(PadButton button) =>
+        button switch { PadButton.LeftTrigger => -1, PadButton.RightTrigger => 1, _ => 0 };
+
+    /// <summary>A page through a list: the one-row move done up to <see cref="PageRows"/> times, stopping at the end.</summary>
+    private static void PageThrough(Func<int> index, Action<int> moveOne, int direction)
+    {
+        for (var i = 0; i < PageRows; i++)
+        {
+            var before = index();
+            moveOne(direction);
+            if (index() == before) break;   // (the first / last row)
+        }
+    }
+
+    /// <summary>Scrolls about two thirds of what is on screen. False when it was already at that end.</summary>
+    private static bool ScrollPage(ScrollViewer scroll, int direction)
+    {
+        var before = scroll.VerticalOffset;
+        if (direction > 0 ? before >= scroll.ScrollableHeight - 0.5 : before <= 0.5) return false;
+
+        scroll.ScrollToVerticalOffset(before + direction * Math.Max(120, scroll.ViewportHeight * 2 / 3));
+        return true;
+    }
+
+    /// <summary>True when the list or page inside <paramref name="scroll"/> is longer than the screen (the "Scroll" hint shows then).</summary>
+    private static bool Scrollable(ScrollViewer? scroll) => scroll is { ScrollableHeight: > 0.5 };
+
+    /// <summary>The ScrollViewer around a panel's list.</summary>
+    private static ScrollViewer? ScrollOf(DependencyObject list)
+    {
+        for (var parent = VisualTreeHelper.GetParent(list); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            if (parent is ScrollViewer scroll) return scroll;
+
+        return null;
+    }
+
+    /// <summary>The "LT / RT  Scroll" hint, added when <paramref name="scrollable"/>.</summary>
+    private void AddScrollHint(List<(string, string)> hints, bool scrollable)
+    {
+        QueueHintRefresh();   // (a list that was just filled isn't laid out yet: it is looked at again once it is)
+        if (!scrollable) return;
+
+        var l = Labels();
+        hints.Insert(Math.Max(0, hints.Count - 1), ($"{l.LeftTrigger} / {l.RightTrigger}", "Scroll"));   // (before Back / Close)
+    }
+
+    private bool _hintsQueued;
+    private bool _refreshingHints;
+
+    /// <summary>
+    /// Draws the hints of what is on screen again once the layout is done: whether a list is longer than the screen (the
+    /// "Scroll" hint) is only known then. Called while hints are being drawn; the redraw itself doesn't queue another one.
+    /// </summary>
+    private void QueueHintRefresh()
+    {
+        if (_hintsQueued || _refreshingHints) return;
+
+        _hintsQueued = true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            _hintsQueued = false;
+            if (_closing) return;
+
+            _refreshingHints = true;
+            try
+            {
+                if (_overlay == Overlay.None) BuildMainHints();
+                else RefreshOpenPanelHints();
+            }
+            finally
+            {
+                _refreshingHints = false;
+            }
+        });
+    }
+
     // ---------- menus on top of the screen ----------
 
     private void ShowOverlay(Overlay overlay)
     {
         _overlay = overlay;
+
         SearchOverlay.Visibility = overlay == Overlay.Search ? Visibility.Visible : Visibility.Collapsed;
         FilterOverlay.Visibility = overlay == Overlay.Filters ? Visibility.Visible : Visibility.Collapsed;
         PowerOverlay.Visibility = overlay == Overlay.Power ? Visibility.Visible : Visibility.Collapsed;

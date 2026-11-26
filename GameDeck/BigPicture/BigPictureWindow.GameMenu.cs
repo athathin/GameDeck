@@ -46,7 +46,9 @@ public partial class BigPictureWindow
     private void FillGameMenuHints()
     {
         var l = Labels();
-        FillHints(GameMenuHints, (l.Confirm, "Choose"), (l.Back, _menuPages.Count > 1 ? "Back" : "Close"));
+        var hints = new List<(string, string)> { (l.Confirm, "Choose"), (l.Back, _menuPages.Count > 1 ? "Back" : "Close") };
+        AddScrollHint(hints, Scrollable(ScrollOf(GameMenuList)));
+        FillHints(GameMenuHints, hints.ToArray());
     }
 
     private void RenderGameMenu()
@@ -79,6 +81,9 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveMenu(page, -1); break;
             case PadButton.Down: MoveMenu(page, 1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger:
+                PageThrough(() => page.Index, step => MoveMenu(page, step), TriggerDirection(button));
+                break;
             case PadButton.Confirm: ActivateMenuRow(); break;
 
             case PadButton.Back or PadButton.Start:

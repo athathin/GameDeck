@@ -18,7 +18,8 @@ public partial class BigPictureWindow
 
         NavSounds.Play(button switch
         {
-            PadButton.Confirm or PadButton.Start or PadButton.Y or PadButton.RightTrigger => NavSound.Select,
+            PadButton.Confirm or PadButton.Start or PadButton.Y => NavSound.Select,
+            PadButton.RightTrigger when _overlay == Overlay.None && IsGamesTab => NavSound.Select,   // (a random game; elsewhere it scrolls)
             PadButton.Back => NavSound.Back,
             _ => NavSound.Move
         });
@@ -55,7 +56,10 @@ public partial class BigPictureWindow
             case PadButton.Select: OpenFilters(); break;
             case PadButton.Start: OpenGameMenu(); break;   // the right-click menu of the desktop library
             case PadButton.Home: OpenPower(); break;
-            case PadButton.RightTrigger: PickRandom(); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger when _tab == StatsTab:
+                ScrollPage(StatsScroll, TriggerDirection(button));   // a page of the stats
+                break;
+            case PadButton.RightTrigger when IsGamesTab: PickRandom(); break;   // (LT does nothing on the row of games)
             case PadButton.LeftShoulder: SwitchTab(-1); break;
             case PadButton.RightShoulder: SwitchTab(1); break;
         }
@@ -100,8 +104,7 @@ public partial class BigPictureWindow
                 break;
 
             // the triggers scroll a page at a time, whichever button is selected
-            case PadButton.RightTrigger: DetailsView.ScrollPage(1); break;
-            case PadButton.LeftTrigger: DetailsView.ScrollPage(-1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: DetailsView.ScrollPage(TriggerDirection(button), 2 / 3.0); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
@@ -159,13 +162,7 @@ public partial class BigPictureWindow
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
         FillDetailsHints();
-        ShowOverlay(Overlay.Details);
-
-        // whether the page is longer than the screen is only known once it is laid out: the "Scroll" hint follows then
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
-        {
-            if (_overlay == Overlay.Details) FillDetailsHints();
-        });
+        ShowOverlay(Overlay.Details);   // (the "Scroll" hint follows once the page is laid out)
     }
 
     private void FillDetailsHints()
@@ -176,10 +173,8 @@ public partial class BigPictureWindow
         if (DetailsView.Shots.Count > 0)
             hints.Add((l.Y, "Screenshots"));
 
-        if (DetailsView.CanScroll)
-            hints.Add(($"{l.LeftTrigger} / {l.RightTrigger}", "Scroll"));
-
         hints.Add((l.Back, "Back"));
+        AddScrollHint(hints, DetailsView.CanScroll);
         FillHints(DetailsHints, hints.ToArray());
     }
 
@@ -189,6 +184,7 @@ public partial class BigPictureWindow
         switch (_overlay)
         {
             case Overlay.Settings: FillSettingsHints(); break;
+            case Overlay.Filters: FillFilterHints(); break;
             case Overlay.GameMenu when _menuPages.Count > 0: FillGameMenuHints(); break;
             case Overlay.Details: FillDetailsHints(); break;
             case Overlay.Browse: FillBrowseHints(); break;

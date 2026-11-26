@@ -52,7 +52,9 @@ public partial class BigPictureWindow
 
         if (!_settingsInSection)
         {
-            FillHints(SettingsHints, (l.Confirm, "Open"), (l.Back, "Close"));
+            var nav = new List<(string, string)> { (l.Confirm, "Open"), (l.Back, "Close") };
+            AddScrollHint(nav, Scrollable(ScrollOf(SettingsNav)));
+            FillHints(SettingsHints, nav.ToArray());
             return;
         }
 
@@ -65,6 +67,7 @@ public partial class BigPictureWindow
             hints.Add((l.Confirm, row.IsOn is not null ? "Turn on / off" : row.Button ?? "Change"));
 
         hints.Add((l.Back, "Back"));
+        AddScrollHint(hints, Scrollable(SettingsScroll));
         FillHints(SettingsHints, hints.ToArray());
     }
 
@@ -327,6 +330,10 @@ public partial class BigPictureWindow
             {
                 case PadButton.Up when _settingsSection > 0: ChooseSection(_settingsSection - 1); break;
                 case PadButton.Down when _settingsSection < SettingsSections.Count - 1: ChooseSection(_settingsSection + 1); break;
+                case PadButton.LeftTrigger or PadButton.RightTrigger:
+                    var section = Math.Clamp(_settingsSection + TriggerDirection(button) * PageRows, 0, SettingsSections.Count - 1);
+                    if (section != _settingsSection) ChooseSection(section);
+                    break;
                 case PadButton.Confirm or PadButton.Right: EnterSection(); break;
                 case PadButton.Back: CloseOverlay(); break;
             }
@@ -338,6 +345,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveSetting(-1); break;
             case PadButton.Down: MoveSetting(1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: PageThrough(() => _settingsIndex, MoveSetting, TriggerDirection(button)); break;
 
             case PadButton.Left or PadButton.Right when row.Adjust is { } adjust:
                 adjust(button == PadButton.Left ? -1 : 1);
