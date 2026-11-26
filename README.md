@@ -8,14 +8,19 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 **One library**
 - Finds the games of every launcher above by itself, with their cover art. Add any other game by picking its program.
 - Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
-- Search, and filter by launcher, category, status, or smart filters: Never played, Played under 1 hour, Recently added.
-- Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, your most played games) and Media (every game's
-  screenshots in one place).
-- Playtime is counted for the games you start from GameDeck.
+- Search, and filter by launcher, category, status, genre, or smart filters: Never played, Played under 1 hour, Recently added.
+- Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, the
+  space your games take) and Media (every game's screenshots in one place).
+- Each game's page: playtime, achievements, size on disk, a calendar of when you played it, and **where you left off** (GameDeck
+  asks when you close a game).
+- Playtime is counted for the games you start from GameDeck, and the hours Steam, GOG Galaxy and itch.io counted are included.
 
 **Starting games**
-- Launch routines per game: close chosen apps first, start others, switch to the High performance power plan, and undo it all
-  when the game ends.
+- Launch routines per game: close chosen apps first, start others, switch to the High performance power plan or another screen
+  resolution and refresh rate, and undo it all when the game ends.
+- Choose what happens when the game closes: back to GameDeck, or put the PC to sleep or turn it off (after a countdown you can
+  cancel).
+- Optional break reminders after every 1 to 3 hours of play.
 - A quick launch box (Ctrl + Alt + G) to start any game from anywhere, and the last games you played in the tray icon's menu.
 - Desktop shortcuts for single games, which still count playtime and run the launch routine.
 
@@ -23,14 +28,18 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 - The whole library full screen, made for the couch: Xbox, PlayStation and Nintendo controllers, or the keyboard and mouse.
 - Its own settings, an on-screen keyboard for search and notes, and a file browser to add games and screenshots with the
   controller.
+- A home row of shelves: Continue playing, Up next, Recently added, Favorites and your categories.
 - **Now Playing**: press Home during a game to resume it or close it.
 - **Controller shortcuts**: hold Home and press a button for volume, songs, Alt + Tab, the on-screen keyboard or a screenshot,
   also in games.
 - Can be what GameDeck opens in, like a console, even straight from Windows' start-up.
+- The controller's battery, Wi-Fi, Bluetooth and sound output at the top, a low-battery warning, and a screen saver against
+  burn-in on OLED TVs.
 
 **Also**
-- Dark and light themes (or follow Windows), three sizes for Big Picture.
-- A duplicate finder, and backups you can export and import.
+- Dark and light themes (or follow Windows), seven accent colors, three sizes for Big Picture.
+- A duplicate finder, backups you can export and import, and an optional daily backup to a folder you choose (OneDrive, a USB
+  drive...).
 - It can start with Windows and wait in the system tray until you need it.
 
 What changed in each version is in the [changelog](CHANGELOG.md).
@@ -71,7 +80,7 @@ from it).
 GameDeck has no account, no ads and no tracking. It only contacts:
 
 - **github.com**, to look for and download updates (turn it off in Settings),
-- **Steam, Epic and Microsoft's store**, to fetch cover art and look up game names (turn it off with
+- **Steam, Epic and Microsoft's store**, to fetch cover art and genres and look up game names (turn it off with
   "Download cover art from the internet" in Settings),
 - **steamgriddb.com**, only if you enter your own SteamGridDB key in Settings: the names of games that have no cover yet
   are sent there to look for one.
