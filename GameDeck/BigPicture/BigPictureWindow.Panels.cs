@@ -46,13 +46,20 @@ public partial class BigPictureWindow
             var on = row.IsOn?.Invoke() == true;
 
             var line = new DockPanel();
-            if (row.IsOn is not null)
+            if (row.IsOn is not null && !row.IsRadio)
             {
-                // tick box / radio button, drawn with Windows' own icon font
-                var glyph = row.IsRadio ? (on ? "" : "") : (on ? "" : "");
+                // on / off: the same switch as the settings, on the right
+                var toggle = Switch(on);
+                toggle.Margin = new Thickness(16, 0, 0, 0);
+                DockPanel.SetDock(toggle, Dock.Right);
+                line.Children.Add(toggle);
+            }
+            else if (row.IsOn is not null)
+            {
+                // one of several (sort order, status, screen mode): a radio button, drawn with Windows' own icon font
                 line.Children.Add(new TextBlock
                 {
-                    Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
+                    Text = on ? "" : "", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
                     Foreground = selected ? Dark : on ? Accent : Muted,
                     Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
                 });
