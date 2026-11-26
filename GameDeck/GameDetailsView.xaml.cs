@@ -97,11 +97,24 @@ public partial class GameDetailsView : UserControl
                 Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
             };
             border.MouseLeftButtonUp += (_, _) => ScreenshotRequested?.Invoke(this, (Shots, index));
+            border.ContextMenu = ShotMenu(Shots, index);
             ShotsWrap.Children.Add(border);
         }
 
         ShotsHint.Visibility = ShotsWrap.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         ShotsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>A screenshot's right-click menu: open it, or show it in its folder.</summary>
+    private ContextMenu ShotMenu(IReadOnlyList<string> files, int index)
+    {
+        var open = new MenuItem { Header = new TextBlock { Text = "Open" } };
+        open.Click += (_, _) => ScreenshotRequested?.Invoke(this, (files, index));
+
+        var folder = new MenuItem { Header = new TextBlock { Text = "Show in folder" } };
+        folder.Click += (_, _) => ScreenshotService.ShowInFolder(files[index]);
+
+        return new ContextMenu { Items = { open, folder } };
     }
 
     /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>

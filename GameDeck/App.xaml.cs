@@ -71,8 +71,14 @@ namespace GameDeck
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceName, out var isFirstInstance);
             if (!isFirstInstance)
             {
+                // A game's desktop shortcut: the running GameDeck starts the game (and stays where it is)
+                if (ShortcutService.LaunchTargetFrom(args) is { } target)
+                {
+                    AllowSetForegroundWindow(-1);   // (ASFW_ANY) the game may come to the front: the user started this
+                    ShortcutService.SendToRunningInstance(target);
+                }
                 // Started by Windows at sign-in while GameDeck is already running: nothing to show.
-                if (!args.Contains(StartupService.StartupArgument))
+                else if (!args.Contains(StartupService.StartupArgument))
                     AskRunningInstanceToShow();
 
                 _instanceMutex.Dispose();
@@ -202,12 +208,15 @@ namespace GameDeck
         {
             var startedByWindows = args.Contains(StartupService.StartupArgument) && SettingsService.StartMinimized;
 
+            // started from a game's desktop shortcut: GameDeck stays in the tray and starts the game
+            var shortcutGame = ShortcutService.LaunchTargetFrom(args);
+
             if (SettingsService.AutoUpdate && UpdateService.CanUpdate)
             {
                 // (no window is open yet: don't let closing the progress window end the program)
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-                if (await UpdateAsync(args, startedByWindows))
+                if (await UpdateAsync(args, startedByWindows || shortcutGame is not null))
                     return;   // the new version is starting
 
                 ShutdownMode = ShutdownMode.OnLastWindowClose;
@@ -220,13 +229,17 @@ namespace GameDeck
 
             // Started by Windows at sign-in ("Launch GameDeck when Windows starts"): stay in the system tray,
             // unless the user turned off "Launch GameDeck minimized to the system tray"
-            if (startedByWindows)
+            if (startedByWindows || shortcutGame is not null)
                 window.StartInTray();
             else
                 window.Show();
 
             ListenForShowRequests(window);
+            ShortcutService.Listen(target => Dispatcher.BeginInvoke(() => window.LaunchFromShortcut(target)));
             BeginHealthWatch(window);
+
+            if (shortcutGame is not null)
+                window.LaunchFromShortcut(shortcutGame);
         }
 
         /// <returns>True when a new version was installed and has been started (this one is closing).</returns>

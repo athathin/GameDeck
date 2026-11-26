@@ -30,7 +30,15 @@ public partial class BigPictureWindow
     {
         var l = Labels();
         var keyboard = ShownKind == ControllerKind.None;   // (PgUp and PgDn do nothing here: the arrow keys do)
-        FillHints(ShotHints, (keyboard ? "←" : l.Left, "Previous"), (keyboard ? "→" : l.Right, "Next"), (l.Back, "Back"));
+        FillHints(ShotHints, (keyboard ? "←" : l.Left, "Previous"), (keyboard ? "→" : l.Right, "Next"),
+            (l.X, "Show in folder"), (l.Back, "Back"));
+    }
+
+    /// <summary>Opens File Explorer with the picture on screen selected (Explorer comes in front of Big Picture).</summary>
+    private void ShowShotInFolder()
+    {
+        if (!ScreenshotService.ShowInFolder(_shotFiles[_shotIndex]))
+            ShotCaption.Text = $"{_shotIndex + 1} / {_shotFiles.Count}   {Path.GetFileName(_shotFiles[_shotIndex])}   (couldn't open its folder)";
     }
 
     private void ShowShot()
@@ -62,6 +70,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Left or PadButton.LeftShoulder: MoveShot(-1); break;
             case PadButton.Right or PadButton.RightShoulder: MoveShot(1); break;
+            case PadButton.X: ShowShotInFolder(); break;
             case PadButton.Back or PadButton.Confirm:
                 ShotImage.Source = null;           // frees the picture
                 ShowOverlay(Overlay.Details);      // back to the game's page

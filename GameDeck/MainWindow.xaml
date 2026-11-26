@@ -379,6 +379,7 @@
                                         <MenuItem Header="Add cover art" Click="AddCoverMenuItem_Click"/>
                                         <MenuItem Header="Remove cover art" Click="RemoveCoverMenuItem_Click"
                                                   Visibility="{Binding HasCustomCover, Converter={StaticResource BoolToVis}}"/>
+                                        <MenuItem Header="Create desktop shortcut" Click="ShortcutMenuItem_Click"/>
                                         <MenuItem Header="Uninstall" Click="UninstallMenuItem_Click"/>
                                         <Separator/>
                                         <MenuItem Header="Remove from library" Click="RemoveMenuItem_Click"/>

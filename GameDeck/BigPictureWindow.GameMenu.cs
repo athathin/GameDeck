@@ -161,6 +161,8 @@ public partial class BigPictureWindow
         if (game.HasCustomCover)
             rows.Add(new("Remove cover art", Activate: () => GameAction(() => _ = actions.RemoveCover(game))));
 
+        rows.Add(new("Create desktop shortcut", Activate: () => GameAction(() => actions.CreateShortcut(game, this))));
+
         rows.Add(new("Uninstall", Activate: () => GameAction(() => actions.Uninstall(game))));
         rows.Add(new("Remove from library", Activate: () => GameAction(() => actions.RemoveFromLibrary(game, this))));
 

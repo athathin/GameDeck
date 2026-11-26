@@ -229,6 +229,40 @@ public partial class MainWindow
             await CoverService.RemoveCustomCoverAsync(game);
     }
 
+    // ---------- desktop shortcuts ----------
+
+    /// <summary>Puts a shortcut on the desktop that starts the game through GameDeck (playtime, launch routine and all).</summary>
+    private void CreateShortcut(Game game, Window owner)
+    {
+        if (ShortcutService.CreateDesktopShortcut(game) is { } file)
+            GameToastWindow.ShowMessage("Shortcut created", game.DisplayName, "On the desktop: " + Path.GetFileName(file));
+        else
+            MessageDialog.Show(owner, $"The shortcut for {game.DisplayName} couldn't be put on the desktop.", "Couldn't create the shortcut");
+    }
+
+    private void ShortcutMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { DataContext: Game game })
+            CreateShortcut(game, this);
+    }
+
+    /// <summary>A game's desktop shortcut was opened: start that game, wherever GameDeck is (tray, window, Big Picture).</summary>
+    public void LaunchFromShortcut(string launchTarget)
+    {
+        var game = _library.Games.FirstOrDefault(g => g.LaunchTarget.Equals(launchTarget, StringComparison.OrdinalIgnoreCase));
+
+        if (game is null)
+        {
+            MessageDialog.Show(IsVisible ? this : null,
+                "This shortcut's game isn't in the GameDeck library anymore (it may have been uninstalled or removed).\n\n" +
+                "You can delete the shortcut, or scan for games and make a new one from the game's menu.",
+                "Game not found");
+            return;
+        }
+
+        _ = LaunchGameAsync(game);
+    }
+
     private void UninstallMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem { DataContext: Game game })
@@ -272,6 +306,7 @@ public partial class MainWindow
         ToggleHidden: ToggleHidden,
         AddCover: AddCover,
         RemoveCover: game => CoverService.RemoveCustomCoverAsync(game),
+        CreateShortcut: CreateShortcut,
         Uninstall: ProviderActions.Uninstall,
         RemoveFromLibrary: RemoveFromLibrary);
 }

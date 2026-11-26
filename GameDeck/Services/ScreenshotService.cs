@@ -24,6 +24,23 @@ public static class ScreenshotService
     /// <summary>The folder GameDeck keeps this game's added screenshots in.</summary>
     public static string FolderOf(Game game) => Path.Combine(Root, SafeName(game.Name));
 
+    /// <summary>Opens File Explorer on the picture's folder with the picture selected.</summary>
+    /// <returns>False when it couldn't be shown (the file is gone, Explorer didn't start).</returns>
+    public static bool ShowInFolder(string file)
+    {
+        try
+        {
+            if (!File.Exists(file)) return false;
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true });
+            return true;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Where the controller's screenshots go, in words for the settings pages.</summary>
     public static string SaveFolderText => SettingsService.ScreenshotFolder ??
         "with each game's screenshots (on its page), or Pictures › Screenshots";

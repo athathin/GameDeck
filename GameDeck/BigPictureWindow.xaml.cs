@@ -42,6 +42,7 @@ public record BigPictureGameActions(
     Action<Game> ToggleHidden,
     Action<Game, Window> AddCover,
     Func<Game, Task> RemoveCover,
+    Action<Game, Window> CreateShortcut,
     Action<Game> Uninstall,
     Action<Game, Window> RemoveFromLibrary);
 
@@ -164,6 +165,16 @@ public partial class BigPictureWindow : Window
     {
         InitializeComponent();
         Title = AppInfo.DisplayName + " Big Picture";
+
+        // Always on the main display (the one marked "Make this my main display" in Windows' display settings), not on whichever
+        // screen Windows would pick: a window is maximized on the monitor it sits on when shown, and the main display's top-left
+        // corner is where its work area begins. (The XAML's WindowState="Maximized" does the rest.)
+        var main = SystemParameters.WorkArea;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = main.Left;
+        Top = main.Top;
+        Width = Math.Min(800, main.Width);
+        Height = Math.Min(600, main.Height);
 
         _actions = actions;
         _gameActions = gameMenu;
