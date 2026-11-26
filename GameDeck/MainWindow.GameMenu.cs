@@ -311,5 +311,6 @@ public partial class MainWindow
         RemoveFromLibrary: RemoveFromLibrary,
         RunningGame: () => _tracker.RunningGame,
         Resume: ResumeRunningGame,
-        CloseGame: game => game.TrackingFolder is { } folder ? RunningGame.CloseAsync(folder) : Task.FromResult(false));
+        CloseGame: game => game.TrackingFolder is { } folder ? RunningGame.CloseAsync(folder) : Task.FromResult(false),
+        ForceCloseGame: game => game.TrackingFolder is { } folder ? RunningGame.ForceCloseAsync(folder) : Task.FromResult(false));
 }

@@ -6,12 +6,42 @@ namespace GameDeck.Services;
 /// <summary>
 /// The game that is running (for Big Picture's "Now playing"): bringing its window back to the front, and asking it to close.
 /// A game's programs are the ones running from its install folder (the same rule the playtime tracker uses).
-/// Closing is always the normal way, like clicking the window's X: the game may ask to save first. Nothing is force-killed.
+/// Closing is the normal way, like clicking the window's X: the game may ask to save first. Only when the user then chooses
+/// "Close anyway" (the game didn't close when asked) are its programs ended (<see cref="ForceCloseAsync"/>).
 /// </summary>
 public static class RunningGame
 {
     // big games take a while to shut down (Rocket League: well over 8 seconds); only after this long is it "still running"
-    private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(45);
+
+    /// <summary>
+    /// "Close anyway": ends the game's programs (only the ones running from its folder) without asking them. Unsaved progress
+    /// is lost, so this only ever runs when the user chose it after the game didn't close when asked.
+    /// </summary>
+    /// <returns>True when they have all ended.</returns>
+    public static async Task<bool> ForceCloseAsync(string folder)
+    {
+        var processes = await Task.Run(() => ProcessesIn(folder));
+        try
+        {
+            foreach (var process in processes)
+            {
+                try { process.Kill(entireProcessTree: true); }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { }
+            }
+
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (DateTime.UtcNow < deadline && processes.Any(p => !HasExited(p)))
+                await Task.Delay(200);
+
+            return processes.All(HasExited);
+        }
+        finally
+        {
+            foreach (var process in processes)
+                process.Dispose();
+        }
+    }
 
     /// <summary>Brings the game's main window to the front (restoring it if it was minimized).</summary>
     /// <returns>False when no window of the game was found.</returns>

@@ -47,7 +47,8 @@ public record BigPictureGameActions(
     Action<Game, Window> RemoveFromLibrary,
     Func<Game?> RunningGame,
     Action<Game> Resume,
-    Func<Game, Task<bool>> CloseGame);
+    Func<Game, Task<bool>> CloseGame,
+    Func<Game, Task<bool>> ForceCloseGame);
 
 public partial class BigPictureWindow : Window
 {
@@ -258,6 +259,7 @@ public partial class BigPictureWindow : Window
         _pad.Start();
         _timer.Start();
         UpdateControllerUi();
+        UpdateNowPlaying();   // (a game may have closed while another window was in front)
 
         HideCursor();   // the pointer only shows up when the mouse is moved
     }

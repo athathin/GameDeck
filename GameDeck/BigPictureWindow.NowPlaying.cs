@@ -28,6 +28,15 @@ public partial class BigPictureWindow
         {
             _closingGame = null;   // it closed (or another game runs now)
             _closeSlow = false;
+
+            // "still running?" was on screen, and the game has closed meanwhile: nothing left to ask
+            if (_askingAboutClose && _overlay == Overlay.Power)
+            {
+                _powerQuestion = null;
+                CloseOverlay();
+            }
+
+            _askingAboutClose = false;
         }
 
         if (running is not null)
@@ -44,10 +53,16 @@ public partial class BigPictureWindow
             NowPlayingBanner.Visibility = Visibility.Collapsed;
         }
 
-        // the game's page that is open: Resume while its game runs, Play once it has closed
-        if (_overlay == Overlay.Details && DetailsView.DataContext is Game shown)
+        // the game's page (open, or under another panel): Resume while its game runs, Play once it has closed
+        if (DetailsView.DataContext is Game shown)
             DetailsView.SetPlayLabel(resume: ReferenceEquals(shown, running));
     }
+
+    /// <summary>
+    /// A game from GameDeck has ended (told by the main window the moment it happens, also while this screen isn't in front and
+    /// its own once-a-second check is paused).
+    /// </summary>
+    public void GameEnded() => UpdateNowPlaying();
 
     /// <summary>
     /// Opens the Power menu with the running game's Resume / Close at the top (Big Picture was opened while the game runs,
@@ -83,10 +98,13 @@ public partial class BigPictureWindow
     /// <summary>Back to the game: this screen closes and the game's window comes to the front.</summary>
     private void ResumeGame(Game game) => CloseThen(() => _gameActions.Resume(game));
 
+    // true while the "still running" question is on screen
+    private bool _askingAboutClose;
+
     /// <summary>
-    /// Asks the game to close the normal way (like its window's X: it may ask to save). No pop-up: the banner says "closing…"
-    /// and goes away once the game has closed; if it is still running long after, the banner says so (it is probably asking
-    /// something, and Resume shows it).
+    /// Asks the game to close the normal way (like its window's X: it may ask to save). The banner says "closing…" and goes
+    /// away once the game has closed. If it is still running after 45 seconds, a card asks what to do: go back to the game,
+    /// close it anyway, or keep waiting.
     /// </summary>
     private async Task CloseGameAsync(Game game)
     {
@@ -95,9 +113,51 @@ public partial class BigPictureWindow
         UpdateNowPlaying();
 
         var closed = await _gameActions.CloseGame(game);
-        if (_closing || closed || !ReferenceEquals(_closingGame, game)) return;
+        if (!closed)
+            AskStillRunning(game);
+    }
+
+    /// <summary>"Keep waiting": another 45 seconds (without asking the game again), then the question once more.</summary>
+    private async Task KeepWaitingAsync(Game game)
+    {
+        _closeSlow = false;
+        UpdateNowPlaying();
+
+        for (var waited = 0; waited < 45_000 && !_closing && ReferenceEquals(NowPlaying, game); waited += 500)
+            await Task.Delay(500);
+
+        AskStillRunning(game);
+    }
+
+    private void AskStillRunning(Game game)
+    {
+        // (it closed after all, another game runs now, or this screen is closing: nothing to ask)
+        if (_closing || !ReferenceEquals(NowPlaying, game) || !ReferenceEquals(_closingGame, game)) return;
 
         _closeSlow = true;
         UpdateNowPlaying();
+
+        WindowFocus.BringToFront(this);   // (the game may have the focus: the question needs the controller)
+        _askingAboutClose = true;
+        AskInPowerCard($"{game.DisplayName} is still running",
+        [
+            ($"Go back to {game.DisplayName}  (it may be asking you to save)", () => { _askingAboutClose = false; ResumeGame(game); }),
+            ("Close anyway  (unsaved progress is lost)", () => _ = ForceCloseAsync(game)),
+            ("Keep waiting", () => { _askingAboutClose = false; _ = KeepWaitingAsync(game); })
+        ]);
+    }
+
+    /// <summary>"Close anyway": ends the game's programs. The banner goes away once they have ended.</summary>
+    private async Task ForceCloseAsync(Game game)
+    {
+        _askingAboutClose = false;
+        _closeSlow = false;
+        UpdateNowPlaying();
+
+        if (!await _gameActions.ForceCloseGame(game) && !_closing && ReferenceEquals(NowPlaying, game))
+        {
+            _closeSlow = true;   // Windows refused (e.g. it runs as administrator): the banner says it is still running
+            UpdateNowPlaying();
+        }
     }
 }

@@ -14,6 +14,10 @@ public class RunningGameTests
         Assert.True(await RunningGame.CloseAsync(EmptyFolder));
 
     [Fact]
+    public async Task Close_anyway_ends_nothing_outside_the_game_folder() =>
+        Assert.True(await RunningGame.ForceCloseAsync(EmptyFolder));   // nothing runs from there: nothing to end
+
+    [Fact]
     public void No_window_is_found_for_a_game_that_is_not_running() =>
         Assert.False(RunningGame.BringToFront(EmptyFolder));
 }

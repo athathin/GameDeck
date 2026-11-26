@@ -63,6 +63,9 @@ public partial class MainWindow : Window
         // a game is over: undo what its launch routine did (reopen apps, restore the power plan...)
         _tracker.Ended += game => _ = _routines.FinishAsync(game);
 
+        // Big Picture's "Now playing" banner and the game page's Resume button change straight away
+        _tracker.Ended += _ => _bigPicture?.GameEnded();
+
         // the game was closed: bring GameDeck back the way it was left
         _tracker.Closed += ResumeAfterGame;
 
