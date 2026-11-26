@@ -351,11 +351,12 @@ public partial class BigPictureWindow
     // ---------- the icons at the top, reachable with the stick ----------
 
     private bool _topFocus;
-    private int _topIndex;
+    private int _topIndex = 3;   // Search: the status buttons (Wi-Fi, Bluetooth, sound) are to its left
 
     private Border[]? _topIcons;
 
-    private Border[] TopIcons => _topIcons ??= [SearchButton, FilterButton, SettingsButton, PowerButton];
+    private Border[] TopIcons => _topIcons ??=
+        [WifiButton, BluetoothButton, SoundButton, SearchButton, FilterButton, SettingsButton, PowerButton];
 
     private void FocusTopBar(bool on)
     {
@@ -410,13 +411,14 @@ public partial class BigPictureWindow
             case PadButton.Down or PadButton.Back: FocusTopBar(false); return true;   // back to the games
 
             case PadButton.Confirm:
-                switch (_topIndex)
-                {
-                    case 0: OpenSearch(); break;
-                    case 1: OpenFilters(); break;
-                    case 2: OpenSettings(); break;
-                    default: OpenPower(); break;
-                }
+                var icon = TopIcons[_topIndex];
+                if (icon == WifiButton) OpenWifi();
+                else if (icon == BluetoothButton) OpenBluetooth();
+                else if (icon == SoundButton) OpenSoundOutputs();
+                else if (icon == SearchButton) OpenSearch();
+                else if (icon == FilterButton) OpenFilters();
+                else if (icon == SettingsButton) OpenSettings();
+                else OpenPower();
                 return true;
 
             default: return false;   // tabs, Home, favorite... keep working from up here

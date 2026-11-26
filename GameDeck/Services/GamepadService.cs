@@ -34,6 +34,17 @@ public enum ControllerKind
     Generic
 }
 
+/// <summary>A controller's battery, in the few levels SDL knows (no percentage).</summary>
+public enum ControllerBattery
+{
+    Unknown,
+    Empty,
+    Low,
+    Medium,
+    Full,
+    Wired   // plugged in with a cable (charging, or no battery)
+}
+
 /// <summary>
 /// Reads game controllers through SDL2, which knows the layouts of Xbox, PlayStation (DualShock 4, DualSense) and
 /// Nintendo Switch Pro controllers (wired or Bluetooth) and presents them all the same way.
@@ -75,6 +86,35 @@ public sealed class GamepadService : IDisposable
 
     /// <summary>Raised when a controller is plugged in, removed, or another one is used.</summary>
     public event Action? ControllerChanged;
+
+    /// <summary>
+    /// How full the battery of the controller used last is, as SDL reports it (it only knows a few levels, not a percentage).
+    /// Unknown when there is no controller, or it doesn't say (some controllers over USB / older drivers).
+    /// </summary>
+    public ControllerBattery ActiveBattery
+    {
+        get
+        {
+            if (!_started || _activePad is null) return ControllerBattery.Unknown;
+
+            try
+            {
+                return SDL.SDL_JoystickCurrentPowerLevel(SDL.SDL_GameControllerGetJoystick(_activePad.Handle)) switch
+                {
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_EMPTY => ControllerBattery.Empty,
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_LOW => ControllerBattery.Low,
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_MEDIUM => ControllerBattery.Medium,
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_FULL => ControllerBattery.Full,
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_WIRED => ControllerBattery.Wired,
+                    _ => ControllerBattery.Unknown
+                };
+            }
+            catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+            {
+                return ControllerBattery.Unknown;
+            }
+        }
+    }
 
     /// <summary>The buttons held at the last <see cref="Poll"/> (on every controller together), for the Home-button shortcuts.</summary>
     public IReadOnlySet<PadButton> Held => _down;

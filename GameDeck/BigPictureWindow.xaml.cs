@@ -218,6 +218,7 @@ public partial class BigPictureWindow : Window
         ApplyTab(preserveSelection: false);
         UpdateControllerUi();
         UpdateNowPlaying();
+        StartStatus();
     }
 
     // ---------- picking up where it was left ----------
@@ -323,6 +324,7 @@ public partial class BigPictureWindow : Window
     private void Cleanup()
     {
         NavSounds.Release();
+        StopStatus();
         _timer.Stop();
         _cursorTimer.Stop();
         Mouse.OverrideCursor = null;   // (the main window and the dialogs get their pointer back)
@@ -381,6 +383,7 @@ public partial class BigPictureWindow : Window
         {
             UpdateClock();
             UpdateNowPlaying();   // (the game may have been closed meanwhile)
+            UpdateBattery();
         }
     }
 

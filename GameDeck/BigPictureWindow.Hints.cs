@@ -19,6 +19,7 @@ public partial class BigPictureWindow
             : _pad.ActiveKind == ControllerKind.None
                 ? "No controller found. Connect one, or use the keyboard."
                 : _pad.ActiveName;
+        UpdateBattery();   // (another controller: its battery)
 
         BuildMainHints();
         BuildOverlayHints();

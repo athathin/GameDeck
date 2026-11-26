@@ -259,14 +259,18 @@ public partial class BigPictureWindow
     ];
 
     // a question with its own answers, shown in the Power menu's card (e.g. "the game is still running": Resume / Close anyway)
-    private (string Title, List<(string Text, Action Run)> Answers)? _powerQuestion;
+    private (string Title, List<List<(string Text, Action Run)>> Groups)? _powerQuestion;
 
     /// <summary>Asks something in the Power menu's card, which works with the controller (a Windows dialog doesn't). Back = the last answer.</summary>
-    private void AskInPowerCard(string title, List<(string Text, Action Run)> answers)
+    private void AskInPowerCard(string title, List<(string Text, Action Run)> answers) =>
+        AskInPowerCard(title, answers.Select(a => new List<(string Text, Action Run)> { a }).ToList());
+
+    /// <summary>The same with the answers in groups (a line between the groups). Empty groups are left out.</summary>
+    private void AskInPowerCard(string title, List<List<(string Text, Action Run)>> groups)
     {
         _exitQuestion = false;
         _powerConfirming = null;
-        _powerQuestion = (title, answers);
+        _powerQuestion = (title, groups.Where(g => g.Count > 0).ToList());
         _powerIndex = 0;
         ShowOverlay(Overlay.Power);
         RenderPower();
@@ -279,8 +283,8 @@ public partial class BigPictureWindow
         if (_powerQuestion is { } question)
         {
             PowerTitle.Text = question.Title;
-            _powerGroups = question.Answers
-                .Select(a => new List<(string, Action)> { (a.Text, () => { _powerQuestion = null; CloseOverlay(); a.Run(); }) })
+            _powerGroups = question.Groups
+                .Select(g => g.Select(a => (a.Text, (Action)(() => { _powerQuestion = null; CloseOverlay(); a.Run(); }))).ToList())
                 .ToList();
         }
         else if (_powerConfirming is { } entry)
@@ -371,7 +375,7 @@ public partial class BigPictureWindow
             case PadButton.Back or PadButton.Home:   // Home opens the menu, so it closes it again too
                 if (_powerQuestion is { } question)
                 {
-                    ActivateAnswer(question.Answers.Count - 1);   // the last answer is the "leave it" one
+                    ActivateAnswer(question.Groups.Sum(g => g.Count) - 1);   // the last answer is the "leave it" one
                 }
                 else if (_powerConfirming is not null && !_exitQuestion)
                 {

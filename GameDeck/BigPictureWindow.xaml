@@ -90,6 +90,22 @@
 
                 <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <!-- the status buttons: the network, Bluetooth and the sound output (BigPictureWindow.Status.cs) -->
+                        <Border x:Name="WifiButton" Style="{StaticResource IconButton}" ToolTip="Wi-Fi networks"
+                                MouseLeftButtonUp="WifiButton_Click">
+                            <TextBlock x:Name="WifiGlyph" FontFamily="Segoe MDL2 Assets" Text="&#xE701;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
+                        </Border>
+                        <Border x:Name="BluetoothButton" Style="{StaticResource IconButton}" ToolTip="Bluetooth"
+                                MouseLeftButtonUp="BluetoothButton_Click">
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE702;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
+                        </Border>
+                        <Border x:Name="SoundButton" Style="{StaticResource IconButton}" ToolTip="Sound output"
+                                MouseLeftButtonUp="SoundButton_Click">
+                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE767;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
+                        </Border>
+                        <Border Width="1" Height="26" Background="{DynamicResource TextMuted}" Opacity="0.4" Margin="16,0,6,0"
+                                VerticalAlignment="Center"/>
+
                         <Border x:Name="SearchButton" Style="{StaticResource IconButton}" ToolTip="Search"
                                 MouseLeftButtonUp="SearchButton_Click">
                             <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE721;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
@@ -114,6 +130,12 @@
                         <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7FC;" Foreground="{DynamicResource TextMuted}" FontSize="16"
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBlock x:Name="StatusText" Foreground="{DynamicResource TextMuted}" FontSize="14" VerticalAlignment="Center"/>
+                        <!-- the controller's battery (hidden when it doesn't say) -->
+                        <StackPanel x:Name="BatteryPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="14,0,0,0">
+                            <TextBlock x:Name="BatteryGlyph" FontFamily="Segoe MDL2 Assets" Foreground="{DynamicResource TextMuted}" FontSize="16"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="BatteryText" Foreground="{DynamicResource TextMuted}" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </DockPanel>
