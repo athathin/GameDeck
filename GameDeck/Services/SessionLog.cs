@@ -202,6 +202,69 @@ public class SessionLog
         return new WeekSummary(headline, compare, lines);
     }
 
+    /// <summary>
+    /// "Your year in games": the hours this calendar year, the days played, the most played games, the longest session, the
+    /// busiest month, the favorite day of the week and the games played for the first time. Hidden games are left out of the facts.
+    /// </summary>
+    public WeekSummary ThisYear(IReadOnlySet<string>? excludeKeys = null, DateTime? now = null)
+    {
+        var today = DateOnly.FromDateTime(now ?? DateTime.Now);
+        var year = today.Year;
+
+        var perDay = SecondsPerDay().Where(p => p.Key.Year == year && p.Value > 0).ToList();
+        var seconds = perDay.Sum(p => p.Value);
+
+        var headline = seconds <= 0 ? $"Nothing played yet in {year}" : $"{Game.FormatPlaytime(seconds)} in {year}";
+        var compare = perDay.Count switch
+        {
+            0 => "Games you play from GameDeck are counted here",
+            1 => "Played on 1 day",
+            var n => $"Played on {n} of {today.DayOfYear} days"
+        };
+
+        var lines = new List<string>();
+        var sessions = _sessions
+            .Where(s => s.StartUtc.ToLocalTime().Year == year)
+            .Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key))
+            .ToList();
+
+        if (sessions.Count > 0)
+        {
+            var top = sessions.GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(g => (Name: g.OrderByDescending(s => s.StartUtc).First().Name, Seconds: g.Sum(s => s.Seconds)))
+                .OrderByDescending(g => g.Seconds).Take(3).ToList();
+            lines.Add("Most played: " + string.Join(",  ", top.Select((g, i) => $"{i + 1}. {g.Name} ({Game.FormatPlaytime(g.Seconds)})")));
+
+            var longest = sessions.MaxBy(s => s.Seconds)!;
+            lines.Add($"Longest session: {Game.FormatPlaytime(longest.Seconds)} ({longest.Name}, {longest.StartUtc.ToLocalTime():d MMMM})");
+
+            // games whose first session ever is from this year
+            var firsts = _sessions.Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key))
+                .GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                .Count(g => g.Min(s => s.StartUtc).ToLocalTime().Year == year);
+            if (firsts > 0)
+                lines.Add(firsts == 1 ? "1 game played for the first time" : $"{firsts} games played for the first time");
+
+            // (by the day each session started, so the hidden games stay out here too)
+            var month = sessions.GroupBy(s => s.StartUtc.ToLocalTime().Month).Select(g => (Month: g.Key, Seconds: g.Sum(s => s.Seconds)))
+                .MaxBy(m => m.Seconds);
+            lines.Add($"Busiest month: {new DateTime(year, month.Month, 1):MMMM} ({Game.FormatPlaytime(month.Seconds)})");
+
+            var weekday = sessions.GroupBy(s => s.StartUtc.ToLocalTime().DayOfWeek).Select(g => (Day: g.Key, Seconds: g.Sum(s => s.Seconds)))
+                .MaxBy(d => d.Seconds);
+            lines.Add($"You play most on {weekday.Day}s");
+        }
+
+        return new WeekSummary(headline, compare, lines);
+    }
+
+    /// <summary>For tests: the sessions to work with, instead of the saved file.</summary>
+    internal void UseSessions(List<Session> sessions)
+    {
+        _sessions = sessions;
+        _perDay = null;
+    }
+
     /// <summary>Days in a row with some play. The streak is still alive if you played yesterday but not yet today.</summary>
     public (int Current, int Longest) Streaks()
     {

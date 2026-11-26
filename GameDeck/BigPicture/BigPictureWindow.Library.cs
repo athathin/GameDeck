@@ -235,6 +235,11 @@ public partial class BigPictureWindow
         WeekCompare.Text = weekly.Compare;
         WeekLines.ItemsSource = weekly.Lines;
 
+        var yearly = _sessions.ThisYear(_hiddenKeys);
+        YearHeadline.Text = yearly.Headline;
+        YearCompare.Text = yearly.Compare;
+        YearLines.ItemsSource = yearly.Lines;
+
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
 

@@ -42,11 +42,16 @@ public partial class MainWindow
         StatStreak.Text = FormatDays(current);
         StatLongestStreak.Text = FormatDays(longest);
 
-        var weekly = _sessions.ThisWeek(_library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
-                                                       .ToHashSet(StringComparer.OrdinalIgnoreCase));
+        var hidden = _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var weekly = _sessions.ThisWeek(hidden);
         WeekHeadline.Text = weekly.Headline;
         WeekCompare.Text = weekly.Compare;
         WeekLines.ItemsSource = weekly.Lines;
+
+        var yearly = _sessions.ThisYear(hidden);
+        YearHeadline.Text = yearly.Headline;
+        YearCompare.Text = yearly.Compare;
+        YearLines.ItemsSource = yearly.Lines;
 
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);

@@ -554,6 +554,21 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="THIS YEAR" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold" Margin="2,24,0,10"/>
+                    <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="22,16">
+                        <StackPanel>
+                            <TextBlock x:Name="YearHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="22" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="YearCompare" Foreground="{DynamicResource TextSecondary}" FontSize="15" Margin="0,4,0,0"/>
+                            <ItemsControl x:Name="YearLines" Margin="0,12,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="15" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
                     <Grid Margin="0,28,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
