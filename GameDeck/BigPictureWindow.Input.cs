@@ -40,6 +40,10 @@ public partial class BigPictureWindow
         if (_topFocus && HandleTopBar(button))
             return;
 
+        // the Media tab: the stick moves through the grid of pictures
+        if (_tab == MediaTab && HandleMedia(button))
+            return;
+
         switch (button)
         {
             case PadButton.Left: Move(-1); break;
@@ -131,8 +135,13 @@ public partial class BigPictureWindow
 
     private void OpenDetails()
     {
-        if (Carousel.SelectedItem is not Game game) return;
+        if (Carousel.SelectedItem is Game game)
+            OpenDetails(game);
+    }
 
+    /// <summary>A game's page (from its tile, or from a picture of the Media tab). Back closes it.</summary>
+    private void OpenDetails(Game game)
+    {
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
         _detailsOnAddShots = false;
@@ -249,6 +258,8 @@ public partial class BigPictureWindow
         {
             if (_tab == StatsTab)
                 ScrollStats(e.Delta > 0 ? -1 : 1);
+            else if (_tab == MediaTab)
+                MediaScroll.ScrollToVerticalOffset(Math.Max(0, MediaScroll.VerticalOffset - e.Delta));
             else
                 Move(e.Delta > 0 ? -1 : 1);
 
@@ -361,6 +372,8 @@ public partial class BigPictureWindow
 
         // the selected tile has no ring while an icon is the selected one (two rings look like two selections)
         HideTileRing(on);
+        if (_tab == MediaTab)
+            UpdateMediaSelection(scroll: false);
 
         UpdateTopBar();
         BuildMainHints();
@@ -418,7 +431,9 @@ public partial class BigPictureWindow
 
     private void LaunchSelected()
     {
-        if (_closing || Carousel.SelectedItem is not Game game) return;
+        // the game whose page is open (it may have come from the Media tab, not from a tile)
+        var chosen = _overlay == Overlay.Details ? DetailsView.DataContext : Carousel.SelectedItem;
+        if (_closing || chosen is not Game game) return;
 
         // the game is running already: Play means going back to it
         if (ReferenceEquals(game, NowPlaying))

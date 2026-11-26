@@ -173,6 +173,8 @@
                                  Style="{StaticResource TabButton}" Checked="ViewTab_Checked"/>
                     <RadioButton Content="Stats" Tag="Stats" GroupName="View"
                                  Style="{StaticResource TabButton}" Checked="ViewTab_Checked"/>
+                    <RadioButton Content="Media" Tag="Media" GroupName="View"
+                                 Style="{StaticResource TabButton}" Checked="ViewTab_Checked"/>
                 </StackPanel>
 
                 <StackPanel x:Name="FilterBar" DockPanel.Dock="Right" Orientation="Horizontal">
@@ -467,6 +469,17 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+
+            <!-- the Media tab: every game's screenshots, newest first, 60 at a time (MainWindow.Media.cs) -->
+            <ScrollViewer x:Name="MediaPanel" Grid.Row="3" Visibility="Collapsed"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="8,0,8,24">
+                    <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,14"/>
+                    <WrapPanel x:Name="MediaWrap"/>
+                    <Button x:Name="MediaMoreButton" Style="{StaticResource PillButton}" Padding="16,8" FontSize="14"
+                            HorizontalAlignment="Left" Margin="2,6,0,0" Visibility="Collapsed" Click="MediaMoreButton_Click"/>
+                </StackPanel>
+            </ScrollViewer>
 
             <!-- the Stats tab -->
             <ScrollViewer x:Name="StatsPanel" Grid.Row="3" Visibility="Collapsed"

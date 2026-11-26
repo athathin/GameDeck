@@ -227,6 +227,8 @@ public partial class MainWindow : Window
         foreach (var game in _library.Games)
             game.Cover = null;
 
+        ClearMedia();   // the Media tab's thumbnails too (filled again when the window comes back)
+
         // wait until the window has finished hiding, otherwise the tiles would still be in use
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, MemoryTrimmer.Trim);
     }
@@ -259,6 +261,9 @@ public partial class MainWindow : Window
         _tray?.Hide();
 
         _ = LoadVisibleCoversAsync();   // the covers were dropped while in the tray
+
+        if (_view == "Media")
+            ShowMedia();                // (its thumbnails too)
     }
 
     /// <summary>Closes GameDeck right now, from an error window: the playtime so far is saved and nothing is asked.</summary>

@@ -15,7 +15,7 @@ public partial class BigPictureWindow
 
     private void OpenSearch()
     {
-        if (_tab == StatsTab) return;   // nothing to search there
+        if (!IsGamesTab) return;   // nothing to search on Stats or Media
 
         _noteGame = null;
         _caret = _query.Length;   // the cursor after what is typed already
@@ -452,7 +452,7 @@ public partial class BigPictureWindow
 
     private void OpenFilters()
     {
-        if (_tab == StatsTab) return;
+        if (!IsGamesTab) return;   // (Stats and Media have nothing to filter)
 
         _filterIndex = 0;
         ShowOverlay(Overlay.Filters);

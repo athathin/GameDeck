@@ -37,9 +37,24 @@ public partial class MainWindow
         UpdateFilterButtons();
 
         var stats = _view == "Stats";
-        GameList.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        var media = _view == "Media";
+        GameList.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
         StatsPanel.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
-        FilterBar.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        MediaPanel.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
+        FilterBar.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
+
+        if (media)
+        {
+            UpdateContinue(false);
+            EmptyText.Visibility = Visibility.Collapsed;
+            if (!_mediaLoaded)
+                StatusText.Text = "";
+            ShowMedia();   // (only reads the folders when the tab is opened, not on every refresh)
+            return;
+        }
+
+        ClearMedia();   // left the tab: let go of its pictures
+
         if (stats)
         {
             UpdateContinue(false);
@@ -230,7 +245,7 @@ public partial class MainWindow
         // Ctrl+F jumps to the search box
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {
-            if (_view == "Stats")
+            if (_view is "Stats" or "Media")
                 AllTab.IsChecked = true;
 
             SearchBox.Focus();

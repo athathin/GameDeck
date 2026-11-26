@@ -87,14 +87,22 @@ public partial class BigPictureWindow
 
         var items = new List<(UIElement Icon, string Text)>();
 
-        if (_tab != StatsTab && !_topFocus && !_stripFocus)
+        if (IsGamesTab && !_topFocus && !_stripFocus)
             items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU"));
 
         if (_tab == StatsTab && !_topFocus)
             items.Add((RoundButton(l.X, onController), "REFRESH"));
 
-        if (_tab != StatsTab || _topFocus)
+        if (_tab == MediaTab && !_topFocus)
+        {
+            items.Add((RoundButton(l.Y, onController), "GAME PAGE"));
+            items.Add((RoundButton(l.X, onController), "SHOW IN FOLDER"));
+            items.Add((RoundButton(l.Confirm, onController), "VIEW"));
+        }
+        else if (_tab != StatsTab || _topFocus)
+        {
             items.Add((RoundButton(l.Confirm, onController), "SELECT"));
+        }
 
         items.Add((RoundButton(l.Back, onController), "BACK"));
 
@@ -209,6 +217,12 @@ public partial class BigPictureWindow
 
         if (_tab == StatsTab)
             BuildStats();
+
+        if (_tab == MediaTab)
+        {
+            ClearMedia();   // the grid's cells were built in the old colors
+            BuildMedia();
+        }
 
         if (_overlay == Overlay.Settings)
             RenderSettings();

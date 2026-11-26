@@ -117,25 +117,7 @@ public partial class GameDetailsView : UserControl
         return new ContextMenu { Items = { open, folder } };
     }
 
-    /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>
-    private static BitmapImage? Thumbnail(string file)
-    {
-        try
-        {
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.UriSource = new Uri(file);
-            image.DecodePixelWidth = 352;
-            image.CacheOption = BitmapCacheOption.OnLoad;   // read now, so the file isn't kept open
-            image.EndInit();
-            image.Freeze();
-            return image;
-        }
-        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or FileFormatException)
-        {
-            return null;
-        }
-    }
+    private static BitmapImage? Thumbnail(string file) => ScreenshotService.Thumbnail(file);
 
     private void AddShots_Click(object sender, RoutedEventArgs e)
     {

@@ -56,7 +56,7 @@ public partial class BigPictureWindow : Window
     private const double EdgePad = 6;   // room before the first and after the last tile: the selected one is wider than its slot
 
     // the same tabs as the desktop library
-    private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats"];
+    private static readonly string[] TabNames = ["All games", "Favorites", "Recently played", "Stats", "Media"];
     private const int StatsTab = 3;
 
     private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots, Shortcuts }

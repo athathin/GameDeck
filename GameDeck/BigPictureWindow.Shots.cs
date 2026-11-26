@@ -11,14 +11,16 @@ public partial class BigPictureWindow
 
     private IReadOnlyList<string> _shotFiles = [];
     private int _shotIndex;
+    private bool _shotsFromMedia;   // opened from the Media tab (Back goes back there), not from a game's page
 
     private void DetailsView_ScreenshotRequested(object? sender, (IReadOnlyList<string> Files, int Index) e) =>
         OpenShots(e.Files, e.Index);
 
-    private void OpenShots(IReadOnlyList<string> files, int index)
+    private void OpenShots(IReadOnlyList<string> files, int index, bool fromMedia = false)
     {
         if (files.Count == 0) return;
 
+        _shotsFromMedia = fromMedia;
         _shotFiles = files;
         _shotIndex = Math.Clamp(index, 0, files.Count - 1);
         ShowOverlay(Overlay.Shots);
@@ -73,7 +75,11 @@ public partial class BigPictureWindow
             case PadButton.X: ShowShotInFolder(); break;
             case PadButton.Back or PadButton.Confirm:
                 ShotImage.Source = null;           // frees the picture
-                ShowOverlay(Overlay.Details);      // back to the game's page
+
+                if (_shotsFromMedia)
+                    ReturnToMedia(_shotIndex);     // back to the Media tab, on the picture it ended on
+                else
+                    ShowOverlay(Overlay.Details);  // back to the game's page
                 break;
         }
     }

@@ -26,11 +26,16 @@ public partial class BigPictureWindow
     {
         // the Stats tab shows numbers and charts instead of the row of games
         var stats = _tab == StatsTab;
-        Carousel.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        var media = _tab == MediaTab;
+        Carousel.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
         StatsScroll.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
+        MediaScroll.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
         RefreshStatsButton.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
 
-        if (stats)
+        if (!media)
+            ClearMedia();   // left the Media tab: let go of its pictures
+
+        if (stats || media)
         {
             _items.Clear();   // frees the covers too (the tiles unload)
             EmptyText.Visibility = Visibility.Collapsed;
@@ -40,8 +45,17 @@ public partial class BigPictureWindow
             FocusStrip(false);
             UpdateContinue();   // (hides the row of last played games: it belongs to the All games list)
 
-            BuildStats();
-            StatsScroll.ScrollToTop();
+            if (stats)
+            {
+                BuildStats();
+                StatsScroll.ScrollToTop();
+            }
+            else if (!_mediaLoaded)
+            {
+                MediaScroll.ScrollToTop();
+                BuildMedia();   // (only when the tab is opened: a library reload keeps the pictures and the selection)
+            }
+
             BuildTabs();
             BuildMainHints();
             return;

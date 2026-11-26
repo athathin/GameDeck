@@ -342,6 +342,16 @@
                         MouseLeftButtonUp="RefreshStatsButton_Click">
                     <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
                 </Border>
+
+                <!-- the Media tab: every game's screenshots in a grid, moved through with the stick (BigPictureWindow.Media.cs) -->
+                <ScrollViewer x:Name="MediaScroll" Visibility="Collapsed" Margin="0,28,0,0"
+                              VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,0,24">
+                        <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="17" TextWrapping="Wrap"
+                                   Margin="6,0,0,16"/>
+                        <WrapPanel x:Name="MediaWrap"/>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
 
             <!-- bottom: what each button does -->
