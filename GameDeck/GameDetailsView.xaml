@@ -8,7 +8,7 @@
         <!-- big blue "Play" button -->
         <Style x:Key="PlayButton" TargetType="Button">
             <Setter Property="Foreground" Value="#0B1220"/>
-            <Setter Property="Background" Value="#8037FE"/>
+            <Setter Property="Background" Value="{DynamicResource Accent}"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Padding" Value="44,12"/>

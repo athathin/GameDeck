@@ -23,10 +23,10 @@ internal static class BigPictureLook
         return brush;
     }
 
-    public static readonly SolidColorBrush Purple = Frozen(0x80, 0x37, 0xFE);    // the accent: the same in every theme
     public static readonly SolidColorBrush Warning = Frozen(0xF0, 0x7A, 0x5A);   // a battery that is nearly empty
 
     // the rest follow the theme (these are the shared brushes of ThemeService: their color changes with the theme)
+    public static SolidColorBrush Accent => ThemeService.Accent;            // the accent color chosen in Settings (purple at first)
     public static SolidColorBrush TextGrey => ThemeService.TextSecondary;
     public static SolidColorBrush Dark => ThemeService.SelectFg;            // text on the selected row
     public static SolidColorBrush KeyBackground => ThemeService.RaisedBg;
@@ -144,7 +144,7 @@ internal static class BigPictureLook
     public static Border Switch(bool on) => new()
     {
         Width = 56, Height = 30, CornerRadius = new CornerRadius(15), VerticalAlignment = VerticalAlignment.Center,
-        Background = on ? Purple : Muted, Opacity = on ? 1 : 0.75,
+        Background = on ? Accent : Muted, Opacity = on ? 1 : 0.75,
         Child = new Ellipse
         {
             Width = 22, Height = 22, Fill = Brushes.White, Margin = new Thickness(4, 0, 4, 0),

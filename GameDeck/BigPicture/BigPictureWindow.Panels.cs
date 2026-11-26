@@ -53,7 +53,7 @@ public partial class BigPictureWindow
                 line.Children.Add(new TextBlock
                 {
                     Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
-                    Foreground = selected ? Dark : on ? Purple : Muted,
+                    Foreground = selected ? Dark : on ? Accent : Muted,
                     Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
                 });
             }

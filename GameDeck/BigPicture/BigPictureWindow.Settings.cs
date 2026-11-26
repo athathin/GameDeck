@@ -220,7 +220,7 @@ public partial class BigPictureWindow
                 bar.Children.Add(new Border
                 {
                     Width = 40, Height = 9, CornerRadius = new CornerRadius(4), Margin = new Thickness(6, 0, 0, 0),
-                    Background = step <= current ? Purple : Muted, Opacity = step <= current ? 1 : 0.5
+                    Background = step <= current ? Accent : Muted, Opacity = step <= current ? 1 : 0.5
                 });
 
             bar.Children.Add(new TextBlock

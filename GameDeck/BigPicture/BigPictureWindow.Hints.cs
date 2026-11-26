@@ -146,7 +146,7 @@ public partial class BigPictureWindow
                 Margin = new Thickness(22, 0, 0, 0),
                 Padding = new Thickness(0, 4, 0, 6),
                 BorderThickness = new Thickness(0, 0, 0, 3),
-                BorderBrush = selected ? Purple : Brushes.Transparent,
+                BorderBrush = selected ? Accent : Brushes.Transparent,
                 Cursor = Cursors.Hand,
                 Background = Brushes.Transparent,
                 Child = new TextBlock

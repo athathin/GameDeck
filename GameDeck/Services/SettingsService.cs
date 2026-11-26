@@ -68,6 +68,8 @@ public static class SettingsService
         public string? ScreenshotFolder { get; set; }
 
         public string? BackupFolder { get; set; }
+
+        public string? AccentColor { get; set; }
         public bool NavSounds { get; set; } = true;
         public double SoundVolume { get; set; } = 1.0;
 
@@ -347,6 +349,17 @@ public static class SettingsService
         set
         {
             Current.Theme = value;
+            Save();
+        }
+    }
+
+    /// <summary>The accent color ("#8037FE", one of ThemeService.Accents); null = the default purple.</summary>
+    public static string? AccentColor
+    {
+        get => Current.AccentColor;
+        set
+        {
+            Current.AccentColor = value;
             Save();
         }
     }

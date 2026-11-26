@@ -43,6 +43,16 @@ public static class ThemeService
         ("ScrimStrong", "#D90E1016", "#D9E8ECF3")
     ];
 
+    /// <summary>The accent colors to choose from (Settings › Appearance): the first is the default. White text reads well on each.</summary>
+    public static readonly (string Name, string Hex)[] Accents =
+    [
+        ("Purple", "#8037FE"), ("Blue", "#2F6FED"), ("Teal", "#0E9488"), ("Green", "#1E9E57"),
+        ("Orange", "#E8701A"), ("Red", "#D93B3B"), ("Pink", "#D63A84")
+    ];
+
+    /// <summary>The accent in use ("#8037FE"): a choice of <see cref="Accents"/>, the same in both themes.</summary>
+    public static string AccentHex { get; private set; } = Accents[0].Hex;
+
     /// <summary>What the user chose (Dark, Light or System).</summary>
     public static AppTheme Setting { get; private set; } = AppTheme.Dark;
 
@@ -53,11 +63,12 @@ public static class ThemeService
     public static event Action? Changed;
 
     /// <summary>Creates the brushes and puts them where XAML can find them. Call once, before any window is created.</summary>
-    public static void Initialize(Application app, AppTheme theme)
+    public static void Initialize(Application app, AppTheme theme, string? accent = null)
     {
         _app = app;
         Setting = theme;
         Current = Resolve(theme);
+        AccentHex = KnownAccent(accent);
         Publish();
 
         // "follow Windows": when the user changes Windows' own light / dark setting, the colors follow
@@ -84,6 +95,21 @@ public static class ThemeService
         Publish();
         Changed?.Invoke();
     }
+
+    /// <summary>Changes the accent color everywhere (one of <see cref="Accents"/>, by its hex).</summary>
+    public static void ApplyAccent(string hex)
+    {
+        var accent = KnownAccent(hex);
+        if (accent == AccentHex) return;
+
+        AccentHex = accent;
+        Publish();
+        Changed?.Invoke();
+    }
+
+    /// <summary>The accent as given when it's one of the choices, otherwise the default (a settings file edited by hand).</summary>
+    public static string KnownAccent(string? hex) =>
+        Accents.FirstOrDefault(a => a.Hex.Equals(hex, StringComparison.OrdinalIgnoreCase)).Hex ?? Accents[0].Hex;
 
     /// <summary>Dark or Light for a choice: System asks Windows (apps use the dark theme when it says so; dark if unknown).</summary>
     private static AppTheme Resolve(AppTheme theme)
@@ -113,6 +139,11 @@ public static class ThemeService
             brushes[key] = brush;
         }
 
+        // the accent: the same in both themes ("AccentBadge" is the see-through one of the status badges on the covers)
+        var accent = Parse(AccentHex);
+        brushes["Accent"] = Frozen(accent);
+        brushes["AccentBadge"] = Frozen(Color.FromArgb(0xCC, accent.R, accent.G, accent.B));
+
         _brushes = brushes;
 
         // (replacing a resource tells every {DynamicResource} user to look it up again)
@@ -129,6 +160,15 @@ public static class ThemeService
     public static SolidColorBrush TextMuted => _brushes["TextMuted"];
     public static SolidColorBrush SelectBg => _brushes["SelectBg"];
     public static SolidColorBrush SelectFg => _brushes["SelectFg"];
+    public static SolidColorBrush Accent => _brushes["Accent"];
+    public static Color AccentColor => Accent.Color;
 
     private static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);
+
+    private static SolidColorBrush Frozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
 }

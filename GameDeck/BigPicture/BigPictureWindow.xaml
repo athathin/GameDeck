@@ -43,7 +43,7 @@
                                 </views:RoundedClipBorder>
                                 <!-- the ring (4 wide, inner radius 9 = the card's) is drawn over the card's outer 1 px, so no hairline of
                                      background can show between the two -->
-                                <Border x:Name="Ring" CornerRadius="13" BorderBrush="#8037FE" BorderThickness="4"
+                                <Border x:Name="Ring" CornerRadius="13" BorderBrush="{DynamicResource Accent}" BorderThickness="4"
                                         IsHitTestVisible="False" Visibility="Collapsed"/>
                             </Grid>
                         </Canvas>
@@ -80,7 +80,7 @@
                             Padding="16,9" Margin="0,14,0,0" HorizontalAlignment="Left" Cursor="Hand"
                             MouseLeftButtonUp="NowPlayingBanner_Click">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="NOW PLAYING" Foreground="#8037FE" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="NOW PLAYING" Foreground="{DynamicResource Accent}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             <TextBlock x:Name="NowPlayingText" Foreground="{DynamicResource TextPrimary}" FontSize="18" FontWeight="SemiBold"
                                        Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="600"/>
                             <TextBlock x:Name="NowPlayingHint" Foreground="{DynamicResource TextMuted}" FontSize="14"
@@ -164,7 +164,7 @@
                                                                          Cursor="Hand" MouseLeftButtonUp="ContinueItem_MouseLeftButtonUp">
                                                     <ContentPresenter/>
                                                 </views:RoundedClipBorder>
-                                                <Border x:Name="Ring" CornerRadius="12" BorderBrush="#8037FE" BorderThickness="3"
+                                                <Border x:Name="Ring" CornerRadius="12" BorderBrush="{DynamicResource Accent}" BorderThickness="3"
                                                         IsHitTestVisible="False" Visibility="Collapsed"/>
                                             </Grid>
                                             <ControlTemplate.Triggers>
@@ -228,7 +228,7 @@
 
                                     <!-- status badge -->
                                     <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0"
-                                            Background="#CC8037FE" CornerRadius="4" Padding="7,2"
+                                            Background="{DynamicResource AccentBadge}" CornerRadius="4" Padding="7,2"
                                             Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
                                     </Border>

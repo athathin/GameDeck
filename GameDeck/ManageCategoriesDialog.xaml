@@ -42,6 +42,6 @@
         </ScrollViewer>
 
         <Button Content="Done" IsDefault="True" IsCancel="True" HorizontalAlignment="Right" Margin="0,14,0,0"
-                Style="{StaticResource DialogButton}" Background="#8037FE" Foreground="White"/>
+                Style="{StaticResource DialogButton}" Background="{DynamicResource Accent}" Foreground="White"/>
     </StackPanel>
 </Window>

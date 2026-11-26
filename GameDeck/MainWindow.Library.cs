@@ -267,7 +267,7 @@ public partial class MainWindow
     {
         // the icon turns purple while a launcher / category filter or "show hidden" is on
         var active = HasActiveFilters;
-        FilterButton.Foreground = active ? new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)) : ThemeService.TextPrimary;
+        FilterButton.Foreground = active ? ThemeService.Accent : ThemeService.TextPrimary;
         UpdateFilterChips();
     }
 
@@ -364,7 +364,7 @@ public partial class MainWindow
 
         FilterChips.Children.Add(new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)),
+            Background = ThemeService.Accent,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(8, 3, 7, 3),
             Margin = new Thickness(0, 0, 6, 6),

@@ -37,7 +37,7 @@ public partial class BigPictureWindow
         if (!SettingsService.ControllerShortcuts)
             ShortcutsLeft.Children.Add(new TextBlock
             {
-                Text = "The Home-button shortcuts are switched off in Settings.", Foreground = Purple, FontSize = 16,
+                Text = "The Home-button shortcuts are switched off in Settings.", Foreground = Accent, FontSize = 16,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6)
             });
 

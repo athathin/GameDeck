@@ -98,6 +98,15 @@ public partial class BigPictureWindow
         void StepTheme(int step) => SetTheme(Themes[(ThemeIndex() + step + Themes.Length) % Themes.Length].Theme);
         void StepScale(int step) => SetScale(Scales[(ScaleIndex() + step + Scales.Length) % Scales.Length].Scale);
 
+        var accents = ThemeService.Accents;
+        int AccentIndex() => Math.Max(0, Array.FindIndex(accents, a => a.Hex == ThemeService.AccentHex));
+        void StepAccent(int step)
+        {
+            var hex = accents[(AccentIndex() + step + accents.Length) % accents.Length].Hex;
+            SettingsService.AccentColor = hex;
+            ThemeService.ApplyAccent(hex);   // this screen and the desktop window change at once
+        }
+
         var savers = SettingsService.ScreenSaverChoices;
         void StepSaver(int step) => SettingsService.ScreenSaverMinutes =
             savers[(Array.IndexOf(savers, SettingsService.ScreenSaverMinutes) + step + savers.Length) % savers.Length];
@@ -109,6 +118,8 @@ public partial class BigPictureWindow
                 Adjust: StepTheme, Activate: () => StepTheme(1)),
             new("Size", "Bigger is easier to read on a TV across the room", Value: () => Scales[ScaleIndex()].Name,
                 Adjust: StepScale, Activate: () => StepScale(1)),
+            new("Accent color", "The color of the selection rings, buttons and highlights", Value: () => accents[AccentIndex()].Name,
+                Adjust: StepAccent, Activate: () => StepAccent(1)),
 
             Heading("When idle"),
             new("Screen saver", "Fades to black with your covers moving around, against burn-in on OLED TVs. Any button wakes it",

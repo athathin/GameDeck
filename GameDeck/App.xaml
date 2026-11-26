@@ -87,11 +87,11 @@
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="box" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="box" Property="Background" Value="#8037FE"/>
-                                <Setter TargetName="box" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                 <Setter TargetName="tick" Property="Visibility" Value="Visible"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -120,11 +120,11 @@
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="box" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="box" Property="Background" Value="#8037FE"/>
-                                <Setter TargetName="box" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                 <Setter TargetName="dot" Property="Visibility" Value="Visible"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -137,7 +137,7 @@
         <Style x:Key="DarkTextBox" TargetType="TextBox">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}"/>
-            <Setter Property="SelectionBrush" Value="#8037FE"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource Accent}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="10,8"/>
             <Setter Property="Template">
@@ -149,7 +149,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
@@ -173,7 +173,7 @@
                                 <Setter TargetName="bar" Property="Background" Value="{DynamicResource ScrollbarHover}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="bar" Property="Background" Value="#8037FE"/>
+                                <Setter TargetName="bar" Property="Background" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -283,7 +283,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Path x:Name="tick" Data="M1,5 L4.5,8.5 L11,1.5" Visibility="Collapsed"
-                                          Stroke="#8037FE" StrokeThickness="2" HorizontalAlignment="Left"
+                                          Stroke="{DynamicResource Accent}" StrokeThickness="2" HorizontalAlignment="Left"
                                           VerticalAlignment="Center" Margin="4,0,0,0"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                                     <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
@@ -331,10 +331,10 @@
                         <Ellipse x:Name="knob" Fill="{DynamicResource TextMuted}"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="knob" Property="Fill" Value="#8037FE"/>
+                                <Setter TargetName="knob" Property="Fill" Value="{DynamicResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="knob" Property="Fill" Value="#8037FE"/>
+                                <Setter TargetName="knob" Property="Fill" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -397,7 +397,7 @@
                 <Grid Height="100">
                     <Border Height="{Binding Height, Mode=OneWay}" Opacity="{Binding Opacity, Mode=OneWay}" Width="30"
                             VerticalAlignment="Bottom" HorizontalAlignment="Center"
-                            Background="#8037FE" CornerRadius="3,3,0,0"/>
+                            Background="{DynamicResource Accent}" CornerRadius="3,3,0,0"/>
                 </Grid>
                 <TextBlock Text="{Binding Label}" Foreground="{DynamicResource TextMuted}" FontSize="11" HorizontalAlignment="Center"
                            Margin="0,6,0,0" TextTrimming="CharacterEllipsis"/>

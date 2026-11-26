@@ -180,7 +180,7 @@ public partial class GameDetailsView : UserControl
     {
         button.RenderTransformOrigin = new Point(0.5, 0.5);
         button.RenderTransform = new ScaleTransform(1.06, 1.06);
-        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : ThemeService.AccentColor, BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
     }
 
     private static void Unselect(Button button)

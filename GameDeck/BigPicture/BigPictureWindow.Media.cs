@@ -253,7 +253,7 @@ public partial class BigPictureWindow
         if (!ReferenceEquals(wanted, _mediaRinged))
         {
             if (_mediaRinged is not null) _mediaRinged.BorderBrush = Brushes.Transparent;
-            if (wanted is not null) wanted.BorderBrush = Purple;
+            if (wanted is not null) wanted.BorderBrush = Accent;
             _mediaRinged = wanted;
         }
 

@@ -213,7 +213,8 @@ public sealed class TrayIcon : IDisposable
             // unreadable picture: fall through to the letter icon
         }
 
-        using (var brush = new Drawing.SolidBrush(Drawing.Color.FromArgb(0x80, 0x37, 0xFE)))
+        var accent = ThemeService.AccentColor;
+        using (var brush = new Drawing.SolidBrush(Drawing.Color.FromArgb(accent.R, accent.G, accent.B)))
             g.FillRectangle(brush, 0, 0, size, size);
 
         var letter = game.Name.Trim().Length > 0 ? game.Name.Trim()[..1].ToUpperInvariant() : "?";

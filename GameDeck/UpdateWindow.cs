@@ -31,13 +31,13 @@ public sealed class UpdateWindow : Window
         _bar = new ProgressBar
         {
             Height = 8, Minimum = 0, Maximum = 1, Margin = new Thickness(0, 18, 0, 0),
-            Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)),
+            Foreground = ThemeService.Accent,
             Background = ThemeService.RaisedBg, BorderThickness = new Thickness(0)
         };
 
         Content = new Border
         {
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x80, 0x37, 0xFE)), BorderThickness = new Thickness(1),
+            BorderBrush = ThemeService.Accent, BorderThickness = new Thickness(1),
             Padding = new Thickness(28, 24, 28, 20),
             Child = new StackPanel
             {

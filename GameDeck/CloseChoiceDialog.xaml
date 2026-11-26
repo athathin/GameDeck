@@ -18,7 +18,7 @@
             <Button Content="Close" Click="ExitButton_Click"
                     Style="{StaticResource DialogButton}" Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}"/>
             <Button Content="Minimize to tray" IsDefault="True" Click="TrayButton_Click"
-                    Style="{StaticResource DialogButton}" Background="#8037FE" Foreground="White"/>
+                    Style="{StaticResource DialogButton}" Background="{DynamicResource Accent}" Foreground="White"/>
         </StackPanel>
     </StackPanel>
 </Window>

@@ -170,7 +170,7 @@ public partial class BigPictureWindow
                 var color = selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary;
 
                 var cell = _keyCells[r][c];
-                cell.Background = selected ? ThemeService.SelectBg : lit ? Purple : KeyBackground;
+                cell.Background = selected ? ThemeService.SelectBg : lit ? Accent : KeyBackground;
 
                 var drawn = (faces, color);
                 if (cell.Tag is { } before && before.Equals(drawn)) continue;

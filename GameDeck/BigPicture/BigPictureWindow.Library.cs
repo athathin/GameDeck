@@ -255,7 +255,7 @@ public partial class BigPictureWindow
             var bar = new Grid { Height = 12 };
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fraction, GridUnitType.Star) });
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - fraction + 0.0001, GridUnitType.Star) });
-            bar.Children.Add(new Border { CornerRadius = new CornerRadius(6), Background = Purple });
+            bar.Children.Add(new Border { CornerRadius = new CornerRadius(6), Background = Accent });
 
             var row = new Grid { Margin = new Thickness(0, 0, 0, 14) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });

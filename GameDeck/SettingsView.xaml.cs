@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using GameDeck.Services;
 
 namespace GameDeck.Views;
@@ -60,6 +61,7 @@ public partial class SettingsView : UserControl
         ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
         ScaleHugeRadio.IsChecked = scale >= 1.3;
         BuildMinuteChoices();
+        BuildAccentChoices();
 
         GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
 
@@ -364,6 +366,35 @@ public partial class SettingsView : UserControl
 
         SettingsService.Theme = theme;
         ThemeService.Apply(theme);   // every open screen changes at once
+    }
+
+    /// <summary>The accent colors as round swatches (the chosen one ringed); a click changes the color everywhere at once.</summary>
+    private void BuildAccentChoices()
+    {
+        AccentChoices.Children.Clear();
+
+        foreach (var (name, hex) in ThemeService.Accents)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            var chosen = hex == ThemeService.AccentHex;
+
+            var swatch = new Border
+            {
+                Width = 34, Height = 34, CornerRadius = new CornerRadius(17), Margin = new Thickness(0, 0, 12, 0), Padding = new Thickness(3),
+                BorderThickness = new Thickness(2), BorderBrush = chosen ? ThemeService.TextPrimary : Brushes.Transparent,
+                Cursor = Cursors.Hand, ToolTip = name,
+                Child = new Border { CornerRadius = new CornerRadius(13), Background = new SolidColorBrush(color) }
+            };
+
+            swatch.MouseLeftButtonUp += (_, _) =>
+            {
+                SettingsService.AccentColor = hex;
+                ThemeService.ApplyAccent(hex);   // every open screen changes at once
+                BuildAccentChoices();
+            };
+
+            AccentChoices.Children.Add(swatch);
+        }
     }
 
     /// <summary>Off, 5 min, 10 min... for the screen saver and the break reminder: the saved one ticked.</summary>

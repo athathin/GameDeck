@@ -43,7 +43,7 @@ namespace GameDeck
             };
 
             // the colors first: every window, the update window included, reads them
-            ThemeService.Initialize(this, SettingsService.Theme);
+            ThemeService.Initialize(this, SettingsService.Theme, SettingsService.AccentColor);
 
             // Started by an update from inside GameDeck: the old program is still closing and holds the lock, so wait for it
             var args = e.Args;
