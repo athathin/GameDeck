@@ -79,6 +79,8 @@ public partial class BigPictureWindow
 
         rows.Add(new FilterRow("SHOW", IsHeader: true));
         rows.Add(new FilterRow("Hidden games", IsOn: () => _showHidden, Activate: () => _showHidden = !_showHidden));
+        if (_showAddOns || _library.Any(g => g.IsAddOn))   // (only offered when Steam installed some as apps)
+            rows.Add(new FilterRow("DLC and soundtracks", IsOn: () => _showAddOns, Activate: () => _showAddOns = !_showAddOns));
 
         rows.Add(new FilterRow("SORT BY", IsHeader: true));
         foreach (var (text, mode) in new[]
@@ -112,6 +114,7 @@ public partial class BigPictureWindow
         _smartFilters.Clear();
         _genreFilters.Clear();
         _showHidden = false;
+        _showAddOns = false;
     }
 
     private void RenderFilters() =>

@@ -38,8 +38,13 @@ public partial class GameDetailsView : UserControl
     }
 
     /// <summary>Shows one game. The playtime and last-played text keep updating by themselves (they bind to the game).</summary>
-    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions, GameHistory? history)
+    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions, GameHistory? history,
+                     IReadOnlyList<Game> addOns)
     {
+        AddOnsText.Text = addOns.Count == 0 ? ""
+            : "DLC and soundtracks: " + string.Join(", ", addOns.Select(a => a.HasSize ? $"{a.DisplayName} ({a.SizeText})" : a.DisplayName));
+        AddOnsText.Visibility = addOns.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
         DataContext = game;
 
         SessionsList.ItemsSource = sessions;

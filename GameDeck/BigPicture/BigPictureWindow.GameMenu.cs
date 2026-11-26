@@ -57,6 +57,13 @@ public partial class BigPictureWindow
         _menuRows = page.Build();
         page.Index = Math.Clamp(page.Index, 0, _menuRows.Count - 1);
 
+        // never on a heading (the launch routine has some): the next row that can be chosen, or the one before
+        if (_menuRows[page.Index].IsHeader)
+        {
+            var below = _menuRows.FindIndex(page.Index, r => !r.IsHeader);
+            page.Index = below >= 0 ? below : Math.Max(0, _menuRows.FindLastIndex(page.Index, r => !r.IsHeader));
+        }
+
         GameMenuTitle.Text = page.Title;
         FillGameMenuHints();
 
@@ -102,8 +109,13 @@ public partial class BigPictureWindow
 
     private void MoveMenu(MenuPage page, int step)
     {
-        var next = Math.Clamp(page.Index + step, 0, _menuRows.Count - 1);
-        if (next == page.Index) return;
+        var next = page.Index;
+        do
+        {
+            next += step;
+            if (next < 0 || next >= _menuRows.Count) return;   // at the end: stay where we are
+        }
+        while (_menuRows[next].IsHeader);
 
         page.Index = next;
         RenderGameMenu();
@@ -146,7 +158,7 @@ public partial class BigPictureWindow
                 Activate: () => { CloseGameMenu(); OpenNote(game); }),
             new(game.HasLeftOff ? "Where I left off: change…" : "Where I left off…",
                 Activate: () => { CloseGameMenu(); OpenNote(game, leftOff: true); }),
-            new("Launch routine…", Activate: () => GameAction(() => actions.EditRoutine(game, this))),
+            new("Launch routine  ›", Activate: () => OpenSubmenu("Launch routine", () => RoutineRows(game))),
             new("Categories  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
             new("Status  ›", Activate: () => OpenSubmenu("Status", () => StatusRows(game))),
             new(game.HideMenuText, Activate: () => GameAction(() => actions.ToggleHidden(game))),

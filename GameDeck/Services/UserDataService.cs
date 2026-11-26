@@ -314,6 +314,15 @@ public class UserDataService
             Apply(other);
     }
 
+    /// <summary>A game's launch link changed (see LibraryService.RepairXboxLinks): what was saved under the old one moves to the new one.</summary>
+    public void RenameKey(string oldKey, string newKey)
+    {
+        if (!_entries.Remove(oldKey, out var entry) || _entries.ContainsKey(newKey)) return;
+
+        _entries[newKey] = entry;
+        Save();
+    }
+
     /// <summary>A copy of everything saved, for backups.</summary>
     public Dictionary<string, Entry> Snapshot() => new(_entries, StringComparer.OrdinalIgnoreCase);
 

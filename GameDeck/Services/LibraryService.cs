@@ -43,6 +43,31 @@ public class LibraryService
         Games = AutoBackupService.LoadJson<List<Game>>(FilePath) ?? [];
     }
 
+    /// <summary>
+    /// Puts right the launch links of Xbox games saved with the wrong app id (the Minecraft Launcher's "!Game" is "!Minecraft"),
+    /// without a scan. Returns the links changed (old, new), so what is saved under the old one can follow.
+    /// </summary>
+    public List<(string Old, string New)> RepairXboxLinks()
+    {
+        var changed = new List<(string Old, string New)>();
+
+        foreach (var game in Games)
+        {
+            if (XboxScanner.CorrectedLaunchTarget(game) is not { } target) continue;
+
+            changed.Add((game.LaunchTarget, target));
+            game.LaunchTarget = target;
+        }
+
+        if (changed.Count > 0)
+        {
+            try { Save(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }   // (put right again at the next start)
+        }
+
+        return changed;
+    }
+
     /// <summary>Runs every scanner. Manually added games are always kept. Call from a background thread.</summary>
     public void Scan()
     {

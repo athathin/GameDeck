@@ -87,6 +87,8 @@ public partial class RiotScanner : IGameScanner
         "valorant" => "VALORANT",
         "league_of_legends" => "League of Legends",
         "bacon" => "Legends of Runeterra",
+        "teamfighttactics" => "Teamfight Tactics",
+        "lion" => "2XKO",
         _ => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(product.Replace('_', ' '))
     };
 

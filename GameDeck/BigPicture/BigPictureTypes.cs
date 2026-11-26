@@ -23,7 +23,7 @@ public record BigPictureSettingsActions(
 /// <summary>What the game menu (the controller's Menu button, the right-click menu of the desktop library) can ask of the main window.</summary>
 public record BigPictureGameActions(
     Action<Game, Window> Edit,
-    Action<Game, Window> EditRoutine,
+    Action<Game, LaunchProfile?> SaveRoutine,
     Func<IReadOnlyList<string>> AllCategories,
     Action<Game, string> ToggleCategory,
     Action<Game, string?> SetNotes,

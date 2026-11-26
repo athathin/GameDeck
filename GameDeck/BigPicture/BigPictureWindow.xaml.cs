@@ -70,6 +70,7 @@ public partial class BigPictureWindow : Window
     private SortMode _sort = SettingsService.SortMode;
     private string _query = "";
     private bool _showHidden;   // the "Hidden games" filter: hidden games are listed too (dimmed)
+    private bool _showAddOns;   // the "DLC and soundtracks" filter: Steam add-ons installed as apps are listed too
 
     private Overlay _overlay = Overlay.None;
 

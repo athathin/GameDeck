@@ -23,7 +23,8 @@ public partial class RunningAppsDialog : Window
         AppList.ItemsSource = FindApps(game);
     }
 
-    private static List<RunningApp> FindApps(Game game)
+    /// <summary>The programs with a window open now, minus system programs, launchers and the game itself (also Big Picture's list).</summary>
+    public static List<RunningApp> FindApps(Game game)
     {
         var apps = new Dictionary<string, RunningApp>(StringComparer.OrdinalIgnoreCase);
 

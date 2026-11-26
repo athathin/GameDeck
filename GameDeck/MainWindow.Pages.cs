@@ -25,7 +25,7 @@ public partial class MainWindow
         var total = played.Sum(g => g.PlaytimeSeconds);
         StatTotal.Text = total <= 0 ? "0 min" : Game.FormatPlaytime(total);
         StatPlayed.Text = played.Count.ToString();
-        StatLibrary.Text = _library.Games.Count.ToString();
+        StatLibrary.Text = _library.Games.Count(g => !g.IsAddOn).ToString();
 
         var most = played.FirstOrDefault()?.PlaytimeSeconds ?? 1;
         TopGamesList.ItemsSource = played
@@ -93,6 +93,7 @@ public partial class MainWindow
         Refresh();
         _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
         _ = LoadAchievementsAsync();                // (and their achievements)
+        _ = LoadSteamAppsAsync();                   // (and which are DLC or soundtracks)
         FetchGenres();                           // (and their genres)
         MeasureSizes();                          // (and their size on disk)
         SettingsPanel.SetScanning(false);
@@ -292,6 +293,20 @@ public partial class MainWindow
             CrashLog.Write(ex, "Achievements");   // (the game pages just don't show them)
         }
     }
+
+    /// <summary>Reads, in the background, what kind of app each Steam game is (Steam's appinfo.vdf), so DLC and soundtracks stay apart.</summary>
+    private async Task LoadSteamAppsAsync()
+    {
+        var ids = _library.Games.Select(g => g.SteamAppId).OfType<string>().ToList();
+        if (ids.Count == 0) return;
+
+        _steamApps = await Task.Run(() => SteamAppInfo.Read(ids));
+        Refresh();
+    }
+
+    /// <summary>The DLC and soundtracks of a game that are installed as Steam apps of their own (its page lists them).</summary>
+    private List<Game> AddOnsOf(Game game) =>
+        game.SteamAppId is { } id ? _library.Games.Where(g => g.AddOnOf == id).ToList() : [];
 
     /// <summary>Measures the games' install folders in the background (sizes older than a few days, new games; see DiskUsage).</summary>
     private async void MeasureSizes()
@@ -525,7 +540,7 @@ public partial class MainWindow
                 .ToList();
 
             DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game),
-                _sessions.History(page.Game!));
+                _sessions.History(page.Game!), AddOnsOf(page.Game!));
         }
         else if (page.Kind == PageKind.Settings)
         {

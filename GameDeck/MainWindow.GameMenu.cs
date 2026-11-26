@@ -292,7 +292,7 @@ public partial class MainWindow
     /// <summary>What the game menu in Big Picture (the controller's Menu button) can ask of the main window.</summary>
     private BigPictureGameActions BigPictureGameMenu() => new(
         Edit: EditGame,
-        EditRoutine: EditLaunchRoutine,
+        SaveRoutine: (game, profile) => _userData.SetProfile(game, profile),
         AllCategories: AllCategories,
         ToggleCategory: ToggleCategory,
         NewCategory: AddToNewCategory,

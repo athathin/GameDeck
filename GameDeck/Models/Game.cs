@@ -187,6 +187,18 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public string ContinueNote => HasLeftOff ? "Left off: " + LeftOff : LastPlayedText;
 
+    // ---------- add-ons (see SteamAppInfo) ----------
+
+    /// <summary>
+    /// Set for a Steam DLC or soundtrack that Steam installs as an app of its own: the app id of its game ("" when Steam doesn't
+    /// say which). Null for a game. Add-ons stay out of the library unless the "DLC and soundtracks" filter is on.
+    /// </summary>
+    [JsonIgnore]
+    public string? AddOnOf { get; set; }
+
+    [JsonIgnore]
+    public bool IsAddOn => AddOnOf is not null;
+
     // ---------- size on disk (see DiskUsage) ----------
     private long? _sizeBytes;
 

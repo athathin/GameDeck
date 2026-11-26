@@ -114,7 +114,8 @@ public static class CoverService
         if (File.Exists(file)) return file;
         if (TryCopySteamLocalCover(game, file)) return file;   // Steam already has this picture on disk
         if (!SettingsService.OnlineCovers) return null;   // offline mode: never touch the internet
-        if (File.Exists(miss) && File.GetLastWriteTimeUtc(miss) > DateTime.UtcNow.AddDays(-7)) return null;
+        // (an empty "nothing found" is from before Riot games' covers were looked for in the Epic store: looked for once more)
+        if (File.Exists(miss) && new FileInfo(miss).Length > 0 && File.GetLastWriteTimeUtc(miss) > DateTime.UtcNow.AddDays(-7)) return null;
 
         await NetworkGate.WaitAsync();
         try
@@ -140,12 +141,17 @@ public static class CoverService
             if (epicUrl is not null && await DownloadAsync(epicUrl, file))
                 return file;
 
-            // 4) SteamGridDB, only when the user has entered their own key in Settings
+            // 4) Riot games (not on Steam): the box art of their page in the Epic Games Store
+            var riotUrl = await FindRiotCoverUrlAsync(game);
+            if (riotUrl is not null && await DownloadAsync(riotUrl, file))
+                return file;
+
+            // 5) SteamGridDB, only when the user has entered their own key in Settings
             var gridUrl = await FindSteamGridDbUrlAsync(game);
             if (gridUrl is not null && await DownloadAsync(gridUrl, file))
                 return file;
 
-            File.WriteAllBytes(miss, Array.Empty<byte>()); // remember "nothing found" for a week
+            File.WriteAllText(miss, "2");   // remember "nothing found" for a week (the "2": see the check above)
             return null;
         }
         finally
@@ -403,6 +409,73 @@ public static class CoverService
 
         response.EnsureSuccessStatusCode();   // other problems throw too, so no "miss" gets cached
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    }
+
+    // ---------- Riot (through the Epic Games Store, where Riot's games have pages) ----------
+
+    /// <summary>The Epic store page of each Riot product (its folder name in Riot's files); others use their name, store style.</summary>
+    private static readonly Dictionary<string, string> RiotStorePages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["valorant"] = "valorant",
+        ["league_of_legends"] = "league-of-legends",
+        ["teamfighttactics"] = "teamfight-tactics",
+        ["bacon"] = "legends-of-runeterra"
+    };
+
+    private static async Task<string?> FindRiotCoverUrlAsync(Game game)
+    {
+        if (!game.LaunchTarget.StartsWith(Scanners.RiotScanner.LaunchPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+
+        var product = game.LaunchTarget[Scanners.RiotScanner.LaunchPrefix.Length..].Split('/')[0];
+        var page = RiotStorePages.TryGetValue(product, out var known) ? known : StoreSlug(game.Name);
+        if (page.Length == 0) return null;
+
+        using var response = await Http.GetAsync($"https://store-content-ipv4.ak.epicgames.com/api/en-US/content/products/{page}");
+        if (!response.IsSuccessStatusCode) return null;
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return PickTallImage(json.RootElement);
+    }
+
+    /// <summary>"League of Legends" -> "league-of-legends" (how the Epic store names its pages).</summary>
+    internal static string StoreSlug(string name) =>
+        System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+
+    /// <summary>
+    /// The portrait box art of an Epic store page: the first picture whose address says it is 1200 × 1600 (the store's tall box art),
+    /// anywhere in the page's data. Null when there is none.
+    /// </summary>
+    internal static string? PickTallImage(JsonElement root)
+    {
+        foreach (var url in Strings(root))
+        {
+            if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && url.Contains("1200x1600", StringComparison.Ordinal) &&
+                (url.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                 url.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)))
+                return url;
+        }
+
+        return null;
+
+        static IEnumerable<string> Strings(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    yield return element.GetString() ?? "";
+                    break;
+                case JsonValueKind.Object:
+                    foreach (var property in element.EnumerateObject())
+                    foreach (var text in Strings(property.Value))
+                        yield return text;
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var item in element.EnumerateArray())
+                    foreach (var text in Strings(item))
+                        yield return text;
+                    break;
+            }
+        }
     }
 
     // ---------- Epic ----------

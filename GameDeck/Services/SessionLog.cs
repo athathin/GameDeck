@@ -79,6 +79,20 @@ public class SessionLog
             Save();
     }
 
+    /// <summary>A game's launch link changed (see LibraryService.RepairXboxLinks): its sessions follow.</summary>
+    public void RenameKey(string oldKey, string newKey)
+    {
+        var changed = false;
+        foreach (var session in _sessions.Where(s => s.Key.Equals(oldKey, StringComparison.OrdinalIgnoreCase)))
+        {
+            session.Key = newKey;
+            changed = true;
+        }
+
+        if (changed)
+            Save();
+    }
+
     // ---------- questions the Stats tab asks ----------
 
     /// <summary>Seconds played per local calendar day. A session that runs past midnight is split between the days.</summary>

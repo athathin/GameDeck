@@ -158,7 +158,8 @@ public partial class BigPictureWindow
     private void OpenDetails(Game game)
     {
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
-        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game), _sessions.History(game));
+        var addOns = game.SteamAppId is { } appId ? _library.Where(g => g.AddOnOf == appId).ToList() : [];
+        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game), _sessions.History(game), addOns);
         _detailsOnAddShots = false;
         DetailsView.SetPlayLabel(resume: ReferenceEquals(game, NowPlaying));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button

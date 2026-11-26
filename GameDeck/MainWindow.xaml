@@ -282,6 +282,9 @@
                                             <TextBlock Text="SHOW" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
                                             <CheckBox x:Name="HiddenCheckBox" Style="{StaticResource DarkCheckBox}"
                                                       Content="Hidden games" Checked="HiddenCheckBox_Changed" Unchecked="HiddenCheckBox_Changed"/>
+                                            <!-- Steam DLC and soundtracks installed as apps of their own (only offered when there are some) -->
+                                            <CheckBox x:Name="AddOnsCheckBox" Style="{StaticResource DarkCheckBox}" Margin="0,10,0,0"
+                                                      Content="DLC and soundtracks" Checked="AddOnsCheckBox_Changed" Unchecked="AddOnsCheckBox_Changed"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Margin="16,0,0,0">
