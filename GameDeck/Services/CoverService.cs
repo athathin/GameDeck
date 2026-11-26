@@ -527,7 +527,8 @@ public static class CoverService
         }
     }
 
-    private static string Normalize(string? text) =>
+    /// <summary>A name to compare with another: letters and digits only, lower case ("Hitman™: Absolution" = "hitmanabsolution").</summary>
+    internal static string Normalize(string? text) =>
         new((text ?? "").Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
     // A game's key is asked for several times every time its cover is looked up (and a tile does that each time it scrolls

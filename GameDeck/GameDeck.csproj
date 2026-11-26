@@ -50,6 +50,7 @@
 
 	<ItemGroup>
 		<!-- SDL2: reads Xbox, PlayStation (DualShock 4 / DualSense) and Nintendo Switch Pro controllers; only loaded while Big Picture mode is open -->
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="11.0.0" />
 		<PackageReference Include="ppy.SDL2-CS" Version="1.0.741-alpha" />
 	</ItemGroup>
 
@@ -71,18 +72,16 @@
 		Publish button in Visual Studio, or "dotnet publish"), the other one is published right after it, from the
 		same code, into the sibling folder: ...\publish\win-x86\ and ...\publish\win-x64\.
 	-->
-	<Target Name="PublishOtherArchitecture" AfterTargets="Publish"
-	        Condition="'$(GameDeckInnerPublish)' != 'true' And ('$(RuntimeIdentifier)' == 'win-x86' Or '$(RuntimeIdentifier)' == 'win-x64')">
+	<Target Name="PublishOtherArchitecture" AfterTargets="Publish" Condition="'$(GameDeckInnerPublish)' != 'true' And ('$(RuntimeIdentifier)' == 'win-x86' Or '$(RuntimeIdentifier)' == 'win-x64')">
 		<PropertyGroup>
 			<_OtherRid Condition="'$(RuntimeIdentifier)' == 'win-x86'">win-x64</_OtherRid>
 			<_OtherRid Condition="'$(RuntimeIdentifier)' == 'win-x64'">win-x86</_OtherRid>
 			<_OtherPublishDir>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\publish\$(_OtherRid)\</_OtherPublishDir>
 		</PropertyGroup>
 
-		<Message Importance="high" Text="Also publishing $(_OtherRid) -> $(_OtherPublishDir)" />
+		<Message Importance="high" Text="Also publishing $(_OtherRid) -&gt; $(_OtherPublishDir)" />
 
-		<MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
-		         Properties="GameDeckInnerPublish=true;RuntimeIdentifier=$(_OtherRid);SelfContained=$(SelfContained);PublishDir=$(_OtherPublishDir)" />
+		<MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish" Properties="GameDeckInnerPublish=true;RuntimeIdentifier=$(_OtherRid);SelfContained=$(SelfContained);PublishDir=$(_OtherPublishDir)" />
 	</Target>
 
 </Project>

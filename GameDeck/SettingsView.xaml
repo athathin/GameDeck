@@ -84,11 +84,11 @@
 
                     <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
 
-                    <CheckBox x:Name="SteamPlaytimeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
-                              Content="Include playtime from Steam"
-                              Checked="SteamPlaytimeCheckBox_Changed" Unchecked="SteamPlaytimeCheckBox_Changed"/>
+                    <CheckBox x:Name="ImportPlaytimeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
+                              Content="Include playtime from your launchers"
+                              Checked="ImportPlaytimeCheckBox_Changed" Unchecked="ImportPlaytimeCheckBox_Changed"/>
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,16"
-                               Text="Steam games show the hours Steam counted when they are more than GameDeck's (including the time before you used GameDeck). Read from Steam's files on this PC; nothing goes online."/>
+                               Text="Games show the hours Steam, GOG Galaxy (also for the launchers connected to it: Ubisoft, Xbox, EA...) or the itch.io app counted, when they are more than GameDeck's, including the time before you used GameDeck. Read from their files on this PC; nothing goes online."/>
 
                     <CheckBox x:Name="OnlineCoversCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
                               Content="Download cover art from the internet"

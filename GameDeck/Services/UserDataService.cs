@@ -54,7 +54,7 @@ public class UserDataService
     private Dictionary<string, SteamPlaytime.Played> _external = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Playtime a launcher counted itself (Steam's, see <see cref="SteamPlaytime"/>). A game then shows the higher of the two
+    /// Playtime the launchers counted themselves (see <see cref="LauncherPlaytime"/>). A game then shows the higher of the two
     /// totals, and the later "last played": Steam also counts the sessions started from GameDeck, so adding them would count
     /// those twice. Call <see cref="Apply"/> afterwards.
     /// </summary>

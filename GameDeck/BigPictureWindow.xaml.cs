@@ -21,7 +21,7 @@ public record BigPictureSettingsActions(
     Func<Window, string?> ImportBackup,
     Action<Window> Uninstall,
     Func<(IReadOnlyList<Game> Games, IReadOnlySet<string> HiddenKeys)> GetLibrary,
-    Action SteamPlaytimeChanged);
+    Action PlaytimeSourcesChanged);
 
 /// <summary>What the game menu (the controller's Menu button, the right-click menu of the desktop library) can ask of the main window.</summary>
 public record BigPictureGameActions(

@@ -62,13 +62,13 @@ public partial class MainWindow : Window
         // Big Picture's "Now playing" banner and the game page's Resume button change straight away
         _tracker.Ended += _ => _bigPicture?.GameEnded();
 
-        // Steam writes the hours of a game when it closes: read them again a little later
+        // the launchers write the hours of a game when it closes: read them again a little later
         _tracker.Ended += async game =>
         {
-            if (game.SteamAppId is null || !SettingsService.SteamPlaytime) return;
+            if (game.Source is not ("Steam" or "itch.io") || !SettingsService.ImportPlaytime) return;
 
             await Task.Delay(TimeSpan.FromSeconds(15));
-            await LoadSteamPlaytimeAsync();
+            await LoadLauncherPlaytimeAsync();
         };
 
         // the game was closed: bring GameDeck back the way it was left
@@ -98,7 +98,7 @@ public partial class MainWindow : Window
         UpdateTileSizeButton();
         Refresh();
         _ready = true;
-        _ = LoadSteamPlaytimeAsync();   // Steam's hours for the Steam games (read in the background)
+        _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
         FetchGenres();                  // the Steam games' genres not asked for yet
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe

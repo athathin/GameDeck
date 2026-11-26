@@ -16,7 +16,7 @@ public partial class SettingsView : UserControl
     public event EventHandler? ScanRequested;
     public event EventHandler? DuplicatesRequested;
     public event EventHandler? OnlineCoversChanged;
-    public event EventHandler? SteamPlaytimeChanged;
+    public event EventHandler? PlaytimeSourcesChanged;
     public event EventHandler? QuickLaunchChanged;
     public event EventHandler? UninstallRequested;
     public event EventHandler? ExportRequested;
@@ -49,7 +49,7 @@ public partial class SettingsView : UserControl
         AskHint.Visibility = action == CloseAction.Ask ? Visibility.Visible : Visibility.Collapsed;
 
         OnlineCoversCheckBox.IsChecked = SettingsService.OnlineCovers;
-        SteamPlaytimeCheckBox.IsChecked = SettingsService.SteamPlaytime;
+        ImportPlaytimeCheckBox.IsChecked = SettingsService.ImportPlaytime;
 
         DarkThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Dark;
         LightThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Light;
@@ -315,12 +315,12 @@ public partial class SettingsView : UserControl
         OnlineCoversChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void SteamPlaytimeCheckBox_Changed(object sender, RoutedEventArgs e)
+    private void ImportPlaytimeCheckBox_Changed(object sender, RoutedEventArgs e)
     {
         if (_updating) return;
 
-        SettingsService.SteamPlaytime = SteamPlaytimeCheckBox.IsChecked == true;
-        SteamPlaytimeChanged?.Invoke(this, EventArgs.Empty);
+        SettingsService.ImportPlaytime = ImportPlaytimeCheckBox.IsChecked == true;
+        PlaytimeSourcesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void ThemeRadio_Checked(object sender, RoutedEventArgs e)

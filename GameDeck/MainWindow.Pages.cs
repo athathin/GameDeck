@@ -77,7 +77,7 @@ public partial class MainWindow
         await Task.Run(_library.Scan);           // background thread keeps the window responsive
 
         Refresh();
-        _ = LoadSteamPlaytimeAsync();            // (newly found Steam games get their hours too)
+        _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
         FetchGenres();                           // (and their genres)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
@@ -233,21 +233,22 @@ public partial class MainWindow
         FetchGenres();                  // and the genres
     }
 
-    /// <summary>Asks the Steam store, in the background, for the genres of the Steam games that have none yet (see GenreService).</summary>
+    /// <summary>Asks the Steam store, in the background, for the genres of the games that have none yet (see GenreService).</summary>
     private void FetchGenres() => _ = GenreService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
 
-    private void SettingsPanel_SteamPlaytimeChanged(object? sender, EventArgs e) => _ = LoadSteamPlaytimeAsync();
+    private void SettingsPanel_PlaytimeSourcesChanged(object? sender, EventArgs e) => _ = LoadLauncherPlaytimeAsync();
 
     /// <summary>
-    /// Reads the playtime Steam counted (its files on this PC) in the background and shows it on the Steam games (the higher of
-    /// Steam's and GameDeck's). With "Include playtime from Steam" off, only GameDeck's own playtime is shown.
+    /// Reads the playtime Steam, GOG Galaxy and the itch app counted (their files on this PC, see LauncherPlaytime) in the
+    /// background and shows it on the games (the higher of the launcher's and GameDeck's). With "Include playtime from your launchers" off, only GameDeck's own playtime is shown.
     /// </summary>
-    private async Task LoadSteamPlaytimeAsync()
+    private async Task LoadLauncherPlaytimeAsync()
     {
         try
         {
-            var played = SettingsService.SteamPlaytime
-                ? await Task.Run(SteamPlaytime.Read)
+            var games = _library.Games.ToList();   // (a copy: the files are read in the background)
+            var played = SettingsService.ImportPlaytime
+                ? await Task.Run(() => LauncherPlaytime.Read(games))
                 : new Dictionary<string, SteamPlaytime.Played>();
 
             _userData.SetExternalPlaytime(played);
@@ -359,7 +360,7 @@ public partial class MainWindow
         GetLibrary: () => (_library.Games.ToList(),
                            _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
                                .ToHashSet(StringComparer.OrdinalIgnoreCase)),
-        SteamPlaytimeChanged: () => _ = LoadSteamPlaytimeAsync());
+        PlaytimeSourcesChanged: () => _ = LoadLauncherPlaytimeAsync());
 
     // ---------- clicking on the grid ----------
 

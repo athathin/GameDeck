@@ -139,11 +139,11 @@ public partial class BigPictureWindow
             () => Task.FromResult(_actions.AddGames(this))),
 
         Heading("Playtime"),
-        Toggle("Include playtime from Steam", "The hours Steam counted, when they are more than GameDeck's. Read from this PC",
-            () => SettingsService.SteamPlaytime, on =>
+        Toggle("Include playtime from your launchers", "The hours Steam, GOG Galaxy or itch counted, when they are more than GameDeck's. Read from this PC",
+            () => SettingsService.ImportPlaytime, on =>
             {
-                SettingsService.SteamPlaytime = on;
-                _actions.SteamPlaytimeChanged();
+                SettingsService.ImportPlaytime = on;
+                _actions.PlaytimeSourcesChanged();
             }),
 
         Heading("Tidy up"),

@@ -39,7 +39,7 @@ public static class SettingsService
     {
         public bool OnlineCovers { get; set; } = true;
 
-        public bool SteamPlaytime { get; set; } = true;
+        public bool ImportPlaytime { get; set; } = true;
 
         public bool LowBatteryWarning { get; set; } = true;
 
@@ -166,13 +166,16 @@ public static class SettingsService
         }
     }
 
-    /// <summary>Steam games show the playtime Steam counted (from Steam's files on this PC) when it is higher than GameDeck's.</summary>
-    public static bool SteamPlaytime
+    /// <summary>
+    /// Games show the playtime Steam, GOG Galaxy or the itch app counted (their files on this PC, see LauncherPlaytime) when it
+    /// is higher than GameDeck's.
+    /// </summary>
+    public static bool ImportPlaytime
     {
-        get => Current.SteamPlaytime;
+        get => Current.ImportPlaytime;
         set
         {
-            Current.SteamPlaytime = value;
+            Current.ImportPlaytime = value;
             Save();
         }
     }
