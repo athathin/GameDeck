@@ -47,7 +47,7 @@ public enum ControllerBattery
     Wired   // on a cable without a battery (or SDL only knows that it is plugged in)
 }
 
-/// <summary>A controller's battery: its level, and the percentage when the controller reports one (Windows.Gaming.Input does).</summary>
+/// <summary>A controller's battery: its level, and the percentage when it is known (an Xbox controller over Bluetooth).</summary>
 public readonly record struct BatteryState(ControllerBattery Level, int? Percent = null)
 {
     public static readonly BatteryState None = new(ControllerBattery.Unknown);
@@ -145,20 +145,21 @@ public sealed class GamepadService : IDisposable
         }
         catch (Exception ex) when (ex is COMException or InvalidCastException or TypeLoadException or PlatformNotSupportedException)
         {
-            // Windows.Gaming.Input isn't available here: SDL answers instead
+            // Windows.Gaming.Input isn't available here: nothing to say about the cable
         }
 
         return null;
     }
 
     /// <summary>Only what is certain from a Windows.Gaming.Input report: on a cable (charging, or without a battery).</summary>
-    internal static BatteryState? FromReport(Windows.Devices.Power.BatteryReport report) => report.Status switch
+    private static BatteryState? FromReport(Windows.Devices.Power.BatteryReport report) => report.Status switch
     {
         Windows.System.Power.BatteryStatus.NotPresent => new(ControllerBattery.Wired),
         Windows.System.Power.BatteryStatus.Charging => new(ControllerBattery.Charging),
         _ => null   // (its level is wrong over Bluetooth: Windows' Bluetooth settings say it instead)
     };
 
+    /// <summary>The level a percentage counts as (it decides the warning color of a low battery).</summary>
     internal static ControllerBattery LevelOf(int percent) => percent switch
     {
         >= 70 => ControllerBattery.Full,

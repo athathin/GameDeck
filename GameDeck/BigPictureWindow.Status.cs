@@ -125,18 +125,8 @@ public partial class BigPictureWindow
             : battery.Level switch { ControllerBattery.Empty => 0, ControllerBattery.Low => 2, ControllerBattery.Medium => 5, _ => 10 };
         BatteryGlyph.Text = ((char)(0xE850 + Math.Clamp(step, 0, 10))).ToString();
 
-        var level = battery.Level switch
-        {
-            ControllerBattery.Charging => "Charging",
-            ControllerBattery.Wired => "Wired",
-            ControllerBattery.Full => "Full",
-            ControllerBattery.Medium => "Medium",
-            ControllerBattery.Low => "Low",
-            _ => "Empty"
-        };
-        BatteryText.Text = battery.Percent is { } shown
-            ? battery.Level == ControllerBattery.Charging ? $"{shown}%  charging" : $"{shown}%"
-            : level;
+        // the percentage when it is known (Bluetooth), otherwise the level (a cable says "Charging" / "Wired")
+        BatteryText.Text = battery.Percent is { } shown ? $"{shown}%" : battery.Level.ToString();
 
         var color = battery.Level is ControllerBattery.Low or ControllerBattery.Empty ? Warning : Muted;
         BatteryGlyph.Foreground = color;

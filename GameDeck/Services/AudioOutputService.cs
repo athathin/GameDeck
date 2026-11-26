@@ -43,9 +43,6 @@ public static class AudioOutputService
         return outputs.OrderBy(o => o.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
-    /// <summary>The name of the output in use, or null when there is none.</summary>
-    public static string? DefaultName() => List().FirstOrDefault(o => o.IsDefault)?.Name;
-
     /// <summary>Makes the output the one Windows uses for everything (games, music, calls).</summary>
     /// <returns>False when Windows refused.</returns>
     public static bool SetDefault(string id)
