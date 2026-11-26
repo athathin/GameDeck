@@ -11,11 +11,14 @@ New:
 - **Stats**: This year in games, and the space your games take. A Largest first sort.
 - **Playtime** from Steam, GOG Galaxy and itch.io, and **genres** (with a Genre filter).
 - **When the game closes**: go back to GameDeck, sleep or turn off the PC, after a countdown you can cancel.
-- **Launch routines** can set the screen's resolution and refresh rate.
+- **Launch routines** can set the screen's resolution and refresh rate, and can be set up with the controller in Big Picture.
+- **DLC and soundtracks** that Steam installs separately stay out of the library (a filter shows them); a game's page lists its own.
 - **Big Picture**: a home row of shelves, a status bar (battery, Wi-Fi, Bluetooth, sound), a screen saver, LT / RT to scroll.
 - Break reminders, a low-battery warning, a daily backup to a folder you choose, seven accent colors, a Media filter by game.
 
 Changed and fixed:
+- Cover art for Riot games. Xbox games such as the Minecraft Launcher start again.
+- The same on / off switches everywhere in Big Picture.
 - Big Picture opens on the screen the desktop window is on.
 - Newer controller support (SDL 2.31): no more false "empty" batteries.
 - A daily check for updates while GameDeck runs.

@@ -103,18 +103,7 @@ public partial class BigPictureWindow
     /// <summary>"Don't change", then every mode of the main display (the one in use now marked), the chosen one ticked.</summary>
     private List<FilterRow> DisplayRows(Game game)
     {
-        List<DisplayMode> modes;
-        DisplayMode? current;
-        try
-        {
-            modes = DisplayModes.Available();
-            current = DisplayModes.Current();
-        }
-        catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException)
-        {
-            modes = [];
-            current = null;
-        }
+        var (modes, current) = DisplayModes.ForChoosing();
 
         void Choose(DisplayMode? mode)
         {

@@ -6,7 +6,8 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 ## What it does
 
 **One library**
-- Finds the games of every launcher above by itself, with their cover art. Add any other game by picking its program.
+- Finds the games of every launcher above by itself, with their cover art. Add any other game by picking its program. DLC and
+  soundtracks that Steam installs separately are kept apart from the games.
 - Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
 - Search, and filter by launcher, category, status, genre, or smart filters: Never played, Played under 1 hour, Recently added.
 - Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, the
@@ -27,7 +28,7 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 **Big Picture mode** (F11, the Big Picture button, or the controller's Home button)
 - The whole library full screen, made for the couch: Xbox, PlayStation and Nintendo controllers, or the keyboard and mouse.
 - Its own settings, an on-screen keyboard for search and notes, and a file browser to add games and screenshots with the
-  controller.
+  controller. Launch routines can be set up there too.
 - A home row of shelves: Continue playing, Up next, Recently added, Favorites and your categories.
 - **Now Playing**: press Home during a game to resume it or close it.
 - **Controller shortcuts**: hold Home and press a button for volume, songs, Alt + Tab, the on-screen keyboard or a screenshot,
@@ -80,7 +81,7 @@ from it).
 GameDeck has no account, no ads and no tracking. It only contacts:
 
 - **github.com**, to look for and download updates (turn it off in Settings),
-- **Steam, Epic and Microsoft's store**, to fetch cover art and genres and look up game names (turn it off with
+- **Steam, Epic and Microsoft's store**, to fetch cover art (Riot games' from the Epic store) and genres and look up game names (turn it off with
   "Download cover art from the internet" in Settings),
 - **steamgriddb.com**, only if you enter your own SteamGridDB key in Settings: the names of games that have no cover yet
   are sent there to look for one.

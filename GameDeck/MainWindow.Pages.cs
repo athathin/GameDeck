@@ -304,10 +304,6 @@ public partial class MainWindow
         Refresh();
     }
 
-    /// <summary>The DLC and soundtracks of a game that are installed as Steam apps of their own (its page lists them).</summary>
-    private List<Game> AddOnsOf(Game game) =>
-        game.SteamAppId is { } id ? _library.Games.Where(g => g.AddOnOf == id).ToList() : [];
-
     /// <summary>Measures the games' install folders in the background (sizes older than a few days, new games; see DiskUsage).</summary>
     private async void MeasureSizes()
     {
@@ -540,7 +536,7 @@ public partial class MainWindow
                 .ToList();
 
             DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game),
-                _sessions.History(page.Game!), AddOnsOf(page.Game!));
+                _sessions.History(page.Game!), SteamAppInfo.AddOnsOf(_library.Games, page.Game!));
         }
         else if (page.Kind == PageKind.Settings)
         {

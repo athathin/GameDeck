@@ -113,6 +113,10 @@ public static class SteamAppInfo
         return names;
     }
 
+    /// <summary>The DLC and soundtracks of <paramref name="game"/> that are installed as Steam apps of their own (its page lists them).</summary>
+    public static List<Game> AddOnsOf(IEnumerable<Game> library, Game game) =>
+        game.SteamAppId is { } id ? library.Where(g => g.AddOnOf == id).ToList() : [];
+
     /// <summary>
     /// Marks the Steam games that are add-ons (DLC, soundtracks) of another game, from what <see cref="Read"/> found. Games of
     /// other launchers, and Steam apps Steam's file doesn't describe, stay games.

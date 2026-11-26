@@ -3,8 +3,10 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
 using GameDeck.Models;
+using GameDeck.Scanners;
 using Microsoft.Win32;
 
 namespace GameDeck.Services;
@@ -424,9 +426,9 @@ public static class CoverService
 
     private static async Task<string?> FindRiotCoverUrlAsync(Game game)
     {
-        if (!game.LaunchTarget.StartsWith(Scanners.RiotScanner.LaunchPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+        if (!game.LaunchTarget.StartsWith(RiotScanner.LaunchPrefix, StringComparison.OrdinalIgnoreCase)) return null;
 
-        var product = game.LaunchTarget[Scanners.RiotScanner.LaunchPrefix.Length..].Split('/')[0];
+        var product = game.LaunchTarget[RiotScanner.LaunchPrefix.Length..].Split('/')[0];
         var page = RiotStorePages.TryGetValue(product, out var known) ? known : StoreSlug(game.Name);
         if (page.Length == 0) return null;
 
@@ -439,7 +441,7 @@ public static class CoverService
 
     /// <summary>"League of Legends" -> "league-of-legends" (how the Epic store names its pages).</summary>
     internal static string StoreSlug(string name) =>
-        System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+        Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
 
     /// <summary>
     /// The portrait box art of an Epic store page: the first picture whose address says it is 1200 × 1600 (the store's tall box art),
