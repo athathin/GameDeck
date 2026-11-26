@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
@@ -13,7 +13,15 @@ public static class WindowFocus
     public static void BringToFront(Window window)
     {
         var handle = new WindowInteropHelper(window).Handle;
-        if (handle == IntPtr.Zero) return;
+        if (handle != IntPtr.Zero)
+            BringToFront(handle, () => window.Activate());
+    }
+
+    /// <summary>Brings any window to the front (another program's too: a running game's), restoring it if it was minimized.</summary>
+    public static void BringToFront(IntPtr window, Action? whileAttached = null)
+    {
+        if (IsIconic(window))
+            ShowWindow(window, 9 /* SW_RESTORE */);
 
         var foreground = GetForegroundWindow();
         var foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, out _);
@@ -24,8 +32,8 @@ public static class WindowFocus
                        AttachThreadInput(thisThread, foregroundThread, true);
         try
         {
-            SetForegroundWindow(handle);
-            window.Activate();
+            SetForegroundWindow(window);
+            whileAttached?.Invoke();
         }
         finally
         {
@@ -33,6 +41,12 @@ public static class WindowFocus
                 AttachThreadInput(thisThread, foregroundThread, false);
         }
     }
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr window, int command);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();

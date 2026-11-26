@@ -10,7 +10,19 @@ namespace GameDeck.Services;
 /// </summary>
 public static class ScreenshotService
 {
-    private static readonly string[] Extensions = [".png", ".jpg", ".jpeg", ".bmp"];
+    /// <summary>The kinds of pictures GameDeck shows and adds.</summary>
+    internal static readonly string[] Extensions = [".png", ".jpg", ".jpeg", ".bmp"];
+
+    /// <summary>Where screenshots usually are, for Big Picture's picture browser: Pictures › Screenshots, Videos › Captures.</summary>
+    internal static IEnumerable<(string Name, string Path)> UsualPlaces()
+    {
+        if (SettingsService.ScreenshotFolder is { } chosen)
+            yield return ("Your screenshots folder  (Settings)", chosen);
+
+        yield return ("Screenshots  (Pictures)", PicturesScreenshots);
+        yield return ("Captures  (Game Bar, in Videos)", CapturesFolder);
+        yield return ("Pictures", Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
+    }
 
     private static readonly string Root = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "screenshots");
@@ -23,6 +35,23 @@ public static class ScreenshotService
 
     /// <summary>The folder GameDeck keeps this game's added screenshots in.</summary>
     public static string FolderOf(Game game) => Path.Combine(Root, SafeName(game.Name));
+
+    /// <summary>Opens File Explorer on the picture's folder with the picture selected.</summary>
+    /// <returns>False when it couldn't be shown (the file is gone, Explorer didn't start).</returns>
+    public static bool ShowInFolder(string file)
+    {
+        try
+        {
+            if (!File.Exists(file)) return false;
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{file}\"") { UseShellExecute = true });
+            return true;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>Where the controller's screenshots go, in words for the settings pages.</summary>
     public static string SaveFolderText => SettingsService.ScreenshotFolder ??
@@ -46,8 +75,15 @@ public static class ScreenshotService
         return true;
     }
 
+    /// <summary>The games of the library (set by the main window), so a game's page can tell its captures from another game's.</summary>
+    public static Func<IReadOnlyCollection<Game>>? Library { get; set; }
+
     /// <summary>The newest screenshots of the game (own folder, Game Bar captures, the chosen screenshots folder), newest first.</summary>
-    public static List<string> Find(Game game, int max = 12)
+    /// <param name="library">
+    /// Every game: a capture belongs to the game whose whole name is the longest one it starts with ("Portal 2 ....png" is
+    /// Portal 2's, not Portal's). Without it, only this game's names are compared.
+    /// </param>
+    public static List<string> Find(Game game, IReadOnlyCollection<Game>? library = null, int max = 12)
     {
         var found = new List<string>();
 
@@ -63,12 +99,15 @@ public static class ScreenshotService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var everyName = NamesOf(library is null ? [game] : library.Append(game));
+
         foreach (var folder in new[] { CapturesFolder, SettingsService.ScreenshotFolder })
         {
             if (folder is null) continue;
 
             foreach (var name in names)
-                found.AddRange(Pictures(folder, name + "*"));
+                found.AddRange(Pictures(folder, name + "*")
+                    .Where(f => BelongsTo(Path.GetFileName(f), names, everyName)));
         }
 
         found = found.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -79,6 +118,93 @@ public static class ScreenshotService
             .Select(f => f.File)
             .Take(max)
             .ToList();
+    }
+
+    // ---------- the Media tab: every game's screenshots in one place ----------
+
+    /// <summary>One picture of the Media tab: the file, the game it belongs to (null = none matched: "Other"), and when it was taken.</summary>
+    public record MediaShot(string File, Game? Game, DateTime TakenUtc);
+
+    /// <summary>
+    /// Every screenshot GameDeck knows of, newest first: each game's own folder, the Game Bar captures and the chosen
+    /// screenshots folder (a picture there belongs to the game its name starts with). Hidden games' pictures are left out.
+    /// Call from a background thread (it reads the folders).
+    /// </summary>
+    /// <param name="max">At most this many (the newest).</param>
+    public static List<MediaShot> FindAll(IReadOnlyCollection<Game> games, int max = 2000)
+    {
+        var shots = new Dictionary<string, MediaShot>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var game in games)
+        {
+            foreach (var file in Pictures(FolderOf(game), "*"))
+                shots.TryAdd(file, new MediaShot(file, game, SafeWriteTime(file)));
+        }
+
+        var names = NamesOf(games);
+        foreach (var folder in new[] { CapturesFolder, SettingsService.ScreenshotFolder })
+        {
+            if (folder is null) continue;
+
+            foreach (var file in Pictures(folder, "*"))
+                shots.TryAdd(file, new MediaShot(file, MatchGame(Path.GetFileName(file), names), SafeWriteTime(file)));
+        }
+
+        return shots.Values
+            .Where(s => s.Game is not { IsHidden: true })
+            .OrderByDescending(s => s.TakenUtc)
+            .Take(max)
+            .ToList();
+    }
+
+    /// <summary>The names a game's pictures can start with (its name, the name shown, the file-safe name), longest first.</summary>
+    internal static List<(string Name, Game Game)> NamesOf(IEnumerable<Game> games) =>
+        games.SelectMany(g => new[] { g.Name, g.DisplayName, SafeName(g.Name) }.Select(n => (Name: n.Trim(), Game: g)))
+            .Where(n => n.Name.Length >= 3)
+            .DistinctBy(n => (n.Name.ToUpperInvariant(), n.Game))
+            .OrderByDescending(n => n.Name.Length)   // "Portal 2 ..." belongs to Portal 2, not to Portal
+            .ToList();
+
+    /// <summary>The game a picture's file name starts with, or null.</summary>
+    internal static Game? MatchGame(string fileName, List<(string Name, Game Game)> names) =>
+        names.FirstOrDefault(n => StartsWithName(fileName, n.Name)).Game;
+
+    /// <summary>
+    /// True when the longest game name the file starts with (of <paramref name="everyName"/>) is one of the game's own names
+    /// (<paramref name="gameNames"/>). Compared by name, so two copies of one game (Steam and Epic) both show the picture.
+    /// </summary>
+    internal static bool BelongsTo(string fileName, IReadOnlyCollection<string> gameNames, List<(string Name, Game Game)> everyName) =>
+        everyName.FirstOrDefault(n => StartsWithName(fileName, n.Name)).Name is { } matched &&
+        gameNames.Contains(matched, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True when the file name starts with the name as a whole: what follows isn't another letter or digit
+    /// ("Portal 2026-11-26.png" starts with "Portal", not with "Portal 2").
+    /// </summary>
+    private static bool StartsWithName(string fileName, string name) =>
+        fileName.StartsWith(name, StringComparison.OrdinalIgnoreCase) &&
+        (fileName.Length == name.Length || !char.IsLetterOrDigit(fileName[name.Length]));
+
+    /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>
+    /// <remarks>Frozen, so it can be made on a background thread.</remarks>
+    public static System.Windows.Media.Imaging.BitmapImage? Thumbnail(string file, int width = 352)
+    {
+        try
+        {
+            var image = new System.Windows.Media.Imaging.BitmapImage();
+            image.BeginInit();
+            image.UriSource = new Uri(file);
+            image.DecodePixelWidth = width;
+            image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;   // read now, so the file isn't kept open
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or FileFormatException or
+                                   ArgumentException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

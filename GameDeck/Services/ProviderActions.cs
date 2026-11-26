@@ -1,6 +1,5 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Windows;
 using GameDeck.Models;
 using GameDeck.Views;
 

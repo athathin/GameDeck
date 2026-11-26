@@ -1,17 +1,10 @@
-﻿using System.Collections.ObjectModel;
-using System.Globalization;
-using System.ComponentModel;
-using System.IO;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
-using GameDeck.Views;
-using Microsoft.Win32;
 
 namespace GameDeck;
 
@@ -25,6 +18,8 @@ public partial class MainWindow
     {
         if (reapplyUserData)
         {
+            _userData.RecordAddedDates(_library.Games);   // games that just showed up get today's date ("Recently added")
+
             foreach (var game in _library.Games)
                 _userData.Apply(game);
         }
@@ -35,9 +30,24 @@ public partial class MainWindow
         UpdateFilterButtons();
 
         var stats = _view == "Stats";
-        GameList.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        var media = _view == "Media";
+        GameList.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
         StatsPanel.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
-        FilterBar.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        MediaPanel.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
+        FilterBar.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
+
+        if (media)
+        {
+            UpdateContinue(false);
+            EmptyText.Visibility = Visibility.Collapsed;
+            if (!_mediaLoaded)
+                StatusText.Text = "";
+            ShowMedia();   // (only reads the folders when the tab is opened, not on every refresh)
+            return;
+        }
+
+        ClearMedia();   // left the tab: let go of its pictures
+
         if (stats)
         {
             UpdateContinue(false);
@@ -58,6 +68,8 @@ public partial class MainWindow
             shown = shown.Where(g => g.Tags.Any(_categoryFilters.Contains));
         if (_statusFilters.Count > 0)
             shown = shown.Where(g => _statusFilters.Contains(g.Status));
+        if (_smartFilters.Count > 0)
+            shown = shown.Where(g => _smartFilters.Any(f => f.Matches(g)));
         if (query.Length > 0)
             shown = shown.Where(g => g.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
                                      g.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase));
@@ -84,7 +96,8 @@ public partial class MainWindow
             _ => $"{realCount} games"
         };
 
-        var filtered = query.Length > 0 || _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0;
+        var filtered = query.Length > 0 || _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
+                       _smartFilters.Count > 0;
         EmptyText.Text = filtered
             ? "No games found."
             : _view switch
@@ -225,7 +238,7 @@ public partial class MainWindow
         // Ctrl+F jumps to the search box
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {
-            if (_view == "Stats")
+            if (_view is "Stats" or "Media")
                 AllTab.IsChecked = true;
 
             SearchBox.Focus();
@@ -277,7 +290,8 @@ public partial class MainWindow
         return item;
     }
 
-    private bool HasActiveFilters => _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 || _showHidden;
+    private bool HasActiveFilters => _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
+                                     _smartFilters.Count > 0 || _showHidden;
 
     /// <summary>The filter icon: opens the Library Filters panel. (While it's open the icon can't be clicked, so clicking it closes the panel.)</summary>
     private void FilterButton_Click(object sender, RoutedEventArgs e)
@@ -308,6 +322,9 @@ public partial class MainWindow
 
         foreach (var status in _statusFilters.OrderBy(s => s).ToList())
             AddFilterChip(status.Label(), () => _statusFilters.Remove(status));
+
+        foreach (var smart in _smartFilters.OrderBy(s => s).ToList())
+            AddFilterChip(smart.Label(), () => _smartFilters.Remove(smart));
 
         if (_showHidden)
             AddFilterChip("Hidden games", () => _showHidden = false);
@@ -371,6 +388,7 @@ public partial class MainWindow
         _sourceFilters.Clear();
         _categoryFilters.Clear();
         _statusFilters.Clear();
+        _smartFilters.Clear();
         _showHidden = false;
         FiltersChanged();
     }
@@ -423,6 +441,18 @@ public partial class MainWindow
             StatusList.Children.Add(FilterCheckBox(chosen.Label(), _statusFilters.Contains(chosen), on =>
             {
                 if (on) _statusFilters.Add(chosen); else _statusFilters.Remove(chosen);
+                Refresh();
+            }));
+        }
+
+        // smart filters (Never played, Played under 1 hour, Recently added)
+        SmartList.Children.Clear();
+        foreach (var smart in Enum.GetValues<SmartFilter>())
+        {
+            var chosen = smart;
+            SmartList.Children.Add(FilterCheckBox(chosen.Label(), _smartFilters.Contains(chosen), on =>
+            {
+                if (on) _smartFilters.Add(chosen); else _smartFilters.Remove(chosen);
                 Refresh();
             }));
         }

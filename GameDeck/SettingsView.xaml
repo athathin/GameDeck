@@ -54,6 +54,12 @@
                                    Text="When this is off, the GameDeck window opens when Windows starts."/>
                     </StackPanel>
 
+                    <CheckBox x:Name="StartInBigPictureCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,16,0,0"
+                              Content="Open GameDeck in Big Picture mode"
+                              Checked="StartInBigPictureCheckBox_Changed" Unchecked="StartInBigPictureCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                               Text="Like a console: GameDeck opens full screen, ready for the controller. Exiting Big Picture shows this window. With &quot;Launch GameDeck when Windows starts&quot; on and &quot;minimized&quot; off, the PC starts straight into Big Picture."/>
+
                     <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
 
                     <CheckBox x:Name="TrayCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"

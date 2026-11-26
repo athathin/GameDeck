@@ -1,9 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -23,7 +21,6 @@ public partial class BigPictureWindow
 
     private readonly Stack<MenuPage> _menuPages = new();
     private List<FilterRow> _menuRows = [];
-    private Game? _menuGame;
 
     private void Carousel_RightClick(object sender, MouseButtonEventArgs e)
     {
@@ -41,7 +38,6 @@ public partial class BigPictureWindow
     {
         if (_tab == StatsTab || Carousel.SelectedItem is not Game game) return;
 
-        _menuGame = game;
         _menuPages.Clear();
         _menuPages.Push(new MenuPage(game.DisplayName, () => MainMenuRows(game)));
 
@@ -70,7 +66,7 @@ public partial class BigPictureWindow
         GameMenuTitle.Text = page.Title;
         FillGameMenuHints();
 
-        _ = RenderRows(GameMenuList, _menuRows, page.Index, index =>
+        RenderRows(GameMenuList, _menuRows, page.Index, index =>
         {
             page.Index = index;
             ActivateMenuRow();
@@ -161,6 +157,8 @@ public partial class BigPictureWindow
         if (game.HasCustomCover)
             rows.Add(new("Remove cover art", Activate: () => GameAction(() => _ = actions.RemoveCover(game))));
 
+        rows.Add(new("Create desktop shortcut", Activate: () => GameAction(() => actions.CreateShortcut(game, this))));
+
         rows.Add(new("Uninstall", Activate: () => GameAction(() => actions.Uninstall(game))));
         rows.Add(new("Remove from library", Activate: () => GameAction(() => actions.RemoveFromLibrary(game, this))));
 
@@ -208,6 +206,7 @@ public partial class BigPictureWindow
 
     private void AskToExit()
     {
+        _powerQuestion = null;
         _exitQuestion = true;
         _powerConfirming = new PowerEntry("Exit Big Picture Mode", CloseScreen, "Exit Big Picture mode?", "Exit");
         _powerIndex = 0;
@@ -217,6 +216,7 @@ public partial class BigPictureWindow
 
     private void OpenPower()
     {
+        _powerQuestion = null;
         _exitQuestion = false;
         _powerConfirming = null;
         _powerIndex = 0;
@@ -224,8 +224,21 @@ public partial class BigPictureWindow
         RenderPower();
     }
 
-    /// <summary>The menu, in groups like Steam's: the controller's shortcuts, the PC, GameDeck, and Cancel. Dangerous ones ask again first.</summary>
-    private List<List<PowerEntry>> PowerMenu() =>
+    /// <summary>
+    /// The menu, in groups like Steam's: the running game (Resume / Close) when there is one, the controller's shortcuts, the PC,
+    /// GameDeck, and Cancel. Dangerous ones ask again first.
+    /// </summary>
+    private List<List<PowerEntry>> PowerMenu()
+    {
+        var groups = PowerMenuGroups();
+
+        if (NowPlayingEntries() is { Count: > 0 } game)
+            groups.Insert(0, game);
+
+        return groups;
+    }
+
+    private List<List<PowerEntry>> PowerMenuGroups() =>
     [
         [
             new PowerEntry("Show Controller Shortcuts", OpenShortcuts)
@@ -245,11 +258,32 @@ public partial class BigPictureWindow
         ]
     ];
 
+    // a question with its own answers, shown in the Power menu's card (e.g. "the game is still running": Resume / Close anyway)
+    private (string Title, List<(string Text, Action Run)> Answers)? _powerQuestion;
+
+    /// <summary>Asks something in the Power menu's card, which works with the controller (a Windows dialog doesn't). Back = the last answer.</summary>
+    private void AskInPowerCard(string title, List<(string Text, Action Run)> answers)
+    {
+        _exitQuestion = false;
+        _powerConfirming = null;
+        _powerQuestion = (title, answers);
+        _powerIndex = 0;
+        ShowOverlay(Overlay.Power);
+        RenderPower();
+    }
+
     private void RenderPower()
     {
         PowerList.Children.Clear();
 
-        if (_powerConfirming is { } entry)
+        if (_powerQuestion is { } question)
+        {
+            PowerTitle.Text = question.Title;
+            _powerGroups = question.Answers
+                .Select(a => new List<(string, Action)> { (a.Text, () => { _powerQuestion = null; CloseOverlay(); a.Run(); }) })
+                .ToList();
+        }
+        else if (_powerConfirming is { } entry)
         {
             PowerTitle.Text = entry.ConfirmTitle ?? "Are you sure?";
             _powerGroups =
@@ -335,7 +369,11 @@ public partial class BigPictureWindow
                 break;
 
             case PadButton.Back or PadButton.Home:   // Home opens the menu, so it closes it again too
-                if (_powerConfirming is not null && !_exitQuestion)
+                if (_powerQuestion is { } question)
+                {
+                    ActivateAnswer(question.Answers.Count - 1);   // the last answer is the "leave it" one
+                }
+                else if (_powerConfirming is not null && !_exitQuestion)
                 {
                     _powerConfirming = null;   // back from "are you sure?" to the menu
                     _powerIndex = 0;
@@ -350,4 +388,10 @@ public partial class BigPictureWindow
     }
 
     private void ActivatePower() => _powerGroups.SelectMany(g => g).ElementAt(_powerIndex).Run();
+
+    private void ActivateAnswer(int index)
+    {
+        _powerIndex = index;
+        ActivatePower();
+    }
 }

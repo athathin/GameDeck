@@ -1,17 +1,8 @@
-﻿using System.Collections.ObjectModel;
-using System.Globalization;
-using System.ComponentModel;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 using GameDeck.Views;
-using Microsoft.Win32;
 
 namespace GameDeck;
 
@@ -33,7 +24,10 @@ public partial class MainWindow
         // both answer them)
         _wake = new ControllerWakeService(
             canWake: () => SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning,
-            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true });
+            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true },
+            // during a game started from GameDeck, a plain Home press opens Big Picture over it (Resume / Close), like Steam
+            canOpenOverGame: () => SettingsService.ControllerWake && _bigPicture is null && _tracker.RunningGame is not null &&
+                                   !AppInfo.NormalGameDeckRunning);
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();
@@ -77,6 +71,34 @@ public partial class MainWindow
         if (mode == ResumeMode.BigPicture)
             OpenBigPicture(_bigPictureTab, _bigPictureGame);
         else if (mode == ResumeMode.Desktop)
+            BringToFront();
+    }
+
+    /// <summary>
+    /// Console-style start ("Open GameDeck in Big Picture mode"): Big Picture, with the desktop window behind it, so exiting
+    /// Big Picture shows the desktop window (GameDeck is never left running with nothing on screen and no tray icon).
+    /// </summary>
+    public void StartInBigPicture()
+    {
+        // the very first start has nothing to show yet: the desktop window scans for games
+        if (_library.Games.Count == 0)
+        {
+            BringToFront();
+            return;
+        }
+
+        if (!IsVisible)
+            _mainHiddenForBigPicture = true;
+
+        OpenBigPicture();
+    }
+
+    /// <summary>GameDeck was started again while running: show it the way it opens (Big Picture when that setting is on).</summary>
+    public void ShowRequested()
+    {
+        if (SettingsService.StartInBigPicture && !IsVisible)
+            StartInBigPicture();
+        else
             BringToFront();
     }
 
@@ -157,6 +179,10 @@ public partial class MainWindow
 
         _bigPicture.Show();
         WindowFocus.BringToFront(_bigPicture);   // also when it was opened from a controller while another program was in front
+
+        // opened while a game from GameDeck is running (the Home button during the game): Resume / Close it first
+        if (_tracker.RunningGame is not null)
+            _bigPicture.ShowNowPlaying();
     }
 
     private void BigPictureButton_Click(object sender, RoutedEventArgs e) => OpenBigPicture();

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Threading;
@@ -27,6 +27,7 @@ public sealed class ControllerWakeService : IDisposable
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly Func<bool> _canWake;
     private readonly Func<bool> _canUseShortcuts;
+    private readonly Func<bool> _canOpenOverGame;
     private readonly List<(IntPtr Handle, int InstanceId)> _pads = [];
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly HashSet<PadButton> _held = [];
@@ -43,10 +44,15 @@ public sealed class ControllerWakeService : IDisposable
 
     /// <param name="canWake">May a controller open Big Picture now (asked many times a second)?</param>
     /// <param name="canUseShortcuts">May the Home-button shortcuts run now (games included)?</param>
-    public ControllerWakeService(Func<bool> canWake, Func<bool> canUseShortcuts)
+    /// <param name="canOpenOverGame">
+    /// Is a game started from GameDeck running, so a plain Home press opens Big Picture over it (its full screen is expected
+    /// then, so it doesn't stop it; holding View + Menu doesn't, as a game may use that)?
+    /// </param>
+    public ControllerWakeService(Func<bool> canWake, Func<bool> canUseShortcuts, Func<bool> canOpenOverGame)
     {
         _canWake = canWake;
         _canUseShortcuts = canUseShortcuts;
+        _canOpenOverGame = canOpenOverGame;
         _timer.Tick += (_, _) => Tick();
     }
 
@@ -74,9 +80,10 @@ public sealed class ControllerWakeService : IDisposable
             }
 
             var shortcuts = _canUseShortcuts();
-            var wake = _canWake() && !FullScreenInFront();
+            var overGame = _canOpenOverGame();
+            var wake = !overGame && _canWake() && !FullScreenInFront();
 
-            if (!shortcuts && !wake)
+            if (!shortcuts && !wake && !overGame)
             {
                 Stop();   // let the controllers go: nothing to listen for (or Big Picture has them)
                 return;
@@ -85,7 +92,7 @@ public sealed class ControllerWakeService : IDisposable
             if (!_started && !Start()) return;
 
             HandleEvents();
-            Check(wake, shortcuts);
+            Check(wake, overGame, shortcuts);
         }
         catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
         {
@@ -175,9 +182,10 @@ public sealed class ControllerWakeService : IDisposable
 
     /// <summary>
     /// Passes the held buttons to the Home-button shortcuts, and looks for a plain press of Home or View + Menu held for a
-    /// second (both open Big Picture, only when <paramref name="wake"/> allows it).
+    /// second (both open Big Picture, only when <paramref name="wake"/> allows it). During a game (<paramref name="overGame"/>)
+    /// only the plain Home press does.
     /// </summary>
-    private void Check(bool wake, bool shortcuts)
+    private void Check(bool wake, bool overGame, bool shortcuts)
     {
         // No controller found yet (SDL announces them a moment after starting): nothing is known to be held, so the shortcuts
         // aren't told "nothing held" either. Taking over from Big Picture with Home still held, that would read as Home let go.
@@ -210,7 +218,7 @@ public sealed class ControllerWakeService : IDisposable
         if (!shortcuts)
             _held.IntersectWith([PadButton.Home]);
 
-        if (ControllerShortcuts.Update(_held) && wake)
+        if (ControllerShortcuts.Update(_held) && (wake || overGame))
         {
             WakeRequested?.Invoke();
             return;

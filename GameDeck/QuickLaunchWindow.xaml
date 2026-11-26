@@ -1,4 +1,4 @@
-<Window x:Class="GameDeck.Views.QuickLaunchWindow"
+﻿<Window x:Class="GameDeck.Views.QuickLaunchWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="GameDeck quick launch" Width="560" SizeToContent="Height"

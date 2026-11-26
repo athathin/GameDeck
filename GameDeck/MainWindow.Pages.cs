@@ -1,13 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Globalization;
-using System.ComponentModel;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 using GameDeck.Views;
@@ -489,6 +483,17 @@ public partial class MainWindow
             return;
         }
 
+        StepAsideForGame();
+    }
+
+    /// <summary>
+    /// Big Picture closed for a game (started, or resumed) while the desktop window was hidden behind it: the window goes to
+    /// the tray, or comes back behind the game without taking the keyboard from it.
+    /// </summary>
+    private void StepAsideForGame()
+    {
+        if (!_mainHiddenForBigPicture) return;
+
         _mainHiddenForBigPicture = false;
 
         if (SettingsService.MinimizeOnLaunch)
@@ -501,6 +506,15 @@ public partial class MainWindow
             Show();
             ShowActivated = true;
         }
+    }
+
+    /// <summary>"Resume" in Big Picture (which has closed by now): back to the running game's window.</summary>
+    private void ResumeRunningGame(Game game)
+    {
+        StepAsideForGame();
+
+        if (game.TrackingFolder is not { } folder || !RunningGame.BringToFront(folder))
+            GameToastWindow.ShowMessage("Couldn't find the game's window", game.DisplayName, "Switch to it with Alt + Tab.");
     }
 
     /// <returns>True when the game was started.</returns>

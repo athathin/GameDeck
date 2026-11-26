@@ -3,6 +3,38 @@
 One library for the games from all your launchers (Steam, Epic, GOG, Ubisoft, Riot, Xbox, Rockstar, Battle.net, EA, itch.io, Amazon Games and
 games you add yourself), with a desktop mode and a full-screen, controller-friendly **Big Picture** mode.
 
+## What it does
+
+**One library**
+- Finds the games of every launcher above by itself, with their cover art. Add any other game by picking its program.
+- Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
+- Search, and filter by launcher, category, status, or smart filters: Never played, Played under 1 hour, Recently added.
+- Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, your most played games) and Media (every game's
+  screenshots in one place).
+- Playtime is counted for the games you start from GameDeck.
+
+**Starting games**
+- Launch routines per game: close chosen apps first, start others, switch to the High performance power plan, and undo it all
+  when the game ends.
+- A quick launch box (Ctrl + Alt + G) to start any game from anywhere, and the last games you played in the tray icon's menu.
+- Desktop shortcuts for single games, which still count playtime and run the launch routine.
+
+**Big Picture mode** (F11, the Big Picture button, or the controller's Home button)
+- The whole library full screen, made for the couch: Xbox, PlayStation and Nintendo controllers, or the keyboard and mouse.
+- Its own settings, an on-screen keyboard for search and notes, and a file browser to add games and screenshots with the
+  controller.
+- **Now Playing**: press Home during a game to resume it or close it.
+- **Controller shortcuts**: hold Home and press a button for volume, songs, Alt + Tab, the on-screen keyboard or a screenshot,
+  also in games.
+- Can be what GameDeck opens in, like a console, even straight from Windows' start-up.
+
+**Also**
+- Dark and light themes (or follow Windows), three sizes for Big Picture.
+- A duplicate finder, and backups you can export and import.
+- It can start with Windows and wait in the system tray until you need it.
+
+What changed in each version is in the [changelog](CHANGELOG.md).
+
 ## Download
 
 Go to the [**latest release**](https://github.com/athathin/GameDeck/releases/latest) and download:
@@ -28,10 +60,11 @@ while: a version that doesn't start is replaced by the previous one, and isn't o
 
 ## Your data
 
-Favorites, playtime, play sessions and settings are saved on your PC in `%AppData%\GameDeck`. A copy of the last seven
-days is kept in `%AppData%\GameDeck\backups`, and GameDeck uses it if one of the files is ever damaged. Errors are written
-to `%AppData%\GameDeck\logs`; when one happens GameDeck offers to open a bug report that is already filled in (nothing
-is sent until you press Submit on GitHub, and your user name is removed from it).
+Favorites, playtime, play sessions and settings are saved on your PC in `%AppData%\GameDeck`, along with the cover art and
+the screenshots you add to a game. A copy of the last seven days is kept in `%AppData%\GameDeck\backups`, and GameDeck uses
+it if one of the files is ever damaged. Errors are written to `%AppData%\GameDeck\logs`; when one happens GameDeck offers to
+open a bug report that is already filled in (nothing is sent until you press Submit on GitHub, and your user name is removed
+from it).
 
 ## Privacy
 
@@ -43,7 +76,7 @@ GameDeck has no account, no ads and no tracking. It only contacts:
 - **steamgriddb.com**, only if you enter your own SteamGridDB key in Settings: the names of games that have no cover yet
   are sent there to look for one.
 
-Your library, playtime and settings never leave your PC.
+Your library, playtime, screenshots and settings never leave your PC.
 
 ## Bugs and suggestions
 

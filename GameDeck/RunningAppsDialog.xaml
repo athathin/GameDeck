@@ -1,4 +1,4 @@
-<Window x:Class="GameDeck.Views.RunningAppsDialog"
+﻿<Window x:Class="GameDeck.Views.RunningAppsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Running apps" Width="520" Height="480" MinHeight="300" ResizeMode="CanResizeWithGrip"

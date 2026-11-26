@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
+using GameDeck.Models;
 using GameDeck.Services;
 
 namespace GameDeck.Views;
@@ -16,7 +16,43 @@ public partial class BigPictureWindow
     private int _browseIndex;
     private readonly HashSet<string> _browsePicked = new(StringComparer.OrdinalIgnoreCase);
 
+    // null = adding games (.exe files, from Settings); a game = adding pictures to its screenshots (from its page)
+    private Game? _browseShotsFor;
+
+    // true = choosing the folder the controller's screenshots are saved in (Settings › Screenshots): folders only
+    private bool _browseForSaveFolder;
+
     private void OpenBrowse()
+    {
+        _browseShotsFor = null;
+        _browseForSaveFolder = false;
+        StartBrowse();
+    }
+
+    /// <summary>The same browser, picking pictures to add to the game's screenshots ("Add screenshots" on its page).</summary>
+    private void OpenShotBrowse(Game game)
+    {
+        _browseShotsFor = game;
+        _browseForSaveFolder = false;
+        StartBrowse();
+    }
+
+    /// <summary>The same browser, choosing the folder the controller's screenshots are saved in (Settings › Screenshots).</summary>
+    private void OpenSaveFolderBrowse()
+    {
+        _browseShotsFor = null;
+        _browseForSaveFolder = true;
+        StartBrowse();
+    }
+
+    private void ChooseSaveFolder(string folder)
+    {
+        SettingsService.ScreenshotFolder = folder;
+        CloseBrowse();
+        ShowSettingsStatus("Screenshots are saved in " + folder);
+    }
+
+    private void StartBrowse()
     {
         _browsePath = null;
         _browsePicked.Clear();
@@ -26,17 +62,33 @@ public partial class BigPictureWindow
         FillBrowseHints();
     }
 
-    private void CloseBrowse() => OpenSettings();   // back to where it was opened from
+    /// <summary>Back to where it was opened from: the settings, or the game's page (with its new screenshots).</summary>
+    private void CloseBrowse()
+    {
+        if (_browseShotsFor is null)
+        {
+            _browseForSaveFolder = false;
+            OpenSettings(keepPlace: true);   // the section it was opened from (Library › Add games, Screenshots › Browse)
+            return;
+        }
+
+        _browseShotsFor = null;
+        ShowOverlay(Overlay.Details);
+        DetailsView.ReloadShots();      // (the hints follow once they are found: ShotsChanged)
+        SelectDetailsButton(addShots: true);
+    }
 
     private void FillBrowseHints()
     {
         var l = Labels();
 
+        var open = _browseForSaveFolder ? "Open / choose" : "Open / pick";
+
         // "Add picked" only once something is picked (X does nothing before); the keyboard's F does the same as X here
         if (_browsePicked.Count > 0)
-            FillHints(BrowseHints, (l.Confirm, "Open / pick"), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
+            FillHints(BrowseHints, (l.Confirm, open), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
         else
-            FillHints(BrowseHints, (l.Confirm, "Open / pick"), (l.Back, _browsePath is null ? "Close" : "Up"));
+            FillHints(BrowseHints, (l.Confirm, open), (l.Back, _browsePath is null ? "Close" : "Up"));
     }
 
     /// <summary>Builds the rows of the current folder (or the start page) and draws them.</summary>
@@ -50,7 +102,11 @@ public partial class BigPictureWindow
             AddFolder(rows, _browsePath);
 
         _browseRows = rows;
-        BrowseTitle.Text = _browsePath ?? "Add games: choose where to look";
+        BrowseTitle.Text = _browsePath ?? (_browseShotsFor is { } game
+            ? $"Add screenshots to {game.DisplayName}: choose where to look"
+            : _browseForSaveFolder
+                ? "Save the controller's screenshots in: choose a folder"
+                : "Add games: choose where to look");
 
         if (firstRow || _browseIndex < 0 || _browseIndex >= rows.Count || rows[_browseIndex].IsHeader)
             _browseIndex = Math.Max(0, rows.FindIndex(r => !r.IsHeader));
@@ -63,14 +119,21 @@ public partial class BigPictureWindow
     {
         rows.Add(new FilterRow("PLACES", IsHeader: true));
 
-        var places = new[]
+        var common = new[]
         {
             ("Desktop", Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)),
             ("Downloads", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")),
-            ("Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)),
-            ("Program Files", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
-            ("Program Files (x86)", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86))
+            ("Documents", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments))
         };
+
+        // pictures: where screenshots usually are first; games: where programs are installed last
+        var places = _browseShotsFor is not null || _browseForSaveFolder
+            ? ScreenshotService.UsualPlaces().Concat(common).ToArray()
+            : common.Concat(
+              [
+                  ("Program Files", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)),
+                  ("Program Files (x86)", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86))
+              ]).ToArray();
 
         foreach (var (name, path) in places.Where(p => p.Item2.Length > 0 && Directory.Exists(p.Item2)).DistinctBy(p => p.Item2))
         {
@@ -98,13 +161,20 @@ public partial class BigPictureWindow
         var parent = Directory.GetParent(path)?.FullName;
         rows.Add(new FilterRow(parent is null ? "‹  Places and drives" : "‹  Up", Activate: () => GoTo(parent)));
 
+        var pictures = _browseShotsFor is not null;
+        var what = pictures ? "picture" : "game";
+
         if (_browsePicked.Count > 0)
         {
             var count = _browsePicked.Count;
-            rows.Add(new FilterRow(count == 1 ? "Add the 1 picked game" : $"Add the {count} picked games", Activate: AddPicked));
+            rows.Add(new FilterRow(count == 1 ? $"Add the 1 picked {what}" : $"Add the {count} picked {what}s", Activate: AddPicked));
         }
 
-        rows.Add(new FilterRow("Add this folder as a game  (GameDeck finds its program)", Activate: () => AddFolderAsGame(path)));
+        var foldersOnly = _browseForSaveFolder;
+        if (foldersOnly)
+            rows.Add(new FilterRow("Save screenshots here", Activate: () => ChooseSaveFolder(path)));
+        else if (!pictures)
+            rows.Add(new FilterRow("Add this folder as a game  (GameDeck finds its program)", Activate: () => AddFolderAsGame(path)));
 
         List<string> folders = [];
         List<string> programs = [];
@@ -118,8 +188,12 @@ public partial class BigPictureWindow
 
                 if (entry is DirectoryInfo)
                     folders.Add(entry.FullName);
-                else if (entry.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase))
-                    programs.Add(entry.FullName);
+                else if (foldersOnly)
+                    continue;   // (choosing a folder: the files in it don't matter)
+                else if (pictures
+                             ? ScreenshotService.Extensions.Contains(entry.Extension, StringComparer.OrdinalIgnoreCase)
+                             : entry.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase))
+                    programs.Add(entry.FullName);   // (the pictures, when adding screenshots)
 
                 if (folders.Count + programs.Count >= BrowseLimit)
                 {
@@ -149,7 +223,7 @@ public partial class BigPictureWindow
 
         if (programs.Count > 0)
         {
-            rows.Add(new FilterRow("PROGRAMS  (pick the games' .exe files)", IsHeader: true));
+            rows.Add(new FilterRow(pictures ? "PICTURES  (pick the screenshots)" : "PROGRAMS  (pick the games' .exe files)", IsHeader: true));
             foreach (var program in programs)
             {
                 var file = program;
@@ -164,7 +238,9 @@ public partial class BigPictureWindow
         }
 
         if (folders.Count == 0 && programs.Count == 0)
-            rows.Add(new FilterRow("Nothing to pick here: no folders and no programs."));
+            rows.Add(new FilterRow(foldersOnly ? "No folders inside. Choose \"Save screenshots here\" to use this one."
+                : pictures ? "Nothing to pick here: no folders and no pictures."
+                : "Nothing to pick here: no folders and no programs."));
 
         if (cut)
             rows.Add(new FilterRow($"Only the first {BrowseLimit} entries are shown."));
@@ -180,6 +256,17 @@ public partial class BigPictureWindow
     {
         var files = _browsePicked.ToList();
         _browsePicked.Clear();
+
+        if (_browseShotsFor is { } game)
+        {
+            var added = ScreenshotService.Add(game, files);
+            ShowBrowseStatus(added == files.Count
+                ? $"Added {added} {(added == 1 ? "picture" : "pictures")} to {game.DisplayName}'s screenshots."
+                : $"Added {added} of {files.Count} pictures (the others couldn't be copied).");
+            BuildBrowse();
+            return;
+        }
+
         AddFiles(files);
     }
 
@@ -210,7 +297,7 @@ public partial class BigPictureWindow
     }
 
     private void RenderBrowse() =>
-        _ = RenderRows(BrowseList, _browseRows, _browseIndex, index =>
+        RenderRows(BrowseList, _browseRows, _browseIndex, index =>
         {
             _browseIndex = index;
             ActivateBrowseRow();

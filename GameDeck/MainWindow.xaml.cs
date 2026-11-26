@@ -1,17 +1,11 @@
 ﻿using System.Collections.ObjectModel;
-using System.Globalization;
 using System.ComponentModel;
-using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 using GameDeck.Views;
-using Microsoft.Win32;
 
 namespace GameDeck;
 
@@ -29,6 +23,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _sourceFilters = new(StringComparer.OrdinalIgnoreCase);                 // empty = every launcher
     private readonly HashSet<string> _categoryFilters = new(StringComparer.CurrentCultureIgnoreCase);     // empty = every category
     private readonly HashSet<GameStatus> _statusFilters = [];   // empty = every status
+    private readonly HashSet<SmartFilter> _smartFilters = [];   // empty = no smart filter (Never played, Recently added...)
     private bool _showHidden;
     private bool _ready;            // stops the tab buttons from firing while the window is still being built
     private bool _launching;        // true while a game is being prepared (Vanguard starting), so a second click on Play is ignored
@@ -62,6 +57,9 @@ public partial class MainWindow : Window
         // a game is over: undo what its launch routine did (reopen apps, restore the power plan...)
         _tracker.Ended += game => _ = _routines.FinishAsync(game);
 
+        // Big Picture's "Now playing" banner and the game page's Resume button change straight away
+        _tracker.Ended += _ => _bigPicture?.GameEnded();
+
         // the game was closed: bring GameDeck back the way it was left
         _tracker.Closed += ResumeAfterGame;
 
@@ -83,6 +81,7 @@ public partial class MainWindow : Window
         DataContext = this;
 
         _library.Load();    // saved library shows instantly
+        ScreenshotService.Library = () => _library.Games;   // a game's page tells its captures from other games' (Portal / Portal 2)
         _userData.Load();   // favorites, last played, playtime, names...
         _sessions.Load();   // dated play sessions for the Stats tab
         UpdateTileSizeButton();
@@ -223,6 +222,8 @@ public partial class MainWindow : Window
         foreach (var game in _library.Games)
             game.Cover = null;
 
+        ClearMedia();   // the Media tab's thumbnails too (filled again when the window comes back)
+
         // wait until the window has finished hiding, otherwise the tiles would still be in use
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, MemoryTrimmer.Trim);
     }
@@ -255,6 +256,9 @@ public partial class MainWindow : Window
         _tray?.Hide();
 
         _ = LoadVisibleCoversAsync();   // the covers were dropped while in the tray
+
+        if (_view == "Media")
+            ShowMedia();                // (its thumbnails too)
     }
 
     /// <summary>Closes GameDeck right now, from an error window: the playtime so far is saved and nothing is asked.</summary>

@@ -1,9 +1,6 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -19,17 +16,23 @@ public partial class BigPictureWindow
         ApplyTab(preserveSelection: false);
     }
 
-    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 || _showHidden;
+    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
+                                     _smartFilters.Count > 0 || _showHidden;
 
     private void ApplyTab(bool preserveSelection)
     {
         // the Stats tab shows numbers and charts instead of the row of games
         var stats = _tab == StatsTab;
-        Carousel.Visibility = stats ? Visibility.Collapsed : Visibility.Visible;
+        var media = _tab == MediaTab;
+        Carousel.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
         StatsScroll.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
+        MediaScroll.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
         RefreshStatsButton.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
 
-        if (stats)
+        if (!media)
+            ClearMedia();   // left the Media tab: let go of its pictures
+
+        if (stats || media)
         {
             _items.Clear();   // frees the covers too (the tiles unload)
             EmptyText.Visibility = Visibility.Collapsed;
@@ -39,8 +42,17 @@ public partial class BigPictureWindow
             FocusStrip(false);
             UpdateContinue();   // (hides the row of last played games: it belongs to the All games list)
 
-            BuildStats();
-            StatsScroll.ScrollToTop();
+            if (stats)
+            {
+                BuildStats();
+                StatsScroll.ScrollToTop();
+            }
+            else if (!_mediaLoaded)
+            {
+                MediaScroll.ScrollToTop();
+                BuildMedia();   // (only when the tab is opened: a library reload keeps the pictures and the selection)
+            }
+
             BuildTabs();
             BuildMainHints();
             return;
@@ -63,6 +75,8 @@ public partial class BigPictureWindow
             source = source.Where(g => g.Tags.Any(_categoryFilters.Contains));
         if (_statusFilters.Count > 0)
             source = source.Where(g => _statusFilters.Contains(g.Status));
+        if (_smartFilters.Count > 0)
+            source = source.Where(g => _smartFilters.Any(f => f.Matches(g)));
         if (_query.Length > 0)
             source = source.Where(g => g.DisplayName.Contains(_query, StringComparison.CurrentCultureIgnoreCase) ||
                                        g.Name.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
@@ -127,6 +141,7 @@ public partial class BigPictureWindow
         parts.AddRange(_launcherFilters.Select(LauncherName).Order());
         parts.AddRange(_categoryFilters.Order());
         parts.AddRange(_statusFilters.OrderBy(s => s).Select(s => s.Label()));
+        parts.AddRange(_smartFilters.OrderBy(s => s).Select(s => s.Label()));
         if (_showHidden)
             parts.Add("Hidden games");
 

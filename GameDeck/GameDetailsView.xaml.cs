@@ -70,8 +70,9 @@ public partial class GameDetailsView : UserControl
 
         try
         {
-            files = await Task.Run(() => ScreenshotService.Find(game));
-            thumbnails = await Task.Run(() => files.Select(Thumbnail).ToList());   // (frozen pictures can be made on another thread)
+            var library = ScreenshotService.Library?.Invoke().ToList();   // (a copy, taken here: the folders are read in the background)
+            files = await Task.Run(() => ScreenshotService.Find(game, library));
+            thumbnails = await Task.Run(() => files.Select(f => ScreenshotService.Thumbnail(f)).ToList());   // (frozen pictures can be made on another thread)
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -97,6 +98,7 @@ public partial class GameDetailsView : UserControl
                 Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
             };
             border.MouseLeftButtonUp += (_, _) => ScreenshotRequested?.Invoke(this, (Shots, index));
+            border.ContextMenu = ShotMenu(Shots, index);
             ShotsWrap.Children.Add(border);
         }
 
@@ -104,24 +106,16 @@ public partial class GameDetailsView : UserControl
         ShotsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>A small copy of the picture (a 4K screenshot is not decoded in full for a thumbnail); null when it can't be read.</summary>
-    private static BitmapImage? Thumbnail(string file)
+    /// <summary>A screenshot's right-click menu: open it, or show it in its folder.</summary>
+    private ContextMenu ShotMenu(IReadOnlyList<string> files, int index)
     {
-        try
-        {
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.UriSource = new Uri(file);
-            image.DecodePixelWidth = 352;
-            image.CacheOption = BitmapCacheOption.OnLoad;   // read now, so the file isn't kept open
-            image.EndInit();
-            image.Freeze();
-            return image;
-        }
-        catch (Exception ex) when (ex is IOException or NotSupportedException or UnauthorizedAccessException or FileFormatException)
-        {
-            return null;
-        }
+        var open = new MenuItem { Header = new TextBlock { Text = "Open" } };
+        open.Click += (_, _) => ScreenshotRequested?.Invoke(this, (files, index));
+
+        var folder = new MenuItem { Header = new TextBlock { Text = "Show in folder" } };
+        folder.Click += (_, _) => ScreenshotService.ShowInFolder(files[index]);
+
+        return new ContextMenu { Items = { open, folder } };
     }
 
     private void AddShots_Click(object sender, RoutedEventArgs e)
@@ -154,10 +148,44 @@ public partial class GameDetailsView : UserControl
     /// <summary>Draws the Play button as the selected one: a white glow and a slightly bigger, brighter button.</summary>
     public void SelectPlay()
     {
-        PlayButton.RenderTransformOrigin = new Point(0.5, 0.5);
-        PlayButton.RenderTransform = new ScaleTransform(1.06, 1.06);
+        Unselect(AddShotsButton);
+        Select(PlayButton);
         PlayButton.Background = PlaySelected;
-        PlayButton.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+    }
+
+    /// <summary>"Resume" on the button while this game is running (Big Picture), otherwise "Play".</summary>
+    public void SetPlayLabel(bool resume) => PlayButton.Content = resume ? "▶  Resume" : "▶  Play";
+
+    /// <summary>Draws "Add screenshots" as the selected button (the controller moved down to it) and scrolls it into sight.</summary>
+    public void SelectAddShots()
+    {
+        Unselect(PlayButton);
+        Select(AddShotsButton);
+        AddShotsButton.Background = PlaySelected;
+        AddShotsButton.Foreground = Brushes.White;
+        AddShotsButton.BringIntoView();
+    }
+
+    /// <summary>Reloads the game's screenshots (after some were added from Big Picture).</summary>
+    public void ReloadShots()
+    {
+        if (DataContext is Game game)
+            LoadShots(game);
+    }
+
+    private static void Select(Button button)
+    {
+        button.RenderTransformOrigin = new Point(0.5, 0.5);
+        button.RenderTransform = new ScaleTransform(1.06, 1.06);
+        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+    }
+
+    private static void Unselect(Button button)
+    {
+        button.ClearValue(RenderTransformProperty);
+        button.ClearValue(BackgroundProperty);
+        button.ClearValue(ForegroundProperty);
+        button.ClearValue(EffectProperty);
     }
 
     /// <summary>Draws the Play button as pressed: darker and pushed in.</summary>
