@@ -311,23 +311,13 @@ public partial class MainWindow
     }
 
     // redraws what shows the sizes (the "Largest first" order, the Stats tab) shortly after new sizes came in
-    private System.Windows.Threading.DispatcherTimer? _sizesTimerField;
+    private readonly System.Windows.Threading.DispatcherTimer _sizesTimer = new() { Interval = TimeSpan.FromSeconds(2) };
 
-    private System.Windows.Threading.DispatcherTimer _sizesTimer
+    private void SizesTimer_Tick(object? sender, EventArgs e)
     {
-        get
-        {
-            if (_sizesTimerField is not null) return _sizesTimerField;
-
-            _sizesTimerField = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-            _sizesTimerField.Tick += (_, _) =>
-            {
-                _sizesTimerField.Stop();
-                if (_sort == SortMode.Size || _view == "Stats")
-                    Refresh(reapplyUserData: false);
-            };
-            return _sizesTimerField;
-        }
+        _sizesTimer.Stop();
+        if (_sort == SortMode.Size || _view == "Stats")
+            Refresh(reapplyUserData: false);
     }
 
     // ---------- settings screen ----------

@@ -259,13 +259,8 @@ public partial class MainWindow
     /// <summary>Right-click › "Where I left off…": write, change or clear the note shown on the game's page and in Continue playing.</summary>
     private void LeftOffMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem { DataContext: Game game }) return;
-
-        var dialog = new TextPromptDialog($"Where did you leave off in {game.DisplayName}?",
-            "A few words for next time. Leave it empty to remove the note.", game.LeftOff ?? "", "Save", freeText: true) { Owner = this };
-
-        if (dialog.ShowDialog() == true)
-            SetLeftOff(game, dialog.Value);
+        if (sender is MenuItem { DataContext: Game game })
+            EditLeftOff(game, "A few words for next time. Leave it empty to remove the note.");
     }
 
     private void UninstallMenuItem_Click(object sender, RoutedEventArgs e)

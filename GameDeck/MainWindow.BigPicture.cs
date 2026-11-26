@@ -103,11 +103,16 @@ public partial class MainWindow
             return;
         }
 
-        if (!IsVisible) return;
+        if (IsVisible)
+            EditLeftOff(game, "A few words for next time, like \"Find the key in the castle\". They show on the game's page and in " +
+                              "Continue playing. Turn this question off in Settings.", cancelText: "Skip");
+    }
 
-        var dialog = new TextPromptDialog($"Where did you leave off in {game.DisplayName}?",
-            "A few words for next time, like \"Find the key in the castle\". They show on the game's page and in Continue playing. " +
-            "Turn this question off in Settings.", game.LeftOff ?? "", "Save", freeText: true, cancelText: "Skip") { Owner = this };
+    /// <summary>The desktop's "where did you leave off?" box (after a game, and right-click › "Where I left off…").</summary>
+    private void EditLeftOff(Game game, string prompt, string cancelText = "Cancel")
+    {
+        var dialog = new TextPromptDialog($"Where did you leave off in {game.DisplayName}?", prompt, game.LeftOff ?? "", "Save",
+                                          freeText: true, cancelText: cancelText) { Owner = this };
 
         if (dialog.ShowDialog() == true)
             SetLeftOff(game, dialog.Value);

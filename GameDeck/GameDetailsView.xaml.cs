@@ -113,19 +113,8 @@ public partial class GameDetailsView : UserControl
 
     // ---- scrolling with a controller (Big Picture) ----
 
-    /// <summary>Scrolls a part of the screen's height (a third unless said) down (+1) or up (-1). False when it was already at that end.</summary>
-    public bool ScrollPage(int direction, double part = 1 / 3.0)
-    {
-        var before = PageScroll.VerticalOffset;
-        var atEnd = direction > 0 ? before >= PageScroll.ScrollableHeight - 0.5 : before <= 0.5;
-        if (atEnd) return false;
-
-        PageScroll.ScrollToVerticalOffset(before + direction * Math.Max(120, PageScroll.ViewportHeight * part));
-        return true;
-    }
-
-    /// <summary>True when the page is longer than the screen (the controller hints then mention scrolling).</summary>
-    public bool CanScroll => PageScroll.ScrollableHeight > 0.5;
+    /// <summary>The page's scroller (Big Picture scrolls it with the controller).</summary>
+    public ScrollViewer Scroller => PageScroll;
 
     /// <summary>True when "Add screenshots" is fully on screen (going up from it selects Play again only then).</summary>
     public bool AddShotsInView

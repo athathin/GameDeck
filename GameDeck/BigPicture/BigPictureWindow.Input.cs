@@ -96,15 +96,17 @@ public partial class BigPictureWindow
             // Down: Play → "Add screenshots" → then the page scrolls (history, sessions...). Up: the page scrolls back until
             // "Add screenshots" is on screen again, then Play (at the top)
             case PadButton.Down when !_detailsOnAddShots: SelectDetailsButton(addShots: true); break;
-            case PadButton.Down: DetailsView.ScrollPage(1); break;
-            case PadButton.Up when _detailsOnAddShots && !DetailsView.AddShotsInView && DetailsView.ScrollPage(-1): break;
+            case PadButton.Down: ScrollPage(DetailsView.Scroller, 1, part: 1 / 3.0); break;
             case PadButton.Up when _detailsOnAddShots:
-                SelectDetailsButton(addShots: false);
-                DetailsView.ScrollToTop();
+                if (DetailsView.AddShotsInView || !ScrollPage(DetailsView.Scroller, -1, part: 1 / 3.0))
+                {
+                    SelectDetailsButton(addShots: false);
+                    DetailsView.ScrollToTop();
+                }
                 break;
 
             // the triggers scroll a page at a time, whichever button is selected
-            case PadButton.LeftTrigger or PadButton.RightTrigger: DetailsView.ScrollPage(TriggerDirection(button), 2 / 3.0); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(DetailsView.Scroller, TriggerDirection(button)); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
@@ -174,7 +176,7 @@ public partial class BigPictureWindow
             hints.Add((l.Y, "Screenshots"));
 
         hints.Add((l.Back, "Back"));
-        AddScrollHint(hints, DetailsView.CanScroll);
+        AddScrollHint(hints, Scrollable(DetailsView.Scroller));
         FillHints(DetailsHints, hints.ToArray());
     }
 

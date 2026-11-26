@@ -117,18 +117,6 @@ public partial class BigPictureWindow
 
         var left = seconds;
 
-        void Show()
-        {
-            var keep = _powerIndex;
-            AskInPowerCard(choice.Countdown(left),
-            [
-                (choice.NowText(), () => { StopCountdown(); choice.Run(); }),
-                ("Cancel", StopCountdown)
-            ]);
-            _powerIndex = keep;   // (the second tick must not move the selection back)
-            RenderPower();
-        }
-
         _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _countdownTimer.Tick += (_, _) =>
         {
@@ -141,7 +129,10 @@ public partial class BigPictureWindow
 
             if (--left > 0)
             {
-                Show();
+                // only the title changes (the answers and the selection stay as they are)
+                var title = choice.Countdown(left);
+                _powerQuestion = _powerQuestion.Value with { Title = title };
+                PowerTitle.Text = title;
                 return;
             }
 
@@ -151,7 +142,11 @@ public partial class BigPictureWindow
             choice.Run();
         };
 
-        Show();
+        AskInPowerCard(choice.Countdown(left),
+        [
+            (choice.NowText(), () => { StopCountdown(); choice.Run(); }),
+            ("Cancel", StopCountdown)
+        ]);
         _powerIndex = 1;   // Cancel is selected: a press by chance doesn't turn the PC off
         RenderPower();
         _countdownTimer.Start();

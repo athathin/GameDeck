@@ -110,6 +110,7 @@ public partial class MainWindow : Window
         _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
         FetchGenres();                  // the Steam games' genres not asked for yet
         // each game's size on disk (in the background, sizes older than a few days), once start-up is over: also in the tray
+        _sizesTimer.Tick += SizesTimer_Tick;
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(MeasureSizes));
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe

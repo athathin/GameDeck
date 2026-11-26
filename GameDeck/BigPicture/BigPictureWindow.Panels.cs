@@ -113,13 +113,13 @@ public partial class BigPictureWindow
         }
     }
 
-    /// <summary>Scrolls about two thirds of what is on screen. False when it was already at that end.</summary>
-    private static bool ScrollPage(ScrollViewer scroll, int direction)
+    /// <summary>Scrolls a part of what is on screen (two thirds: a trigger press) down (+1) or up (-1). False when already at that end.</summary>
+    private static bool ScrollPage(ScrollViewer scroll, int direction, double part = 2 / 3.0)
     {
         var before = scroll.VerticalOffset;
         if (direction > 0 ? before >= scroll.ScrollableHeight - 0.5 : before <= 0.5) return false;
 
-        scroll.ScrollToVerticalOffset(before + direction * Math.Max(120, scroll.ViewportHeight * 2 / 3));
+        scroll.ScrollToVerticalOffset(before + direction * Math.Max(120, scroll.ViewportHeight * part));
         return true;
     }
 
