@@ -550,17 +550,7 @@
             </Border>
         </Grid>
 
-        <!-- ======================= the screen saver: covers moving on black, over everything (BigPictureWindow.ScreenSaver.cs) ======================= -->
-        <Grid x:Name="ScreenSaverOverlay" Visibility="Collapsed" Background="Black" Opacity="0">
-            <Canvas x:Name="ScreenSaverCanvas" ClipToBounds="True">
-                <StackPanel x:Name="ScreenSaverItem">
-                    <views:RoundedClipBorder CornerRadius="10" Width="300" Height="400">
-                        <Image x:Name="ScreenSaverCover" Stretch="UniformToFill"/>
-                    </views:RoundedClipBorder>
-                    <TextBlock x:Name="ScreenSaverClock" Foreground="#80FFFFFF" FontSize="34" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" Margin="0,18,0,0"/>
-                </StackPanel>
-            </Canvas>
-        </Grid>
+        <!-- ======================= the screen saver: covers moving on black, over everything ======================= -->
+        <views:ScreenSaverView x:Name="ScreenSaver"/>
     </Grid>
 </Window>

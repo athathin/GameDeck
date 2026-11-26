@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -25,7 +26,7 @@ public partial class BigPictureWindow
     private void RenderShortcuts()
     {
         var kind = _pad.ActiveKind == ControllerKind.None ? ControllerKind.Xbox : _pad.ActiveKind;
-        var l = LabelsFor(kind);
+        var l = ButtonLabels.For(kind);
         UIElement Home() => HomeIcon(l, onController: true, kind);
         UIElement Face(string label) => RoundButton(label, onController: true);
         var stickIn = kind == ControllerKind.PlayStation ? "L3" : "LS";

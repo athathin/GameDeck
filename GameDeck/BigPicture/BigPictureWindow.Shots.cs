@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Windows.Media.Imaging;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 

@@ -2,6 +2,7 @@
 using System.Windows;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 

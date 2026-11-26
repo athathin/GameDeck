@@ -2,47 +2,12 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
-
-/// <summary>What Big Picture's settings panel can ask of the main window: the actions of the desktop settings page.</summary>
-/// <remarks>Each action takes the window its dialogs belong to and returns a result line to show (null = nothing to say).</remarks>
-public record BigPictureSettingsActions(
-    Func<Task<string?>> Scan,
-    Func<Action<string>, Task<string?>> CheckForUpdates,
-    Func<Window, string?> AddGames,
-    Func<IReadOnlyList<string>, string?> AddFiles,
-    Func<Window, string?> FindDuplicates,
-    Action<Window> ExportBackup,
-    Func<Window, string?> ImportBackup,
-    Action<Window> Uninstall,
-    Func<(IReadOnlyList<Game> Games, IReadOnlySet<string> HiddenKeys)> GetLibrary,
-    Action PlaytimeSourcesChanged);
-
-/// <summary>What the game menu (the controller's Menu button, the right-click menu of the desktop library) can ask of the main window.</summary>
-public record BigPictureGameActions(
-    Action<Game, Window> Edit,
-    Action<Game, Window> EditRoutine,
-    Func<IReadOnlyList<string>> AllCategories,
-    Action<Game, string> ToggleCategory,
-    Action<Game, string?> SetNotes,
-    Action<Game, Window> NewCategory,
-    Action<Window> ManageCategories,
-    Action<Game, GameStatus> SetStatus,
-    Action<Game> ToggleHidden,
-    Action<Game, Window> AddCover,
-    Func<Game, Task> RemoveCover,
-    Action<Game, Window> CreateShortcut,
-    Action<Game> Uninstall,
-    Action<Game, Window> RemoveFromLibrary,
-    Func<Game?> RunningGame,
-    Action<Game> Resume,
-    Func<Game, Task<bool>> CloseGame,
-    Func<Game, Task<bool>> ForceCloseGame);
 
 /// <summary>
 /// Big Picture mode: the library full screen, with large tiles, made for a controller on the couch
@@ -62,18 +27,6 @@ public partial class BigPictureWindow : Window
 
     private enum Overlay { None, Search, Filters, Power, Details, Settings, GameMenu, Browse, Shots, Shortcuts }
 
-    private record ButtonLabels(string Confirm, string Back, string X, string Y, string Left, string Right,
-                                string LeftTrigger, string RightTrigger, string Select, string Start, string Home);
-
-    /// <summary>
-    /// One line of a list panel (the filters, the game menu, the file browser): a heading, a tick box, a radio button or a plain
-    /// action. (The settings have their own rows: <c>SettingRow</c>.)
-    /// </summary>
-    private record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false);
-
-    /// <summary>One entry of the Power menu. With a ConfirmTitle it asks "are you sure?" first.</summary>
-    private record PowerEntry(string Text, Action Run, string? ConfirmTitle = null, string? ConfirmButton = null);
-
     private static readonly string[][] KeyLayout =
     [
         ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
@@ -82,23 +35,6 @@ public partial class BigPictureWindow : Window
         ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "-"],
         ["Shift", "Caps", "Space", "⌫ Delete", "Clear", "Done"]
     ];
-
-    // Frozen brushes are cheaper for WPF (no change tracking) and can be shared by every element that uses them
-    private static SolidColorBrush Frozen(byte r, byte g, byte b)
-    {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
-    }
-
-    private static readonly SolidColorBrush Purple = Frozen(0x80, 0x37, 0xFE);   // the accent: the same in every theme
-
-    // the rest follow the theme (these are the shared brushes of ThemeService: their color changes with the theme)
-    private static SolidColorBrush TextGrey => ThemeService.TextSecondary;
-    private static SolidColorBrush Dark => ThemeService.SelectFg;            // text on the selected row
-    private static SolidColorBrush KeyBackground => ThemeService.RaisedBg;
-    private static SolidColorBrush Muted => ThemeService.TextMuted;
-    private static SolidColorBrush Divider => ThemeService.AppBg;
 
     private IReadOnlyList<Game> _library;               // replaced when a scan, an import... changed the library
     private readonly SessionLog _sessions;
@@ -200,7 +136,6 @@ public partial class BigPictureWindow : Window
         ApplyScale();
         _timer.Tick += Timer_Tick;
         _cursorTimer.Tick += (_, _) => HideCursor();
-        _saverTimer.Tick += ScreenSaverTimer_Tick;
         Loaded += (_, _) =>
         {
             NavSounds.Play(NavSound.Enter);   // (waits for its file to finish opening if it must)
@@ -331,7 +266,7 @@ public partial class BigPictureWindow : Window
     {
         NavSounds.Release();
         StopStatus();
-        _saverTimer.Stop();
+        ScreenSaver.Stop();
         _timer.Stop();
         _cursorTimer.Stop();
         Mouse.OverrideCursor = null;   // (the main window and the dialogs get their pointer back)

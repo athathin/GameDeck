@@ -2,18 +2,14 @@
 using System.Net.NetworkInformation;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
 public partial class BigPictureWindow
 {
     // ---------- the status: the network, Bluetooth and the sound output (buttons at the top), the controller's battery ----------
-
-    private static readonly SolidColorBrush Warning = Frozen(0xF0, 0x7A, 0x5A);   // a battery that is nearly empty
-
-    private enum NetworkKind { None, Wifi, Wired }
 
     /// <summary>Called once when the screen opens: the network is watched (Windows says when it changes), the battery read.</summary>
     private void StartStatus()
@@ -38,7 +34,7 @@ public partial class BigPictureWindow
     {
         if (_closing) return;
 
-        var kind = CurrentNetwork();
+        var kind = NetworkStatus.Current();
         WifiGlyph.Text = kind == NetworkKind.Wired ? "" : "";
         WifiGlyph.Opacity = kind == NetworkKind.None ? 0.4 : 1;
         WifiButton.ToolTip = kind switch
@@ -47,28 +43,6 @@ public partial class BigPictureWindow
             NetworkKind.Wired => "Connected by cable (Wi-Fi networks)",
             _ => "Not connected (choose a Wi-Fi network)"
         };
-    }
-
-    /// <summary>How this PC is online: a network adapter that is up and has a way out (a gateway); Wi-Fi counts first.</summary>
-    private static NetworkKind CurrentNetwork()
-    {
-        try
-        {
-            var online = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
-                            n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) &&
-                            n.GetIPProperties().GatewayAddresses.Count > 0)   // (virtual adapters have none)
-                .ToList();
-
-            if (online.Any(n => n.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)) return NetworkKind.Wifi;
-            if (online.Count > 0) return NetworkKind.Wired;
-        }
-        catch (NetworkInformationException)
-        {
-            // can't tell: shown as not connected
-        }
-
-        return NetworkKind.None;
     }
 
     // an Xbox controller's battery over Bluetooth (Windows' Bluetooth settings): asked in the background every 15 seconds
