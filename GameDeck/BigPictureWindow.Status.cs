@@ -75,23 +75,33 @@ public partial class BigPictureWindow
     private void UpdateBattery()
     {
         var battery = _pad.ActiveBattery;
-        if (battery == ControllerBattery.Unknown)
+        if (battery.Level == ControllerBattery.Unknown)
         {
             BatteryPanel.Visibility = Visibility.Collapsed;
             return;
         }
 
-        // Segoe MDL2's battery icons: Battery0 (empty) to Battery10 (full)
-        (BatteryGlyph.Text, BatteryText.Text) = battery switch
-        {
-            ControllerBattery.Full => ("", "Full"),
-            ControllerBattery.Medium => ("", "Medium"),
-            ControllerBattery.Low => ("", "Low"),
-            ControllerBattery.Empty => ("", "Empty"),
-            _ => ("", "Wired")
-        };
+        // Segoe MDL2's battery icons: Battery0 (empty) to Battery10 (full), one step per 10%; the levels without a percentage
+        // get a step of their own
+        var step = battery.Percent is { } percent
+            ? (percent + 5) / 10
+            : battery.Level switch { ControllerBattery.Empty => 0, ControllerBattery.Low => 2, ControllerBattery.Medium => 5, _ => 10 };
+        BatteryGlyph.Text = ((char)(0xE850 + Math.Clamp(step, 0, 10))).ToString();
 
-        var color = battery is ControllerBattery.Low or ControllerBattery.Empty ? Warning : Muted;
+        var level = battery.Level switch
+        {
+            ControllerBattery.Charging => "Charging",
+            ControllerBattery.Wired => "Wired",
+            ControllerBattery.Full => "Full",
+            ControllerBattery.Medium => "Medium",
+            ControllerBattery.Low => "Low",
+            _ => "Empty"
+        };
+        BatteryText.Text = battery.Percent is { } shown
+            ? battery.Level == ControllerBattery.Charging ? $"{shown}%  charging" : $"{shown}%"
+            : level;
+
+        var color = battery.Level is ControllerBattery.Low or ControllerBattery.Empty ? Warning : Muted;
         BatteryGlyph.Foreground = color;
         BatteryText.Foreground = color;
         BatteryPanel.Visibility = Visibility.Visible;
