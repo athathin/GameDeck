@@ -96,6 +96,7 @@ public partial class BigPictureWindow
 
         if (_tab == MediaTab && !_topFocus)
         {
+            items.Add((Chip(l.Select), "BY GAME"));
             items.Add((RoundButton(l.Y, onController), "GAME PAGE"));
             items.Add((RoundButton(l.X, onController), "SHOW IN FOLDER"));
             items.Add((RoundButton(l.Confirm, onController), "VIEW"));

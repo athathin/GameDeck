@@ -477,7 +477,13 @@
             <ScrollViewer x:Name="MediaPanel" Grid.Row="3" Visibility="Collapsed"
                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="8,0,8,24">
-                    <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,14"/>
+                    <DockPanel Margin="2,0,0,14">
+                        <!-- the game filter: a menu of the games that have pictures (MainWindow.Media.cs) -->
+                        <Button x:Name="MediaGameButton" DockPanel.Dock="Left" Style="{StaticResource PillButton}" Padding="14,6" FontSize="13"
+                                Margin="0,0,14,0" Visibility="Collapsed" Click="MediaGameButton_Click"/>
+                        <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
                     <WrapPanel x:Name="MediaWrap"/>
                     <Button x:Name="MediaMoreButton" Style="{StaticResource PillButton}" Padding="16,8" FontSize="14"
                             HorizontalAlignment="Left" Margin="2,6,0,0" Visibility="Collapsed" Click="MediaMoreButton_Click"/>

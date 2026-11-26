@@ -14,7 +14,9 @@ public partial class MainWindow
 
     private const int MediaPageSize = 60;   // pictures added at a time ("Show more"): a few MB of thumbnails each time
 
-    private List<ScreenshotService.MediaShot> _media = [];
+    private List<ScreenshotService.MediaShot> _mediaAll = [];   // every picture found
+    private List<ScreenshotService.MediaShot> _media = [];      // the ones shown (the game filter)
+    private string? _mediaFilter;                               // the game shown (ScreenshotService.GroupKey); null = all
     private int _mediaShown;      // how many of them are on screen
     private bool _mediaLoaded;    // the tab has been filled (switching back to it doesn't read the folders again)
     private int _mediaVersion;    // raised on every new fill: an older fill that is still loading stops
@@ -30,6 +32,7 @@ public partial class MainWindow
         MediaWrap.Children.Clear();
         _mediaShown = 0;
         MediaMoreButton.Visibility = Visibility.Collapsed;
+        MediaGameButton.Visibility = Visibility.Collapsed;
         MediaHeader.Text = "Looking for screenshots…";
 
         var games = _library.Games.ToList();
@@ -45,14 +48,53 @@ public partial class MainWindow
 
         if (version != _mediaVersion) return;   // the tab was left (or filled again) meanwhile
 
-        _media = found;
-        StatusText.Text = found.Count == 1 ? "1 screenshot" : $"{found.Count} screenshots";
-        MediaHeader.Text = found.Count == 0
+        _mediaAll = found;
+        await ShowFilteredMediaAsync();
+    }
+
+    /// <summary>Shows the pictures of the chosen game (or all), from the start, without reading the folders again.</summary>
+    private async Task ShowFilteredMediaAsync()
+    {
+        var version = ++_mediaVersion;
+        MediaWrap.Children.Clear();
+        _mediaShown = 0;
+        MediaMoreButton.Visibility = Visibility.Collapsed;
+        MediaPanel.ScrollToTop();
+
+        var group = ScreenshotService.GroupsOf(_mediaAll)
+            .FirstOrDefault(g => string.Equals(g.Key, _mediaFilter, StringComparison.OrdinalIgnoreCase));
+        if (group is null) _mediaFilter = null;   // (that game has no pictures any more)
+
+        _media = ScreenshotService.Filter(_mediaAll, _mediaFilter);
+        StatusText.Text = _media.Count == 1 ? "1 screenshot" : $"{_media.Count} screenshots";
+
+        MediaGameButton.Content = (group is null ? "Showing: all games" : $"Showing: {group.Name}") + "  ▾";
+        MediaGameButton.Visibility = _mediaAll.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        MediaHeader.Text = _mediaAll.Count == 0
             ? "No screenshots yet. Game Bar captures (Win + Alt + PrtScn), the controller's Home + RT, and the pictures added on a " +
               "game's page show up here."
-            : "Every game's screenshots, newest first. Click one to open it; right-click for more.";
+            : "Newest first. Click one to open it; right-click for more.";
 
         await AddMediaPageAsync(version);
+    }
+
+    /// <summary>The game filter: a menu of every game that has pictures, with how many.</summary>
+    private void MediaGameButton_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = MediaGameButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+
+        void Add(string? key, string text) => menu.Items.Add(MenuEntry(text, _mediaFilter == key, () =>
+        {
+            _mediaFilter = key;
+            _ = ShowFilteredMediaAsync();
+        }));
+
+        Add(null, $"All games  ({_mediaAll.Count})");
+        menu.Items.Add(new Separator());
+        foreach (var group in ScreenshotService.GroupsOf(_mediaAll))
+            Add(group.Key, $"{group.Name}  ({group.Count})");
+
+        menu.IsOpen = true;
     }
 
     /// <summary>Empties the tab and lets go of its thumbnails (it was left, or GameDeck went to the tray).</summary>
@@ -62,10 +104,12 @@ public partial class MainWindow
 
         _mediaLoaded = false;
         _mediaVersion++;
+        _mediaAll = [];
         _media = [];
         _mediaShown = 0;
         MediaWrap.Children.Clear();
         MediaMoreButton.Visibility = Visibility.Collapsed;
+        MediaGameButton.Visibility = Visibility.Collapsed;
     }
 
     private async void MediaMoreButton_Click(object sender, RoutedEventArgs e) => await AddMediaPageAsync(_mediaVersion);

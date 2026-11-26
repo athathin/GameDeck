@@ -15,7 +15,9 @@ public partial class BigPictureWindow
     private const double MediaMinCellWidth = 300;   // the pictures are at least this wide; they stretch to fill the row
     private const double MediaCellGap = 18;
 
-    private List<ScreenshotService.MediaShot> _media = [];
+    private List<ScreenshotService.MediaShot> _mediaAll = [];   // every picture found
+    private List<ScreenshotService.MediaShot> _media = [];      // the ones shown (the game filter)
+    private string? _mediaFilter;                               // the game shown (ScreenshotService.GroupKey); null = all
     private readonly List<(Border Picture, FrameworkElement Cell)> _mediaCells = [];
     private int _mediaIndex;
     private int _mediaVersion;      // raised on every new fill: an older fill that is still loading stops
@@ -51,13 +53,65 @@ public partial class BigPictureWindow
 
         if (version != _mediaVersion) return;   // the tab was left meanwhile
 
-        _media = found;
-        MediaHeader.Text = found.Count == 0
+        _mediaAll = found;
+        await ShowFilteredMediaAsync();
+    }
+
+    /// <summary>Shows the pictures of the chosen game (or all), from the start, without reading the folders again.</summary>
+    private async Task ShowFilteredMediaAsync()
+    {
+        var version = ++_mediaVersion;
+        _mediaCells.Clear();
+        _mediaRinged = null;
+        MediaWrap.Children.Clear();
+        _mediaIndex = 0;
+        MediaScroll.ScrollToTop();
+
+        var groups = ScreenshotService.GroupsOf(_mediaAll);
+        var group = groups.FirstOrDefault(g => string.Equals(g.Key, _mediaFilter, StringComparison.OrdinalIgnoreCase));
+        if (group is null) _mediaFilter = null;   // (that game has no pictures any more)
+
+        _media = ScreenshotService.Filter(_mediaAll, _mediaFilter);
+        MediaHeader.Text = _mediaAll.Count == 0
             ? "No screenshots yet. Game Bar captures, Home + " + Labels().RightTrigger +
               " on the controller, and the pictures added on a game's page show up here."
-            : $"{found.Count} screenshots, newest first";
+            : (group is null ? $"{_media.Count} screenshots of {groups.Count} games, newest first" : $"{group.Name}: {_media.Count} screenshots") +
+              $"   ·   {Labels().Select}: choose a game";
 
         await AddMediaPageAsync(version);
+    }
+
+    private void MediaHeader_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_overlay == Overlay.None)
+            OpenMediaFilter();
+    }
+
+    /// <summary>The game filter (the View button): every game that has pictures, with how many, in the game menu's panel.</summary>
+    private void OpenMediaFilter()
+    {
+        if (_mediaAll.Count == 0) return;
+
+        var groups = ScreenshotService.GroupsOf(_mediaAll);
+
+        List<FilterRow> Rows()
+        {
+            var rows = new List<FilterRow> { Choice(null, $"All games  ({_mediaAll.Count})") };
+            rows.AddRange(groups.Select(g => Choice(g.Key, $"{g.Name}  ({g.Count})")));
+            return rows;
+        }
+
+        FilterRow Choice(string? key, string text) => new(text, IsOn: () => _mediaFilter == key, IsRadio: true, Activate: () =>
+        {
+            _mediaFilter = key;
+            CloseGameMenu();
+            _ = ShowFilteredMediaAsync();
+        });
+
+        _menuPages.Clear();
+        _menuPages.Push(new MenuPage("Show the screenshots of", Rows));
+        ShowOverlay(Overlay.GameMenu);
+        RenderGameMenu();
     }
 
     /// <summary>Empties the tab and lets go of its thumbnails (another tab was chosen).</summary>
@@ -67,6 +121,7 @@ public partial class BigPictureWindow
 
         _mediaLoaded = false;
         _mediaVersion++;
+        _mediaAll = [];
         _media = [];
         _mediaCells.Clear();
         _mediaRinged = null;
@@ -233,8 +288,10 @@ public partial class BigPictureWindow
             case PadButton.X: ShowMediaInFolder(); return true;
             case PadButton.Y: OpenMediaGame(); return true;
 
-            // nothing to search, filter or open a game menu for here
-            case PadButton.Select or PadButton.Start or PadButton.RightTrigger: return true;
+            case PadButton.Select: OpenMediaFilter(); return true;   // the game filter
+
+            // nothing to search or open a game menu for here
+            case PadButton.Start or PadButton.RightTrigger: return true;
 
             default: return false;
         }
