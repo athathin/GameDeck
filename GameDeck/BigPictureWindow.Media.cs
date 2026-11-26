@@ -13,7 +13,7 @@ public partial class BigPictureWindow
 
     private const int MediaTab = 4;
     private const int MediaPageSize = 60;     // pictures added at a time: more come as the selection nears the end
-    private const double MediaCellWidth = 300;
+    private const double MediaMinCellWidth = 300;   // the pictures are at least this wide; they stretch to fill the row
     private const double MediaCellGap = 18;
 
     private List<ScreenshotService.MediaShot> _media = [];
@@ -98,9 +98,10 @@ public partial class BigPictureWindow
 
     private void AddMediaCell(ScreenshotService.MediaShot shot, ImageSource? thumbnail, int index)
     {
+        var width = MediaCellWidth;
         var picture = new Border
         {
-            Width = MediaCellWidth, Height = MediaCellWidth * 9 / 16, CornerRadius = new CornerRadius(9),
+            Width = width, Height = width * 9 / 16, CornerRadius = new CornerRadius(9),
             BorderThickness = new Thickness(3), BorderBrush = Brushes.Transparent, Background = KeyBackground,
             Child = new RoundedClipBorder
             {
@@ -117,7 +118,7 @@ public partial class BigPictureWindow
 
         var cell = new StackPanel
         {
-            Width = MediaCellWidth, Margin = new Thickness(0, 0, MediaCellGap, 22), Cursor = Cursors.Hand,
+            Width = width, Margin = new Thickness(0, 0, MediaCellGap, 22), Cursor = Cursors.Hand,
             Children =
             {
                 picture,
@@ -152,8 +153,27 @@ public partial class BigPictureWindow
         MediaWrap.Children.Add(cell);
     }
 
-    /// <summary>How many pictures fit in one row of the grid.</summary>
-    private int MediaColumns => Math.Max(1, (int)((MediaWrap.ActualWidth + 1) / (MediaCellWidth + MediaCellGap)));
+    /// <summary>How many pictures fit in one row of the grid (each at least <see cref="MediaMinCellWidth"/> wide).</summary>
+    private int MediaColumns => Math.Max(1, (int)((MediaWrap.ActualWidth + 1) / (MediaMinCellWidth + MediaCellGap)));
+
+    /// <summary>The width that makes the pictures of a row fill it, with the gap after each.</summary>
+    private double MediaCellWidth => MediaWrap.ActualWidth > 0
+        ? Math.Floor((MediaWrap.ActualWidth - 1) / MediaColumns - MediaCellGap)
+        : MediaMinCellWidth;
+
+    /// <summary>The screen's width changed (another scale, another monitor): the pictures stretch again to fill the rows.</summary>
+    private void MediaWrap_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!e.WidthChanged) return;
+
+        var width = MediaCellWidth;
+        foreach (var (picture, cell) in _mediaCells)
+        {
+            picture.Width = width;
+            picture.Height = width * 9 / 16;
+            cell.Width = width;
+        }
+    }
 
     private void SelectMedia(int index, bool scroll = true)
     {

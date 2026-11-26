@@ -70,7 +70,8 @@ public partial class GameDetailsView : UserControl
 
         try
         {
-            files = await Task.Run(() => ScreenshotService.Find(game));
+            var library = ScreenshotService.Library?.Invoke().ToList();   // (a copy, taken here: the folders are read in the background)
+            files = await Task.Run(() => ScreenshotService.Find(game, library));
             thumbnails = await Task.Run(() => files.Select(Thumbnail).ToList());   // (frozen pictures can be made on another thread)
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)

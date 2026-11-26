@@ -349,7 +349,7 @@
                     <StackPanel Margin="0,0,0,24">
                         <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="17" TextWrapping="Wrap"
                                    Margin="6,0,0,16"/>
-                        <WrapPanel x:Name="MediaWrap"/>
+                        <WrapPanel x:Name="MediaWrap" SizeChanged="MediaWrap_SizeChanged"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

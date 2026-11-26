@@ -87,6 +87,7 @@ public partial class MainWindow : Window
         DataContext = this;
 
         _library.Load();    // saved library shows instantly
+        ScreenshotService.Library = () => _library.Games;   // a game's page tells its captures from other games' (Portal / Portal 2)
         _userData.Load();   // favorites, last played, playtime, names...
         _sessions.Load();   // dated play sessions for the Stats tab
         UpdateTileSizeButton();

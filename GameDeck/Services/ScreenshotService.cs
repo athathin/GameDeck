@@ -75,8 +75,15 @@ public static class ScreenshotService
         return true;
     }
 
+    /// <summary>The games of the library (set by the main window), so a game's page can tell its captures from another game's.</summary>
+    public static Func<IReadOnlyCollection<Game>>? Library { get; set; }
+
     /// <summary>The newest screenshots of the game (own folder, Game Bar captures, the chosen screenshots folder), newest first.</summary>
-    public static List<string> Find(Game game, int max = 12)
+    /// <param name="library">
+    /// Every game: a capture belongs to the game whose whole name is the longest one it starts with ("Portal 2 ....png" is
+    /// Portal 2's, not Portal's). Without it, only this game's names are compared.
+    /// </param>
+    public static List<string> Find(Game game, IReadOnlyCollection<Game>? library = null, int max = 12)
     {
         var found = new List<string>();
 
@@ -92,12 +99,15 @@ public static class ScreenshotService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        var everyName = NamesOf(library is null ? [game] : library.Append(game));
+
         foreach (var folder in new[] { CapturesFolder, SettingsService.ScreenshotFolder })
         {
             if (folder is null) continue;
 
             foreach (var name in names)
-                found.AddRange(Pictures(folder, name + "*"));
+                found.AddRange(Pictures(folder, name + "*")
+                    .Where(f => BelongsTo(Path.GetFileName(f), names, everyName)));
         }
 
         found = found.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -158,6 +168,14 @@ public static class ScreenshotService
     /// <summary>The game a picture's file name starts with, or null.</summary>
     internal static Game? MatchGame(string fileName, List<(string Name, Game Game)> names) =>
         names.FirstOrDefault(n => StartsWithName(fileName, n.Name)).Game;
+
+    /// <summary>
+    /// True when the longest game name the file starts with (of <paramref name="everyName"/>) is one of the game's own names
+    /// (<paramref name="gameNames"/>). Compared by name, so two copies of one game (Steam and Epic) both show the picture.
+    /// </summary>
+    internal static bool BelongsTo(string fileName, IReadOnlyCollection<string> gameNames, List<(string Name, Game Game)> everyName) =>
+        everyName.FirstOrDefault(n => StartsWithName(fileName, n.Name)).Name is { } matched &&
+        gameNames.Contains(matched, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// True when the file name starts with the name as a whole: what follows isn't another letter or digit
