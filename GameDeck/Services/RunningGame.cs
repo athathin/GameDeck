@@ -10,7 +10,8 @@ namespace GameDeck.Services;
 /// </summary>
 public static class RunningGame
 {
-    private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(8);
+    // big games take a while to shut down (Rocket League: well over 8 seconds); only after this long is it "still running"
+    private static readonly TimeSpan CloseWait = TimeSpan.FromSeconds(30);
 
     /// <summary>Brings the game's main window to the front (restoring it if it was minimized).</summary>
     /// <returns>False when no window of the game was found.</returns>

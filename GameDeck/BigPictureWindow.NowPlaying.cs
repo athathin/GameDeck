@@ -12,19 +12,41 @@ public partial class BigPictureWindow
     /// <summary>The game started from GameDeck that is running now, or null.</summary>
     private Game? NowPlaying => _gameActions.RunningGame();
 
-    /// <summary>Shows or hides the banner under the tabs. Called when the screen opens and every second with the clock.</summary>
+    // the game asked to close (Close game), and whether it is still running long after that
+    private Game? _closingGame;
+    private bool _closeSlow;
+
+    /// <summary>
+    /// Shows or hides the banner under the tabs, and keeps the open game page's Play / Resume button right.
+    /// Called when the screen opens and every second with the clock.
+    /// </summary>
     private void UpdateNowPlaying()
     {
-        if (NowPlaying is { } game)
+        var running = NowPlaying;
+
+        if (!ReferenceEquals(running, _closingGame))
         {
-            NowPlayingText.Text = game.DisplayName;
-            NowPlayingHint.Text = (ShownKind == ControllerKind.None ? "P" : "Home") + ":  resume or close it";
+            _closingGame = null;   // it closed (or another game runs now)
+            _closeSlow = false;
+        }
+
+        if (running is not null)
+        {
+            var home = ShownKind == ControllerKind.None ? "P" : "Home";
+            NowPlayingText.Text = running.DisplayName;
+            NowPlayingHint.Text = _closingGame is null ? $"{home}:  resume or close it"
+                : _closeSlow ? $"still running: it may be asking you something.  {home}:  resume it"
+                : "closing…";
             NowPlayingBanner.Visibility = Visibility.Visible;
         }
         else
         {
             NowPlayingBanner.Visibility = Visibility.Collapsed;
         }
+
+        // the game's page that is open: Resume while its game runs, Play once it has closed
+        if (_overlay == Overlay.Details && DetailsView.DataContext is Game shown)
+            DetailsView.SetPlayLabel(resume: ReferenceEquals(shown, running));
     }
 
     /// <summary>
@@ -62,19 +84,20 @@ public partial class BigPictureWindow
     private void ResumeGame(Game game) => CloseThen(() => _gameActions.Resume(game));
 
     /// <summary>
-    /// Asks the game to close the normal way (like its window's X: it may ask to save). If it is still running after a few
-    /// seconds, says so: it is probably asking something, and Resume shows it.
+    /// Asks the game to close the normal way (like its window's X: it may ask to save). No pop-up: the banner says "closing…"
+    /// and goes away once the game has closed; if it is still running long after, the banner says so (it is probably asking
+    /// something, and Resume shows it).
     /// </summary>
     private async Task CloseGameAsync(Game game)
     {
-        NowPlayingHint.Text = "closing…";
-
-        if (await _gameActions.CloseGame(game) || _closing) return;   // (the banner goes away once it has closed)
-
+        _closingGame = game;
+        _closeSlow = false;
         UpdateNowPlaying();
-        MessageDialog.Show(this,
-            $"{game.DisplayName} is still running. It may be asking you something (to save, or to confirm), or it doesn't close " +
-            "when asked.\n\nChoose Resume to go back to it and close it from the game itself. GameDeck never forces a game to close.",
-            "The game didn't close");
+
+        var closed = await _gameActions.CloseGame(game);
+        if (_closing || closed || !ReferenceEquals(_closingGame, game)) return;
+
+        _closeSlow = true;
+        UpdateNowPlaying();
     }
 }
