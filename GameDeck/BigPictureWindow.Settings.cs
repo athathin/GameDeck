@@ -218,7 +218,9 @@ public partial class BigPictureWindow
         var rows = new List<SettingRow>
         {
             Heading("Saving"),
-            new("Save the controller's screenshots in", ScreenshotService.SaveFolderText, Button: "Choose…",
+            new("Save the controller's screenshots in", ScreenshotService.SaveFolderText + "\nBrowse your drives with the controller and choose a folder",
+                Button: "Browse", Activate: OpenSaveFolderBrowse),
+            new("Choose the folder with the Windows folder picker", "For a keyboard and mouse", Button: "Open",
                 Activate: () => ScreenshotService.ChooseSaveFolder(this))
         };
 
