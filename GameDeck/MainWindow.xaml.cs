@@ -122,6 +122,7 @@ public partial class MainWindow : Window
 
         StartControllerWake();   // Home button on a controller opens Big Picture mode
         _lowBattery.Start();     // a notice when the controller's battery runs low (also during games)
+        StartDailyUpdateCheck(); // left running for days: a newer version is still found (installed at the next start)
 
         // Windows shutting down / signing out must never be blocked by the "minimize or close?" pop-up
         Application.Current.SessionEnding += (_, _) => _exiting = true;
@@ -172,6 +173,7 @@ public partial class MainWindow : Window
         _tracker.FlushAll();
         _hotkey.Dispose();
         _lowBattery.Dispose();
+        _updateTimer.Stop();
         _wake?.Dispose();
         _tray?.Dispose();
     }

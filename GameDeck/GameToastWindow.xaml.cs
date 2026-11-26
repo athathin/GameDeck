@@ -23,10 +23,11 @@ public partial class GameToastWindow : Window
     private readonly DateTime _shownAt = DateTime.UtcNow;
     private bool _closing;
 
-    private GameToastWindow(string headline, string game, string? detail)
+    private GameToastWindow(string headline, string game, string? detail, TimeSpan? visible = null)
     {
         InitializeComponent();
         _gameName = game;
+        _timer.Interval = visible ?? Visible;
 
         HeadlineText.Text = headline;
         GameText.Text = game;
@@ -82,10 +83,11 @@ public partial class GameToastWindow : Window
     }
 
     /// <summary>Shows a short notice that isn't about a game starting ("Screenshot saved"), the same way.</summary>
-    public static void ShowMessage(string headline, string text, string? detail = null)
+    /// <param name="visible">How long it stays (5 seconds when not given).</param>
+    public static void ShowMessage(string headline, string text, string? detail = null, TimeSpan? visible = null)
     {
         _current?.CloseNow();
-        _current = new GameToastWindow(headline, text, detail);
+        _current = new GameToastWindow(headline, text, detail, visible);
         _current.Show();
     }
 

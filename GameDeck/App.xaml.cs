@@ -241,6 +241,13 @@ namespace GameDeck
 
             if (shortcutGame is not null)
                 window.LaunchFromShortcut(shortcutGame);
+
+#if BETA || DEBUG
+            // a look at the "a new version is ready" notice, which the Beta never shows by itself (it never updates):
+            // GameDeckBeta.exe --demo-update  (not in the released program)
+            if (args.Contains("--demo-update", StringComparer.OrdinalIgnoreCase))
+                window.ShowUpdateReady("9.9.9 (demo)");
+#endif
         }
 
         /// <returns>True when a new version was installed and has been started (this one is closing).</returns>
