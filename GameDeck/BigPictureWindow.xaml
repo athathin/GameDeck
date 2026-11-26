@@ -6,7 +6,8 @@
         Background="{DynamicResource AppBg}"
         Activated="Window_Activated" Deactivated="Window_Deactivated"
         PreviewKeyDown="Window_PreviewKeyDown" PreviewTextInput="Window_PreviewTextInput"
-        PreviewMouseWheel="Window_PreviewMouseWheel" PreviewMouseMove="Window_PreviewMouseMove">
+        PreviewMouseWheel="Window_PreviewMouseWheel" PreviewMouseMove="Window_PreviewMouseMove"
+        PreviewMouseDown="Window_PreviewMouseDown">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -547,6 +548,19 @@
                     </ScrollViewer>
                 </DockPanel>
             </Border>
+        </Grid>
+
+        <!-- ======================= the screen saver: covers moving on black, over everything (BigPictureWindow.ScreenSaver.cs) ======================= -->
+        <Grid x:Name="ScreenSaverOverlay" Visibility="Collapsed" Background="Black" Opacity="0">
+            <Canvas x:Name="ScreenSaverCanvas" ClipToBounds="True">
+                <StackPanel x:Name="ScreenSaverItem">
+                    <views:RoundedClipBorder CornerRadius="10" Width="300" Height="400">
+                        <Image x:Name="ScreenSaverCover" Stretch="UniformToFill"/>
+                    </views:RoundedClipBorder>
+                    <TextBlock x:Name="ScreenSaverClock" Foreground="#80FFFFFF" FontSize="34" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,18,0,0"/>
+                </StackPanel>
+            </Canvas>
         </Grid>
     </Grid>
 </Window>

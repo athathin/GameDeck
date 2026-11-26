@@ -181,6 +181,12 @@ public partial class BigPictureWindow
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (WakeFromScreenSaver())
+        {
+            e.Handled = true;   // the key only woke the screen
+            return;
+        }
+
         SetPadInUse(false);
 
         // choosing a new quick launch shortcut: every key press is part of it
@@ -247,8 +253,21 @@ public partial class BigPictureWindow
         e.Handled = true;
     }
 
+    /// <summary>A click during the screen saver only wakes the screen.</summary>
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (WakeFromScreenSaver())
+            e.Handled = true;
+    }
+
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (WakeFromScreenSaver())
+        {
+            e.Handled = true;
+            return;
+        }
+
         SetPadInUse(false);
 
         if (_overlay == Overlay.None)

@@ -199,6 +199,7 @@ public partial class BigPictureWindow : Window
         ApplyScale();
         _timer.Tick += Timer_Tick;
         _cursorTimer.Tick += (_, _) => HideCursor();
+        _saverTimer.Tick += ScreenSaverTimer_Tick;
         Loaded += (_, _) =>
         {
             NavSounds.Play(NavSound.Enter);   // (waits for its file to finish opening if it must)
@@ -257,6 +258,7 @@ public partial class BigPictureWindow : Window
         TakingController?.Invoke();
         _pad.Start();
         _timer.Start();
+        NoteInput();   // (back in front: the time without input starts again)
         UpdateControllerUi();
         UpdateNowPlaying();   // (a game may have closed while another window was in front)
 
@@ -267,6 +269,7 @@ public partial class BigPictureWindow : Window
     {
         _timer.Stop();
         _pad.Stop();
+        WakeFromScreenSaver();         // another window is in front: no screen saver behind it
 
         ShowCursor(autoHide: false);   // a dialog or another program is in front: it needs its pointer
     }
@@ -318,6 +321,7 @@ public partial class BigPictureWindow : Window
         if (!_mouseMoved) return;
 
         _cursorPosition = position;
+        WakeFromScreenSaver();
         SetPadInUse(false);
         ShowCursor();
     }
@@ -326,6 +330,7 @@ public partial class BigPictureWindow : Window
     {
         NavSounds.Release();
         StopStatus();
+        _saverTimer.Stop();
         _timer.Stop();
         _cursorTimer.Stop();
         Mouse.OverrideCursor = null;   // (the main window and the dialogs get their pointer back)
@@ -352,6 +357,13 @@ public partial class BigPictureWindow : Window
         // Home + a button is a shortcut (volume, Alt + Tab...): those buttons aren't presses here. Home's own job (the Power
         // menu) happens when it is let go without a shortcut.
         var homeTapped = ControllerShortcuts.Update(_pad.Held);
+
+        // a press during the screen saver only wakes the screen
+        if ((pressed.Count > 0 || homeTapped) && WakeFromScreenSaver())
+        {
+            pressed.Clear();
+            homeTapped = false;
+        }
 
         foreach (var button in pressed)
         {
@@ -385,6 +397,7 @@ public partial class BigPictureWindow : Window
             UpdateClock();
             UpdateNowPlaying();   // (the game may have been closed meanwhile)
             UpdateBattery();
+            CheckScreenSaver();
         }
     }
 

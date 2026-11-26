@@ -59,6 +59,7 @@ public partial class SettingsView : UserControl
         ScaleNormalRadio.IsChecked = scale < 1.1;
         ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
         ScaleHugeRadio.IsChecked = scale >= 1.3;
+        BuildScreenSaverChoices();
 
         GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
 
@@ -332,6 +333,24 @@ public partial class SettingsView : UserControl
 
         SettingsService.Theme = theme;
         ThemeService.Apply(theme);   // every open screen changes at once
+    }
+
+    /// <summary>Off, 5 min, 10 min...: the saved one ticked.</summary>
+    private void BuildScreenSaverChoices()
+    {
+        ScreenSaverChoices.Children.Clear();
+
+        foreach (var minutes in SettingsService.ScreenSaverChoices)
+        {
+            var radio = new RadioButton
+            {
+                Content = minutes == 0 ? "Off" : $"{minutes} min", GroupName = "ScreenSaver", FontSize = 15,
+                Style = (Style)FindResource("DarkRadioButton"), IsChecked = minutes == SettingsService.ScreenSaverMinutes,
+                Margin = new Thickness(ScreenSaverChoices.Children.Count == 0 ? 0 : 32, 0, 0, 0)
+            };
+            radio.Checked += (_, _) => SettingsService.ScreenSaverMinutes = minutes;   // (attached after IsChecked was set)
+            ScreenSaverChoices.Children.Add(radio);
+        }
     }
 
     private void ScaleRadio_Checked(object sender, RoutedEventArgs e)

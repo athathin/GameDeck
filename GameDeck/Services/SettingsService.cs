@@ -43,6 +43,8 @@ public static class SettingsService
 
         public bool LowBatteryWarning { get; set; } = true;
 
+        public int ScreenSaverMinutes { get; set; } = 10;
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
@@ -171,6 +173,23 @@ public static class SettingsService
         set
         {
             Current.SteamPlaytime = value;
+            Save();
+        }
+    }
+
+    /// <summary>The screen saver times to choose from, in minutes (0 = off).</summary>
+    public static readonly int[] ScreenSaverChoices = [0, 5, 10, 20, 30];
+
+    /// <summary>
+    /// After how many minutes without input Big Picture fades to its screen saver (covers moving on black, against burn-in on
+    /// OLED screens); 0 = never. One of <see cref="ScreenSaverChoices"/>.
+    /// </summary>
+    public static int ScreenSaverMinutes
+    {
+        get => ScreenSaverChoices.Contains(Current.ScreenSaverMinutes) ? Current.ScreenSaverMinutes : 10;
+        set
+        {
+            Current.ScreenSaverMinutes = value;
             Save();
         }
     }
