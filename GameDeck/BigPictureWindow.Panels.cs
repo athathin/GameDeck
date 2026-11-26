@@ -490,6 +490,18 @@ public partial class BigPictureWindow
                                    Activate: () => Toggle(_categoryFilters, chosen)));
         }
 
+        var genres = _library.SelectMany(g => g.Genres).Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase).ToList();
+        if (genres.Count > 0)   // (Steam games get theirs from the Steam store: none yet, no heading)
+        {
+            rows.Add(new FilterRow("GENRE", IsHeader: true));
+            foreach (var genre in genres)
+            {
+                var chosen = genre;
+                rows.Add(new FilterRow(chosen, IsOn: () => _genreFilters.Contains(chosen), Activate: () => Toggle(_genreFilters, chosen)));
+            }
+        }
+
         rows.Add(new FilterRow("STATUS", IsHeader: true));
         foreach (var status in Enum.GetValues<GameStatus>().Where(s => s != GameStatus.None))
         {
@@ -539,6 +551,7 @@ public partial class BigPictureWindow
         _categoryFilters.Clear();
         _statusFilters.Clear();
         _smartFilters.Clear();
+        _genreFilters.Clear();
         _showHidden = false;
     }
 

@@ -17,7 +17,7 @@ public partial class BigPictureWindow
     }
 
     private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                                     _smartFilters.Count > 0 || _showHidden;
+                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden;
 
     private void ApplyTab(bool preserveSelection)
     {
@@ -64,6 +64,7 @@ public partial class BigPictureWindow
         // a launcher / category that no longer has any games (after a scan, an edit...) stops being a filter
         _launcherFilters.RemoveWhere(l => l != ManualSource && !_library.Any(g => g.Source == l));
         _categoryFilters.RemoveWhere(c => !_library.Any(g => g.Tags.Contains(c, StringComparer.CurrentCultureIgnoreCase)));
+        _genreFilters.RemoveWhere(genre => !_library.Any(g => g.Genres.Contains(genre, StringComparer.CurrentCultureIgnoreCase)));
 
         // narrow the library down by the filters and the search, like the desktop library does
         IEnumerable<Game> source = _library;
@@ -77,6 +78,8 @@ public partial class BigPictureWindow
             source = source.Where(g => _statusFilters.Contains(g.Status));
         if (_smartFilters.Count > 0)
             source = source.Where(g => _smartFilters.Any(f => f.Matches(g)));
+        if (_genreFilters.Count > 0)
+            source = source.Where(g => g.Genres.Any(_genreFilters.Contains));
         if (_query.Length > 0)
             source = source.Where(g => g.DisplayName.Contains(_query, StringComparison.CurrentCultureIgnoreCase) ||
                                        g.Name.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
@@ -142,6 +145,7 @@ public partial class BigPictureWindow
         parts.AddRange(_categoryFilters.Order());
         parts.AddRange(_statusFilters.OrderBy(s => s).Select(s => s.Label()));
         parts.AddRange(_smartFilters.OrderBy(s => s).Select(s => s.Label()));
+        parts.AddRange(_genreFilters.Order(StringComparer.CurrentCultureIgnoreCase));
         if (_showHidden)
             parts.Add("Hidden games");
 

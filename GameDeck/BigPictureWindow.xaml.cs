@@ -130,6 +130,7 @@ public partial class BigPictureWindow : Window
     private readonly HashSet<string> _categoryFilters = new(StringComparer.CurrentCultureIgnoreCase);
     private readonly HashSet<GameStatus> _statusFilters = [];
     private readonly HashSet<SmartFilter> _smartFilters = [];   // Never played, Played under 1 hour, Recently added
+    private readonly HashSet<string> _genreFilters = new(StringComparer.CurrentCultureIgnoreCase);
     private SortMode _sort = SettingsService.SortMode;
     private string _query = "";
     private bool _showHidden;   // the "Hidden games" filter: hidden games are listed too (dimmed)

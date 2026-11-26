@@ -78,6 +78,7 @@ public partial class MainWindow
 
         Refresh();
         _ = LoadSteamPlaytimeAsync();            // (newly found Steam games get their hours too)
+        FetchGenres();                           // (and their genres)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
     }
@@ -229,7 +230,11 @@ public partial class MainWindow
 
         CoverService.ClearMisses();
         _ = LoadVisibleCoversAsync();   // fetch covers that were skipped while offline
+        FetchGenres();                  // and the genres
     }
+
+    /// <summary>Asks the Steam store, in the background, for the genres of the Steam games that have none yet (see GenreService).</summary>
+    private void FetchGenres() => _ = GenreService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
 
     private void SettingsPanel_SteamPlaytimeChanged(object? sender, EventArgs e) => _ = LoadSteamPlaytimeAsync();
 

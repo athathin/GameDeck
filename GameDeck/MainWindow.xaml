@@ -290,6 +290,9 @@
 
                                             <TextBlock Text="CATEGORY" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
                                             <StackPanel x:Name="CategoryList"/>
+
+                                            <TextBlock Text="GENRE" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
+                                            <StackPanel x:Name="GenreList"/>
                                         </StackPanel>
                                     </Grid>
                                 </ScrollViewer>

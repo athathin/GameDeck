@@ -21,12 +21,16 @@ public partial class MainWindow
             _userData.RecordAddedDates(_library.Games);   // games that just showed up get today's date ("Recently added")
 
             foreach (var game in _library.Games)
+            {
                 _userData.Apply(game);
+                game.Genres = GenreService.For(game);
+            }
         }
 
         // a launcher / category that no longer has any games (after a scan) stops being a filter
         _sourceFilters.RemoveWhere(source => source != ManualSource && !_library.Games.Any(g => g.Source == source));
         _categoryFilters.RemoveWhere(category => !_library.Games.Any(g => HasTag(g, category)));
+        _genreFilters.RemoveWhere(genre => !_library.Games.Any(g => g.Genres.Contains(genre, StringComparer.CurrentCultureIgnoreCase)));
         UpdateFilterButtons();
 
         var stats = _view == "Stats";
@@ -70,6 +74,8 @@ public partial class MainWindow
             shown = shown.Where(g => _statusFilters.Contains(g.Status));
         if (_smartFilters.Count > 0)
             shown = shown.Where(g => _smartFilters.Any(f => f.Matches(g)));
+        if (_genreFilters.Count > 0)
+            shown = shown.Where(g => g.Genres.Any(_genreFilters.Contains));
         if (query.Length > 0)
             shown = shown.Where(g => g.DisplayName.Contains(query, StringComparison.CurrentCultureIgnoreCase) ||
                                      g.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase));
@@ -97,7 +103,7 @@ public partial class MainWindow
         };
 
         var filtered = query.Length > 0 || _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                       _smartFilters.Count > 0;
+                       _smartFilters.Count > 0 || _genreFilters.Count > 0;
         EmptyText.Text = filtered
             ? "No games found."
             : _view switch
@@ -291,7 +297,7 @@ public partial class MainWindow
     }
 
     private bool HasActiveFilters => _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                                     _smartFilters.Count > 0 || _showHidden;
+                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden;
 
     /// <summary>The filter icon: opens the Library Filters panel. (While it's open the icon can't be clicked, so clicking it closes the panel.)</summary>
     private void FilterButton_Click(object sender, RoutedEventArgs e)
@@ -325,6 +331,9 @@ public partial class MainWindow
 
         foreach (var smart in _smartFilters.OrderBy(s => s).ToList())
             AddFilterChip(smart.Label(), () => _smartFilters.Remove(smart));
+
+        foreach (var genre in _genreFilters.OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase).ToList())
+            AddFilterChip(genre, () => _genreFilters.Remove(genre));
 
         if (_showHidden)
             AddFilterChip("Hidden games", () => _showHidden = false);
@@ -389,6 +398,7 @@ public partial class MainWindow
         _categoryFilters.Clear();
         _statusFilters.Clear();
         _smartFilters.Clear();
+        _genreFilters.Clear();
         _showHidden = false;
         FiltersChanged();
     }
@@ -441,6 +451,32 @@ public partial class MainWindow
             StatusList.Children.Add(FilterCheckBox(chosen.Label(), _statusFilters.Contains(chosen), on =>
             {
                 if (on) _statusFilters.Add(chosen); else _statusFilters.Remove(chosen);
+                Refresh();
+            }));
+        }
+
+        // genres (Steam games: from the Steam store, see GenreService)
+        GenreList.Children.Clear();
+        var genres = _library.Games.SelectMany(g => g.Genres).Distinct(StringComparer.CurrentCultureIgnoreCase)
+            .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase).ToList();
+        if (genres.Count == 0)
+        {
+            GenreList.Children.Add(new TextBlock
+            {
+                Text = SettingsService.OnlineCovers
+                    ? "None yet. Steam games get their genres from the Steam store in the background."
+                    : "Steam games get their genres from the Steam store while \"Download cover art from the internet\" is on.",
+                Foreground = ThemeService.TextMuted,
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+        foreach (var genre in genres)
+        {
+            var chosen = genre;
+            GenreList.Children.Add(FilterCheckBox(chosen, _genreFilters.Contains(chosen), on =>
+            {
+                if (on) _genreFilters.Add(chosen); else _genreFilters.Remove(chosen);
                 Refresh();
             }));
         }

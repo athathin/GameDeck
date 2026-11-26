@@ -110,6 +110,10 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public List<string> Tags { get; set; } = [];
 
+    /// <summary>The genres the Steam store gives a Steam game (see GenreService); empty for the others.</summary>
+    [JsonIgnore]
+    public List<string> Genres { get; set; } = [];
+
     /// <summary>What GameDeck does before / after starting this game (null = nothing).</summary>
     [JsonIgnore]
     public LaunchProfile? Profile { get; set; }

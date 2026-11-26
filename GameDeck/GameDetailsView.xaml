@@ -96,6 +96,8 @@
 
                     <TextBlock x:Name="CategoriesText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
                                Margin="2,4,0,0"/>
+                    <TextBlock x:Name="GenresText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
+                               Margin="2,4,0,0"/>
 
                     <StackPanel x:Name="NotesPanel" Margin="0,22,0,0">
                         <TextBlock Text="YOUR NOTES" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"

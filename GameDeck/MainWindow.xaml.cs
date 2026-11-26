@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _categoryFilters = new(StringComparer.CurrentCultureIgnoreCase);     // empty = every category
     private readonly HashSet<GameStatus> _statusFilters = [];   // empty = every status
     private readonly HashSet<SmartFilter> _smartFilters = [];   // empty = no smart filter (Never played, Recently added...)
+    private readonly HashSet<string> _genreFilters = new(StringComparer.CurrentCultureIgnoreCase);   // empty = every genre
     private bool _showHidden;
     private bool _ready;            // stops the tab buttons from firing while the window is still being built
     private bool _launching;        // true while a game is being prepared (Vanguard starting), so a second click on Play is ignored
@@ -98,6 +99,7 @@ public partial class MainWindow : Window
         Refresh();
         _ready = true;
         _ = LoadSteamPlaytimeAsync();   // Steam's hours for the Steam games (read in the background)
+        FetchGenres();                  // the Steam games' genres not asked for yet
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe
 
