@@ -73,7 +73,7 @@ public partial class BigPictureWindow
 
     // an Xbox controller's battery over Bluetooth (Windows' Bluetooth settings): asked in the background every 15 seconds
     private int? _bluetoothBattery;
-    private long _bluetoothCheckedAt = long.MinValue;
+    private long _bluetoothCheckedAt = long.MinValue / 2;   // (not MinValue: "now - MinValue" overflows and would never be 15 s)
     private bool _bluetoothChecking;
 
     private async void RefreshBluetoothBattery()
