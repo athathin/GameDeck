@@ -96,11 +96,11 @@ public sealed class GamepadService : IDisposable
     public event Action? ControllerChanged;
 
     /// <summary>
-    /// The battery of the controller used last. Windows.Gaming.Input is asked first: it is what the Xbox app and Game Bar use,
-    /// and knows Xbox controllers over Bluetooth, the Xbox Wireless Adapter or a cable (built-in batteries or AA), with a
-    /// percentage. SDL is the fallback (PlayStation controllers on a cable); the SDL bundled here (2.0.14) answers "empty"
-    /// whenever it can't read a battery, so only the levels it really read count.
-    /// Unknown when there is no controller or it doesn't say.
+    /// What the controller used last says about its battery while it is on a cable: an Xbox controller "Charging" or "Wired"
+    /// (Windows.Gaming.Input), another one "Wired" or a level (SDL). The level of an Xbox controller over Bluetooth comes from
+    /// Windows' Bluetooth settings instead (<see cref="BluetoothBattery"/>): Windows.Gaming.Input's percentage for it is wrong
+    /// (it said 10% for a full one). The SDL bundled here (2.0.14) answers "empty" whenever it can't read a battery, so only the
+    /// levels it really read count. Unknown when there is no controller or it doesn't say.
     /// </summary>
     public BatteryState ActiveBattery
     {
@@ -108,8 +108,8 @@ public sealed class GamepadService : IDisposable
         {
             if (!_started || _activePad is null) return BatteryState.None;
 
-            if (_activePad.Kind is ControllerKind.Xbox or ControllerKind.Generic && WindowsBattery() is { } fromWindows)
-                return fromWindows;
+            if (_activePad.Kind == ControllerKind.Xbox)
+                return WindowsBattery() ?? BatteryState.None;
 
             try
             {
@@ -151,21 +151,13 @@ public sealed class GamepadService : IDisposable
         return null;
     }
 
-    internal static BatteryState? FromReport(Windows.Devices.Power.BatteryReport report)
+    /// <summary>Only what is certain from a Windows.Gaming.Input report: on a cable (charging, or without a battery).</summary>
+    internal static BatteryState? FromReport(Windows.Devices.Power.BatteryReport report) => report.Status switch
     {
-        switch (report.Status)
-        {
-            case Windows.System.Power.BatteryStatus.NotPresent: return new(ControllerBattery.Wired);   // on a cable, no battery
-            case Windows.System.Power.BatteryStatus.Charging: return new(ControllerBattery.Charging, Percent(report));
-        }
-
-        return Percent(report) is { } percent ? new(LevelOf(percent), percent) : null;
-    }
-
-    private static int? Percent(Windows.Devices.Power.BatteryReport report) =>
-        report is { RemainingCapacityInMilliwattHours: { } remaining, FullChargeCapacityInMilliwattHours: { } full } && full > 0
-            ? Math.Clamp((int)Math.Round(remaining * 100.0 / full), 0, 100)
-            : null;
+        Windows.System.Power.BatteryStatus.NotPresent => new(ControllerBattery.Wired),
+        Windows.System.Power.BatteryStatus.Charging => new(ControllerBattery.Charging),
+        _ => null   // (its level is wrong over Bluetooth: Windows' Bluetooth settings say it instead)
+    };
 
     internal static ControllerBattery LevelOf(int percent) => percent switch
     {

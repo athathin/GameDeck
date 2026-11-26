@@ -71,10 +71,47 @@ public partial class BigPictureWindow
         return NetworkKind.None;
     }
 
-    /// <summary>The battery next to the controller's name (hidden when the controller doesn't say). Called every second.</summary>
+    // an Xbox controller's battery over Bluetooth (Windows' Bluetooth settings): asked in the background every 15 seconds
+    private int? _bluetoothBattery;
+    private long _bluetoothCheckedAt = long.MinValue;
+    private bool _bluetoothChecking;
+
+    private async void RefreshBluetoothBattery()
+    {
+        if (_bluetoothChecking || Environment.TickCount64 - _bluetoothCheckedAt < 15_000) return;
+
+        _bluetoothChecking = true;
+        try
+        {
+            _bluetoothBattery = await BluetoothBattery.ConnectedControllerPercentAsync("Xbox");
+        }
+        finally
+        {
+            _bluetoothChecking = false;
+            _bluetoothCheckedAt = Environment.TickCount64;
+        }
+
+        if (!_closing)
+            UpdateBattery();
+    }
+
+    /// <summary>
+    /// The battery next to the controller's name: hidden while the keyboard and mouse are in use, or when the controller doesn't
+    /// say (a PlayStation controller over Bluetooth). Called every second.
+    /// </summary>
     private void UpdateBattery()
     {
-        var battery = _pad.ActiveBattery;
+        var battery = _padInUse ? _pad.ActiveBattery : BatteryState.None;
+
+        if (_padInUse && _pad.ActiveKind == ControllerKind.Xbox)
+        {
+            RefreshBluetoothBattery();
+
+            // on a cable it says so itself (charging / wired); otherwise the level Windows' Bluetooth settings show
+            if (battery.Level == ControllerBattery.Unknown && _bluetoothBattery is { } bluetooth)
+                battery = new BatteryState(GamepadService.LevelOf(bluetooth), bluetooth);
+        }
+
         if (battery.Level == ControllerBattery.Unknown)
         {
             BatteryPanel.Visibility = Visibility.Collapsed;

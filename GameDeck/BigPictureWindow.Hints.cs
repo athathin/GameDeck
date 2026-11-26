@@ -18,7 +18,10 @@ public partial class BigPictureWindow
             ? "Controller support isn't available. The keyboard works."
             : _pad.ActiveKind == ControllerKind.None
                 ? "No controller found. Connect one, or use the keyboard."
-                : _pad.ActiveName;
+                : _padInUse
+                    ? _pad.ActiveName
+                    : "Keyboard and mouse";   // (a controller is connected, but the keyboard or mouse was used last)
+        InputGlyph.Text = _pad.ActiveKind != ControllerKind.None && !_padInUse ? "" : "";   // a keyboard / a controller
         UpdateBattery();   // (another controller: its battery)
 
         BuildMainHints();
