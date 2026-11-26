@@ -50,7 +50,7 @@
 
 	<ItemGroup>
 		<!-- SDL2: reads Xbox, PlayStation (DualShock 4 / DualSense) and Nintendo Switch Pro controllers; only loaded while Big Picture mode is open -->
-		<PackageReference Include="ppy.SDL2-CS" Version="1.0.82" />
+		<PackageReference Include="ppy.SDL2-CS" Version="1.0.741-alpha" />
 	</ItemGroup>
 
 	<ItemGroup>

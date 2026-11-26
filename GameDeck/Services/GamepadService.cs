@@ -99,8 +99,8 @@ public sealed class GamepadService : IDisposable
     /// What the controller used last says about its battery while it is on a cable: an Xbox controller "Charging" or "Wired"
     /// (Windows.Gaming.Input), another one "Wired" or a level (SDL). The level of an Xbox controller over Bluetooth comes from
     /// Windows' Bluetooth settings instead (<see cref="BluetoothBattery"/>): Windows.Gaming.Input's percentage for it is wrong
-    /// (it said 10% for a full one). The SDL bundled here (2.0.14) answers "empty" whenever it can't read a battery, so only the
-    /// levels it really read count. Unknown when there is no controller or it doesn't say.
+    /// (it said 10% for a full one). SDL can answer "empty" when it can't read a battery (an Xbox controller through XInput),
+    /// so only the levels it really read count. Unknown when there is no controller or it doesn't say.
     /// </summary>
     public BatteryState ActiveBattery
     {
