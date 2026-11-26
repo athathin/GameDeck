@@ -41,6 +41,7 @@ public partial class SettingsView : UserControl
         StartupCheckBox.IsChecked = StartupService.IsEnabled;
         StartMinimizedCheckBox.IsChecked = SettingsService.StartMinimized;
         ShowStartMinimizedOption();
+        StartInBigPictureCheckBox.IsChecked = SettingsService.StartInBigPicture;
 
         var action = SettingsService.CloseAction;
         TrayCheckBox.IsChecked = action == CloseAction.MinimizeToTray;
@@ -236,6 +237,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.StartMinimized = StartMinimizedCheckBox.IsChecked == true;
+    }
+
+    private void StartInBigPictureCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.StartInBigPicture = StartInBigPictureCheckBox.IsChecked == true;
     }
 
     /// <summary>The "minimized to the tray" sub-option only makes sense while launching with Windows is on.</summary>

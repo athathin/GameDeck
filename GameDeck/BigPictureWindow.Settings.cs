@@ -70,6 +70,8 @@ public partial class BigPictureWindow
 
         rows.AddRange(
         [
+            new("Open GameDeck in Big Picture mode  (like a console)", IsOn: () => SettingsService.StartInBigPicture,
+                Activate: () => SettingsService.StartInBigPicture = !SettingsService.StartInBigPicture),
             new("Minimize to the system tray when closing GameDeck", IsOn: () => SettingsService.CloseAction == CloseAction.MinimizeToTray,
                 Activate: () => SettingsService.CloseAction = SettingsService.CloseAction == CloseAction.MinimizeToTray
                     ? CloseAction.Exit

@@ -231,6 +231,8 @@ namespace GameDeck
             // unless the user turned off "Launch GameDeck minimized to the system tray"
             if (startedByWindows || shortcutGame is not null)
                 window.StartInTray();
+            else if (SettingsService.StartInBigPicture)
+                window.StartInBigPicture();   // console-style: straight to the controller screen
             else
                 window.Show();
 
@@ -306,7 +308,7 @@ namespace GameDeck
                 try
                 {
                     while (show.WaitOne())
-                        Dispatcher.BeginInvoke(window.BringToFront);
+                        Dispatcher.BeginInvoke(window.ShowRequested);
                 }
                 catch (ObjectDisposedException)
                 {

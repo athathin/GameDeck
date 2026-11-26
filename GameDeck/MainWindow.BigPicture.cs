@@ -80,6 +80,34 @@ public partial class MainWindow
             BringToFront();
     }
 
+    /// <summary>
+    /// Console-style start ("Open GameDeck in Big Picture mode"): Big Picture, with the desktop window behind it, so exiting
+    /// Big Picture shows the desktop window (GameDeck is never left running with nothing on screen and no tray icon).
+    /// </summary>
+    public void StartInBigPicture()
+    {
+        // the very first start has nothing to show yet: the desktop window scans for games
+        if (_library.Games.Count == 0)
+        {
+            BringToFront();
+            return;
+        }
+
+        if (!IsVisible)
+            _mainHiddenForBigPicture = true;
+
+        OpenBigPicture();
+    }
+
+    /// <summary>GameDeck was started again while running: show it the way it opens (Big Picture when that setting is on).</summary>
+    public void ShowRequested()
+    {
+        if (SettingsService.StartInBigPicture && !IsVisible)
+            StartInBigPicture();
+        else
+            BringToFront();
+    }
+
     /// <summary>Opens the full-screen, controller-friendly library (or brings it back to the front if it's already open).</summary>
     private void OpenBigPicture() => OpenBigPicture(null, null);
 

@@ -49,6 +49,8 @@ public static class SettingsService
 
         public bool StartMinimized { get; set; } = true;
 
+        public bool StartInBigPicture { get; set; }
+
         public bool MinimizeOnLaunch { get; set; } = true;
 
         public bool ShowLaunchToast { get; set; } = true;
@@ -129,6 +131,20 @@ public static class SettingsService
         set
         {
             Current.StartMinimized = value;
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Console-style: when GameDeck opens its window (started by the user, or by Windows with "minimized" off) it opens
+    /// Big Picture mode instead of the desktop window. Exiting Big Picture shows the desktop window.
+    /// </summary>
+    public static bool StartInBigPicture
+    {
+        get => Current.StartInBigPicture;
+        set
+        {
+            Current.StartInBigPicture = value;
             Save();
         }
     }
