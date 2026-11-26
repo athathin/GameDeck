@@ -274,6 +274,9 @@
                                             <TextBlock Text="STATUS" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
                                             <StackPanel x:Name="StatusList"/>
 
+                                            <TextBlock Text="SMART FILTERS" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
+                                            <StackPanel x:Name="SmartList"/>
+
                                             <TextBlock Text="SHOW" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
                                             <CheckBox x:Name="HiddenCheckBox" Style="{StaticResource DarkCheckBox}"
                                                       Content="Hidden games" Checked="HiddenCheckBox_Changed" Unchecked="HiddenCheckBox_Changed"/>

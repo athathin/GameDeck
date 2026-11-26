@@ -35,6 +35,9 @@ public class UserDataService
         public string? Notes { get; set; }
 
         public LaunchProfile? Profile { get; set; }
+
+        /// <summary>When the game first showed up in GameDeck; DateTime.MinValue = not known (see <see cref="RecordAddedDates"/>).</summary>
+        public DateTime? AddedUtc { get; set; }
     }
 
     private Dictionary<string, Entry> _entries = new(StringComparer.OrdinalIgnoreCase);
@@ -64,6 +67,60 @@ public class UserDataService
         game.Rating = Math.Clamp(entry.Rating, 0, 5);
         game.Notes = entry.Notes;
         game.Profile = entry.Profile?.Clone();   // a copy, like the categories
+        game.AddedUtc = entry.AddedUtc;
+    }
+
+    /// <summary>
+    /// Gives every game that has none yet the date it showed up in GameDeck (for the "Recently added" filter). The very first
+    /// time (no game has a date yet: GameDeck just started keeping them, or it was just installed), the games already there get
+    /// the date their install folder was made, or "not known"; so they don't all count as added today. After that, a game
+    /// that appears is dated now.
+    /// </summary>
+    /// <returns>True when something was dated (and saved).</returns>
+    public bool RecordAddedDates(IReadOnlyCollection<Game> games)
+    {
+        var changed = DateNewGames(_entries, games, DateTime.UtcNow, InstallFolderDate);
+        if (changed)
+            Save();
+
+        return changed;
+    }
+
+    /// <summary>The rule of <see cref="RecordAddedDates"/>, on the entries only (nothing is saved: the tests use it).</summary>
+    /// <param name="folderDate">Reads a game's install folder date.</param>
+    internal static bool DateNewGames(Dictionary<string, Entry> entries, IReadOnlyCollection<Game> games, DateTime nowUtc,
+                                      Func<Game, DateTime?> folderDate)
+    {
+        if (games.Count == 0) return false;   // (nothing scanned yet: the first scan's games are "already there" too)
+
+        var firstTime = !entries.Values.Any(e => e.AddedUtc is not null);
+        var changed = false;
+
+        foreach (var game in games)
+        {
+            if (!entries.TryGetValue(game.LaunchTarget, out var entry))
+                entries[game.LaunchTarget] = entry = new Entry();
+
+            if (entry.AddedUtc is not null) continue;
+
+            entry.AddedUtc = firstTime ? folderDate(game) ?? DateTime.MinValue : nowUtc;
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    /// <summary>When the game's install folder was made (UTC), or null when there is none or it can't be read.</summary>
+    private static DateTime? InstallFolderDate(Game game)
+    {
+        try
+        {
+            return game.TrackingFolder is { } folder && Directory.Exists(folder) ? Directory.GetCreationTimeUtc(folder) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Saves the game's launch routine (null or an empty one removes it).</summary>

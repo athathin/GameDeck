@@ -178,6 +178,13 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public string StatusText => Status == GameStatus.None ? "" : Status.Label();
 
+    /// <summary>
+    /// When the game first showed up in GameDeck (UTC), for the "Recently added" filter. DateTime.MinValue = not known (games
+    /// that were already in the library before GameDeck kept this date, and whose install folder date couldn't be read).
+    /// </summary>
+    [JsonIgnore]
+    public DateTime? AddedUtc { get; set; }
+
     /// <summary>True while the game's tile is on screen. The cover is only kept in memory during that time.</summary>
     [JsonIgnore]
     public bool CoverWanted { get; set; }

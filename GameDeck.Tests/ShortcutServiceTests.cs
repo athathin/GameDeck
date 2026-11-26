@@ -74,10 +74,12 @@ public class ShortcutServiceTests : IDisposable
     [Fact]
     public void A_second_start_hands_the_game_to_the_running_GameDeck()
     {
+        // a pipe of the test's own: a GameDeck running on this PC must never receive it (it would try to start the game)
+        var pipe = "GameDeck-Test-" + Guid.NewGuid().ToString("N");
         var received = new TaskCompletionSource<string>();
-        ShortcutService.Listen(target => received.TrySetResult(target));
+        ShortcutService.Listen(target => received.TrySetResult(target), pipe);
 
-        Assert.True(ShortcutService.SendToRunningInstance(@"C:\Games\My Game\game.exe"));
+        Assert.True(ShortcutService.SendToRunningInstance(@"C:\Games\My Game\game.exe", pipe, 10000));
         Assert.True(received.Task.Wait(TimeSpan.FromSeconds(10)));
         Assert.Equal(@"C:\Games\My Game\game.exe", received.Task.Result);
     }

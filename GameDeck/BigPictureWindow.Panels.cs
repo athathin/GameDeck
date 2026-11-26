@@ -500,6 +500,14 @@ public partial class BigPictureWindow
                                    Activate: () => Toggle(_statusFilters, chosen)));
         }
 
+        rows.Add(new FilterRow("SMART FILTERS", IsHeader: true));
+        foreach (var smart in Enum.GetValues<SmartFilter>())
+        {
+            var chosen = smart;
+            rows.Add(new FilterRow(chosen.Label(), IsOn: () => _smartFilters.Contains(chosen),
+                                   Activate: () => Toggle(_smartFilters, chosen)));
+        }
+
         rows.Add(new FilterRow("SHOW", IsHeader: true));
         rows.Add(new FilterRow("Hidden games", IsOn: () => _showHidden, Activate: () => _showHidden = !_showHidden));
 
@@ -532,6 +540,7 @@ public partial class BigPictureWindow
         _launcherFilters.Clear();
         _categoryFilters.Clear();
         _statusFilters.Clear();
+        _smartFilters.Clear();
         _showHidden = false;
     }
 

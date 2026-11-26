@@ -19,7 +19,8 @@ public partial class BigPictureWindow
         ApplyTab(preserveSelection: false);
     }
 
-    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 || _showHidden;
+    private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
+                                     _smartFilters.Count > 0 || _showHidden;
 
     private void ApplyTab(bool preserveSelection)
     {
@@ -63,6 +64,8 @@ public partial class BigPictureWindow
             source = source.Where(g => g.Tags.Any(_categoryFilters.Contains));
         if (_statusFilters.Count > 0)
             source = source.Where(g => _statusFilters.Contains(g.Status));
+        if (_smartFilters.Count > 0)
+            source = source.Where(g => _smartFilters.Any(f => f.Matches(g)));
         if (_query.Length > 0)
             source = source.Where(g => g.DisplayName.Contains(_query, StringComparison.CurrentCultureIgnoreCase) ||
                                        g.Name.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
@@ -127,6 +130,7 @@ public partial class BigPictureWindow
         parts.AddRange(_launcherFilters.Select(LauncherName).Order());
         parts.AddRange(_categoryFilters.Order());
         parts.AddRange(_statusFilters.OrderBy(s => s).Select(s => s.Label()));
+        parts.AddRange(_smartFilters.OrderBy(s => s).Select(s => s.Label()));
         if (_showHidden)
             parts.Add("Hidden games");
 

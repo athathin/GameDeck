@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _sourceFilters = new(StringComparer.OrdinalIgnoreCase);                 // empty = every launcher
     private readonly HashSet<string> _categoryFilters = new(StringComparer.CurrentCultureIgnoreCase);     // empty = every category
     private readonly HashSet<GameStatus> _statusFilters = [];   // empty = every status
+    private readonly HashSet<SmartFilter> _smartFilters = [];   // empty = no smart filter (Never played, Recently added...)
     private bool _showHidden;
     private bool _ready;            // stops the tab buttons from firing while the window is still being built
     private bool _launching;        // true while a game is being prepared (Vanguard starting), so a second click on Play is ignored

@@ -119,13 +119,16 @@ public static class ShortcutService
 
     /// <summary>Asks the GameDeck that is already running to start the game.</summary>
     /// <returns>False when no running GameDeck answered.</returns>
-    public static bool SendToRunningInstance(string launchTarget)
+    public static bool SendToRunningInstance(string launchTarget) => SendToRunningInstance(launchTarget, PipeName, 15000);
+
+    /// <param name="pipeName">The pipe (the tests use one of their own, so they never reach a GameDeck that is running).</param>
+    internal static bool SendToRunningInstance(string launchTarget, string pipeName, int timeoutMs)
     {
         try
         {
             // (the running GameDeck may still be starting up, checking for an update: give it a while to open the pipe)
-            using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
-            pipe.Connect(15000);
+            using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.Out);
+            pipe.Connect(timeoutMs);
 
             var bytes = Encoding.UTF8.GetBytes(launchTarget);
             pipe.Write(bytes);
@@ -142,7 +145,9 @@ public static class ShortcutService
     /// Waits (on a background thread) for other starts of GameDeck to hand over a game to start, and passes each one to
     /// <paramref name="launch"/> (called on that background thread: switch to the UI thread there).
     /// </summary>
-    public static void Listen(Action<string> launch)
+    public static void Listen(Action<string> launch) => Listen(launch, PipeName);
+
+    internal static void Listen(Action<string> launch, string pipeName)
     {
         var listener = new Thread(() =>
         {
@@ -150,7 +155,7 @@ public static class ShortcutService
             {
                 try
                 {
-                    using var pipe = new NamedPipeServerStream(PipeName, PipeDirection.In, 1);
+                    using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1);
                     pipe.WaitForConnection();
 
                     using var reader = new StreamReader(pipe, Encoding.UTF8);
