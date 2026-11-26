@@ -635,6 +635,7 @@
                             BackRequested="SettingsPanel_BackRequested"
                             AddGamesRequested="SettingsPanel_AddGamesRequested"
                             OnlineCoversChanged="SettingsPanel_OnlineCoversChanged"
+                            SteamPlaytimeChanged="SettingsPanel_SteamPlaytimeChanged"
                             QuickLaunchChanged="SettingsPanel_QuickLaunchChanged"
                             UninstallRequested="SettingsPanel_UninstallRequested"
                             ScanRequested="SettingsPanel_ScanRequested"

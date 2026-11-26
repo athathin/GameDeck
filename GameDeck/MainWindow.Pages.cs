@@ -77,6 +77,7 @@ public partial class MainWindow
         await Task.Run(_library.Scan);           // background thread keeps the window responsive
 
         Refresh();
+        _ = LoadSteamPlaytimeAsync();            // (newly found Steam games get their hours too)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
     }
@@ -230,6 +231,29 @@ public partial class MainWindow
         _ = LoadVisibleCoversAsync();   // fetch covers that were skipped while offline
     }
 
+    private void SettingsPanel_SteamPlaytimeChanged(object? sender, EventArgs e) => _ = LoadSteamPlaytimeAsync();
+
+    /// <summary>
+    /// Reads the playtime Steam counted (its files on this PC) in the background and shows it on the Steam games (the higher of
+    /// Steam's and GameDeck's). With "Include playtime from Steam" off, only GameDeck's own playtime is shown.
+    /// </summary>
+    private async Task LoadSteamPlaytimeAsync()
+    {
+        try
+        {
+            var played = SettingsService.SteamPlaytime
+                ? await Task.Run(SteamPlaytime.Read)
+                : new Dictionary<string, SteamPlaytime.Played>();
+
+            _userData.SetExternalPlaytime(played);
+            Refresh();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Steam playtime");   // (the games keep GameDeck's own playtime)
+        }
+    }
+
     // ---------- settings screen ----------
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
@@ -329,7 +353,8 @@ public partial class MainWindow
         Uninstall: Uninstall,
         GetLibrary: () => (_library.Games.ToList(),
                            _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
-                               .ToHashSet(StringComparer.OrdinalIgnoreCase)));
+                               .ToHashSet(StringComparer.OrdinalIgnoreCase)),
+        SteamPlaytimeChanged: () => _ = LoadSteamPlaytimeAsync());
 
     // ---------- clicking on the grid ----------
 

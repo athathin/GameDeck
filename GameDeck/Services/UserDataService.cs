@@ -50,14 +50,39 @@ public class UserDataService
             _entries = new Dictionary<string, Entry>(loaded, StringComparer.OrdinalIgnoreCase);
     }
 
+    // playtime another launcher counted (Steam), by launch target: never saved here, read from the launcher's own files
+    private Dictionary<string, SteamPlaytime.Played> _external = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Playtime a launcher counted itself (Steam's, see <see cref="SteamPlaytime"/>). A game then shows the higher of the two
+    /// totals, and the later "last played": Steam also counts the sessions started from GameDeck, so adding them would count
+    /// those twice. Call <see cref="Apply"/> afterwards.
+    /// </summary>
+    public void SetExternalPlaytime(Dictionary<string, SteamPlaytime.Played> played) =>
+        _external = new Dictionary<string, SteamPlaytime.Played>(played, StringComparer.OrdinalIgnoreCase);
+
+    private long PlaytimeOf(string launchTarget, long own) =>
+        _external.TryGetValue(launchTarget, out var played) ? Math.Max(own, played.Seconds) : own;
+
+    private DateTime? LastPlayedOf(string launchTarget, DateTime? own) =>
+        _external.TryGetValue(launchTarget, out var played) && played.LastPlayedUtc is { } other && (own is null || other > own)
+            ? other
+            : own;
+
     /// <summary>Copies the saved values (favorite, playtime, name, hidden, categories, launch options) onto the game.</summary>
     public void Apply(Game game)
     {
-        if (!_entries.TryGetValue(game.LaunchTarget, out var entry)) return;
+        if (!_entries.TryGetValue(game.LaunchTarget, out var entry))
+        {
+            // nothing saved by GameDeck yet: what Steam counted, if anything
+            game.PlaytimeSeconds = PlaytimeOf(game.LaunchTarget, 0);
+            game.LastPlayed = LastPlayedOf(game.LaunchTarget, null);
+            return;
+        }
 
         game.IsFavorite = entry.Favorite;
-        game.LastPlayed = entry.LastPlayedUtc;
-        game.PlaytimeSeconds = entry.PlaytimeSeconds;
+        game.LastPlayed = LastPlayedOf(game.LaunchTarget, entry.LastPlayedUtc);
+        game.PlaytimeSeconds = PlaytimeOf(game.LaunchTarget, entry.PlaytimeSeconds);
         game.CustomName = entry.CustomName;
         game.IsHidden = entry.Hidden;
         game.LaunchArguments = entry.Arguments;
@@ -290,7 +315,7 @@ public class UserDataService
 
         var entry = GetEntry(game);
         entry.PlaytimeSeconds += seconds;
-        game.PlaytimeSeconds = entry.PlaytimeSeconds;
+        game.PlaytimeSeconds = PlaytimeOf(game.LaunchTarget, entry.PlaytimeSeconds);
         Save();
     }
 

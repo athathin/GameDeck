@@ -60,6 +60,15 @@ public partial class MainWindow : Window
         // Big Picture's "Now playing" banner and the game page's Resume button change straight away
         _tracker.Ended += _ => _bigPicture?.GameEnded();
 
+        // Steam writes the hours of a game when it closes: read them again a little later
+        _tracker.Ended += async game =>
+        {
+            if (game.SteamAppId is null || !SettingsService.SteamPlaytime) return;
+
+            await Task.Delay(TimeSpan.FromSeconds(15));
+            await LoadSteamPlaytimeAsync();
+        };
+
         // the game was closed: bring GameDeck back the way it was left
         _tracker.Closed += ResumeAfterGame;
 
@@ -87,6 +96,7 @@ public partial class MainWindow : Window
         UpdateTileSizeButton();
         Refresh();
         _ready = true;
+        _ = LoadSteamPlaytimeAsync();   // Steam's hours for the Steam games (read in the background)
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe
 

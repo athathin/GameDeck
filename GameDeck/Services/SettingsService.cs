@@ -39,6 +39,8 @@ public static class SettingsService
     {
         public bool OnlineCovers { get; set; } = true;
 
+        public bool SteamPlaytime { get; set; } = true;
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
@@ -156,6 +158,17 @@ public static class SettingsService
         set
         {
             Current.OnlineCovers = value;
+            Save();
+        }
+    }
+
+    /// <summary>Steam games show the playtime Steam counted (from Steam's files on this PC) when it is higher than GameDeck's.</summary>
+    public static bool SteamPlaytime
+    {
+        get => Current.SteamPlaytime;
+        set
+        {
+            Current.SteamPlaytime = value;
             Save();
         }
     }

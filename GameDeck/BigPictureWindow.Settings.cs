@@ -138,6 +138,14 @@ public partial class BigPictureWindow
         ActionButton("Add games with the Windows file picker", "For a keyboard and mouse", "Open",
             () => Task.FromResult(_actions.AddGames(this))),
 
+        Heading("Playtime"),
+        Toggle("Include playtime from Steam", "The hours Steam counted, when they are more than GameDeck's. Read from this PC",
+            () => SettingsService.SteamPlaytime, on =>
+            {
+                SettingsService.SteamPlaytime = on;
+                _actions.SteamPlaytimeChanged();
+            }),
+
         Heading("Tidy up"),
         ActionButton("Find duplicates", "The same game found in more than one launcher", "Find",
             () => Task.FromResult(_actions.FindDuplicates(this))),
