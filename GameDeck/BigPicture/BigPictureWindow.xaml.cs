@@ -106,9 +106,10 @@ public partial class BigPictureWindow : Window
         InitializeComponent();
         Title = AppInfo.DisplayName + " Big Picture";
 
-        // Always on the main display (the one marked "Make this my main display" in Windows' display settings), not on whichever
+        // On the main display (the one marked "Make this my main display" in Windows' display settings), not on whichever
         // screen Windows would pick: a window is maximized on the monitor it sits on when shown, and the main display's top-left
-        // corner is where its work area begins. (The XAML's WindowState="Maximized" does the rest.)
+        // corner is where its work area begins. (The XAML's WindowState="Maximized" does the rest.) Opened from the desktop
+        // window, the main window moves it to that window's screen instead (ScreenPlacement.OpenOnScreenOf).
         var main = SystemParameters.WorkArea;
         WindowStartupLocation = WindowStartupLocation.Manual;
         Left = main.Left;

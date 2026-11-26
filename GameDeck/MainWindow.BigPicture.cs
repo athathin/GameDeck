@@ -137,6 +137,10 @@ public partial class MainWindow
             onlineCoversChanged: () => SettingsPanel_OnlineCoversChanged(null, EventArgs.Empty),
             quickLaunchChanged: ApplyQuickLaunchHotkey);
 
+        // on the screen the desktop window is on (opened from the tray or the controller, with no window showing: the main display)
+        if (IsVisible && WindowState != WindowState.Minimized)
+            ScreenPlacement.OpenOnScreenOf(_bigPicture, this);
+
         _wake?.Suspend();   // Big Picture reads the controllers itself now
         // (and each time it comes back to the front: the background listener, which reads it meanwhile, lets go first)
         _bigPicture.TakingController += () => _wake?.Suspend();
