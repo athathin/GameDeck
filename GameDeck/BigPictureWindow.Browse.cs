@@ -48,7 +48,7 @@ public partial class BigPictureWindow
     {
         if (_browseShotsFor is null)
         {
-            OpenSettings();
+            OpenSettings(keepPlace: true);   // the Library section, on "Add games"
             return;
         }
 

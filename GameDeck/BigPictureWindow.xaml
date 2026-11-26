@@ -423,21 +423,36 @@
             </Border>
         </Grid>
 
-        <!-- ======================= settings: a panel on the right, like the filters ======================= -->
-        <Grid x:Name="SettingsOverlay" Visibility="Collapsed" Background="{DynamicResource Scrim}">
-            <Border HorizontalAlignment="Right" Width="780" Background="{DynamicResource PanelBg}" Padding="0,28,0,20">
+        <!-- ======================= settings: full screen, sections on the left, their settings on the right ======================= -->
+        <Grid x:Name="SettingsOverlay" Visibility="Collapsed" Background="{DynamicResource AppBg}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- the sections (BigPictureWindow.Settings.cs fills them) -->
+            <Border Grid.Column="0" Background="{DynamicResource PanelBg}" Padding="0,44,0,20">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Settings" Foreground="{DynamicResource TextPrimary}" FontSize="28" FontWeight="SemiBold"
-                               Margin="40,0,0,14"/>
-                    <StackPanel x:Name="SettingsHints" DockPanel.Dock="Bottom" Orientation="Horizontal"
-                                HorizontalAlignment="Center" Margin="0,16,0,0"/>
-                    <TextBlock x:Name="SettingsStatus" DockPanel.Dock="Bottom" Visibility="Collapsed" Foreground="{DynamicResource TextSecondary}"
-                               FontSize="16" TextWrapping="Wrap" Margin="40,12,40,0"/>
+                    <TextBlock DockPanel.Dock="Top" Text="Settings" Foreground="{DynamicResource TextPrimary}" FontSize="30" FontWeight="SemiBold"
+                               Margin="44,0,0,26"/>
                     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel x:Name="SettingsList" Margin="28,0,28,0"/>
+                        <StackPanel x:Name="SettingsNav"/>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
+
+            <!-- the chosen section: a title, then its settings as cards under small headings -->
+            <DockPanel Grid.Column="1" Margin="56,44,56,30">
+                <StackPanel x:Name="SettingsHints" DockPanel.Dock="Bottom" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Margin="0,18,0,0"/>
+                <TextBlock x:Name="SettingsStatus" DockPanel.Dock="Bottom" Visibility="Collapsed" Foreground="{DynamicResource TextSecondary}"
+                           FontSize="17" TextWrapping="Wrap" Margin="0,14,0,0"/>
+                <TextBlock x:Name="SettingsPageTitle" DockPanel.Dock="Top" Foreground="{DynamicResource TextPrimary}" FontSize="34"
+                           FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="SettingsList" Margin="0,0,0,12"/>
+                </ScrollViewer>
+            </DockPanel>
         </Grid>
 
         <!-- ======================= add games: a file browser for the controller (Settings > Add games) ======================= -->

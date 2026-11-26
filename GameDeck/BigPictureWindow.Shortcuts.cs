@@ -8,8 +8,11 @@ public partial class BigPictureWindow
 {
     // ---------- the card with every controller shortcut (Power menu > Show Controller Shortcuts) ----------
 
+    private bool _shortcutsFromSettings;   // opened from Settings › Controller (closing goes back there), not from the Power menu
+
     private void OpenShortcuts()
     {
+        _shortcutsFromSettings = _overlay == Overlay.Settings;
         ShowOverlay(Overlay.Shortcuts);
         RenderShortcuts();
         ShortcutsScroll.ScrollToTop();
@@ -126,7 +129,12 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset - 90); break;
             case PadButton.Down: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset + 90); break;
-            case PadButton.Back or PadButton.Confirm or PadButton.Home: CloseOverlay(); break;
+            case PadButton.Back or PadButton.Confirm or PadButton.Home:
+                if (_shortcutsFromSettings && button != PadButton.Home)
+                    OpenSettings(keepPlace: true);
+                else
+                    CloseOverlay();
+                break;
         }
     }
 }
