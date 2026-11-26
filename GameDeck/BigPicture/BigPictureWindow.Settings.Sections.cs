@@ -200,7 +200,25 @@ public partial class BigPictureWindow
         return rows;
     }
 
-    private List<SettingRow> SystemSettings() =>
+    private List<SettingRow> SystemSettings()
+    {
+        var rows = SystemRows();
+
+        // the daily backup in a folder: after Import backup
+        var at = rows.FindIndex(r => r.Title == "Import backup") + 1;
+        rows.Insert(at, new("Save a backup every day", SettingsService.BackupFolder is { } folder
+                ? "In " + BackupService.FolderIn(folder) + ". The last 7 days are kept"
+                : "Off. In a folder you choose: OneDrive, a USB drive... Your data survives a reinstall or a new PC",
+            Button: SettingsService.BackupFolder is null ? "Choose" : "Change", Activate: OpenBackupFolderBrowse));
+
+        if (SettingsService.BackupFolder is not null)
+            rows.Insert(at + 1, new("Stop the daily backup", "The backups already saved stay", Button: "Turn off",
+                Activate: () => SettingsService.BackupFolder = null));
+
+        return rows;
+    }
+
+    private List<SettingRow> SystemRows() =>
     [
         Heading("Updates"),
         new("Version", null, Value: () => UpdateService.CurrentVersionText + (AppInfo.IsBeta ? "  Beta" : "")),

@@ -66,6 +66,8 @@ public static class SettingsService
         public bool ControllerWake { get; set; } = true;
         public bool ControllerShortcuts { get; set; } = true;
         public string? ScreenshotFolder { get; set; }
+
+        public string? BackupFolder { get; set; }
         public bool NavSounds { get; set; } = true;
         public double SoundVolume { get; set; } = 1.0;
 
@@ -289,6 +291,21 @@ public static class SettingsService
             Save();
         }
     }
+
+    /// <summary>A backup file is saved in this folder every day (OneDrive, a USB drive...); null = off (the default).</summary>
+    public static string? BackupFolder
+    {
+        get => Current.BackupFolder;
+        set
+        {
+            Current.BackupFolder = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            Save();
+            BackupFolderChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The backup folder was chosen or turned off (the main window saves a first backup there at once).</summary>
+    public static event Action? BackupFolderChanged;
 
     /// <summary>Confirm with the B button and go back with A (the Nintendo arrangement), on any controller.</summary>
     public static bool SwapConfirmBack

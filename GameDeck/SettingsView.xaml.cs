@@ -79,8 +79,39 @@ public partial class SettingsView : UserControl
         StopCapturing();
         ShowQuickLaunchOptions();
         ShowScreenshotFolder();
+        ShowBackupFolder();
 
         _updating = false;
+    }
+
+    // ---------- the daily backup in a folder ----------
+
+    private void ShowBackupFolder()
+    {
+        BackupFolderText.Text = SettingsService.BackupFolder is { } folder
+            ? $"On: {BackupService.FolderIn(folder)}. The last 7 days are kept; Import backup restores any of them."
+            : "Off. Choose a folder in OneDrive, Google Drive or on a USB drive, and your data survives a reinstall or a new PC.";
+        BackupOffButton.Visibility = SettingsService.BackupFolder is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void BackupFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Save a GameDeck backup every day in",
+            InitialDirectory = SettingsService.BackupFolder is { } chosen && System.IO.Directory.Exists(chosen)
+                ? chosen : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+
+        SettingsService.BackupFolder = dialog.FolderName;   // (the first backup is saved there at once)
+        ShowBackupFolder();
+    }
+
+    private void BackupOffButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsService.BackupFolder = null;   // (the backups already saved stay)
+        ShowBackupFolder();
     }
 
     // ---------- where the controller's screenshots go ----------

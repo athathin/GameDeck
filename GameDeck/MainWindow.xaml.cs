@@ -124,6 +124,7 @@ public partial class MainWindow : Window
         StartControllerWake();   // Home button on a controller opens Big Picture mode
         _lowBattery.Start();     // a notice when the controller's battery runs low (also during games)
         StartDailyUpdateCheck(); // left running for days: a newer version is still found (installed at the next start)
+        StartFolderBackups();    // a backup every day in the folder the user chose (Settings: off by default)
 
         // "you've been playing for 2 hours" (Settings: off by default)
         _breaks = new BreakReminder(() => _tracker.RunningGame is { } game && _tracker.RunningSinceUtc is { } since ? (game, since) : null);
@@ -180,6 +181,7 @@ public partial class MainWindow : Window
         _lowBattery.Dispose();
         _breaks.Dispose();
         _updateTimer.Stop();
+        StopFolderBackups();
         _wake?.Dispose();
         _tray?.Dispose();
     }
