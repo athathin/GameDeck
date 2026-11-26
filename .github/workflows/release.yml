@@ -1,6 +1,7 @@
 # Publishes a new GameDeck release whenever the version in GameDeck/GameDeck.csproj is raised and pushed to main.
 # The tests run first (a failing test stops the release). Both programs (64-bit and 32-bit) are then built here and attached to
-# the release, with release notes made from the commit messages since the previous release. GameDeck itself looks at the latest
+# the release, with the version's section of CHANGELOG.md as release notes (or, without one, the commit messages since the
+# previous release). GameDeck itself looks at the latest
 # release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below must
 # stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
 name: Release
@@ -67,15 +68,27 @@ jobs:
         if: steps.exists.outputs.released == 'false'
         shell: pwsh
         run: |
-          # the first line of every commit since the previous release, without the "Version x.y.z: " start
-          $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
-          $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
-          $lines = git log $range --no-merges --pretty=format:'%s' |
-            ForEach-Object { $_ -replace '^Version [0-9.]+:\s*', '' } |
-            Where-Object { $_ } |
-            ForEach-Object { "- $_" }
-          if (-not $lines) { $lines = '- Improvements and fixes' }
-          $lines | Set-Content -Path release-notes.md -Encoding utf8
+          # the version's section of CHANGELOG.md ("## 1.3.0 (date)" up to the next "## "); GameDeck shows these notes after updating
+          $version = '${{ steps.version.outputs.version }}'
+          $notes = $null
+          if (Test-Path CHANGELOG.md) {
+            $changelog = (Get-Content CHANGELOG.md -Raw) -replace "`r`n", "`n"
+            $section = [regex]::Match($changelog, "(?ms)^## $([regex]::Escape($version))\b[^`n]*`n(.*?)(?=^## |\z)")
+            if ($section.Success) { $notes = $section.Groups[1].Value.Trim() }
+          }
+
+          # no section for this version: the first line of every commit since the previous release, without the "Version x.y.z: " start
+          if (-not $notes) {
+            $previous = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
+            $range = if ($previous) { "$previous..HEAD" } else { 'HEAD' }
+            $notes = git log $range --no-merges --pretty=format:'%s' |
+              ForEach-Object { $_ -replace '^(Version [0-9.]+|Beta):\s*', '' } |
+              Where-Object { $_ } |
+              ForEach-Object { "- $_" }
+            if (-not $notes) { $notes = '- Improvements and fixes' }
+          }
+
+          $notes | Set-Content -Path release-notes.md -Encoding utf8
 
       - name: Create the release
         if: steps.exists.outputs.released == 'false'
