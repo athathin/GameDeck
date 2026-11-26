@@ -65,7 +65,82 @@ public partial class GameDetailsView : UserControl
 
         GenresText.Text = game.Genres.Count > 0 ? "Genres: " + string.Join(", ", game.Genres) : "";
         GenresText.Visibility = game.Genres.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
+        PageScroll.ScrollToTop();
     }
+
+    // ---- layout: one column, or two on a wide screen ----
+
+    /// <summary>From this width on, the play history and the sessions get a column of their own on the right.</summary>
+    private const double WideWidth = 1240;
+    private const double WideMaxWidth = 1640;
+
+    /// <summary>The page in the middle of its space (Big Picture) instead of on the left (the desktop window).</summary>
+    public bool Centered
+    {
+        get => PageRoot.HorizontalAlignment == HorizontalAlignment.Center;
+        set => PageRoot.HorizontalAlignment = value ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+    }
+
+    private void PageScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged)
+            UpdateLayoutMode();
+    }
+
+    /// <summary>
+    /// Wide (and something to put there): the cover, the game's info and screenshots, then a column with the play history and the
+    /// sessions. Otherwise everything in one column under the name, as before.
+    /// </summary>
+    private void UpdateLayoutMode()
+    {
+        var space = PageScroll.ViewportWidth > 0 ? PageScroll.ViewportWidth : PageScroll.ActualWidth;
+        var sideHasContent = HistoryPanel.Visibility == Visibility.Visible || SessionsPanel.Visibility == Visibility.Visible;
+        var wide = space >= WideWidth && sideHasContent;
+
+        // (the page's width is set when wide: sized by its content, the two columns wouldn't share it evenly)
+        PageRoot.MaxWidth = wide ? WideMaxWidth : 900;
+        PageRoot.Width = wide ? Math.Min(space - 16, WideMaxWidth) : double.NaN;
+
+        GapColumn.Width = new GridLength(wide ? 48 : 0);
+        SideColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        Grid.SetColumn(SidePanel, wide ? 3 : 1);
+        Grid.SetRow(SidePanel, wide ? 0 : 1);
+        SidePanel.Margin = new Thickness(0, wide ? -22 : 0, 0, 0);   // (level with the name: each section has room above it)
+    }
+
+    // ---- scrolling with a controller (Big Picture) ----
+
+    /// <summary>Scrolls a third of the page down (+1) or up (-1). False when it was already at that end.</summary>
+    public bool ScrollPage(int direction)
+    {
+        var before = PageScroll.VerticalOffset;
+        var atEnd = direction > 0 ? before >= PageScroll.ScrollableHeight - 0.5 : before <= 0.5;
+        if (atEnd) return false;
+
+        PageScroll.ScrollToVerticalOffset(before + direction * Math.Max(120, PageScroll.ViewportHeight / 3));
+        return true;
+    }
+
+    /// <summary>True when the page is longer than the screen (the controller hints then mention scrolling).</summary>
+    public bool CanScroll => PageScroll.ScrollableHeight > 0.5;
+
+    /// <summary>True when "Add screenshots" is fully on screen (going up from it selects Play again only then).</summary>
+    public bool AddShotsInView
+    {
+        get
+        {
+            if (!AddShotsButton.IsVisible) return false;
+
+            var top = AddShotsButton.TransformToAncestor(PageScroll).Transform(new Point(0, 0)).Y;
+            return top >= 0 && top + AddShotsButton.ActualHeight <= PageScroll.ViewportHeight;
+        }
+    }
+
+    /// <summary>Back to the top of the page (Play selected again).</summary>
+    public void ScrollToTop() => PageScroll.ScrollToTop();
 
     /// <summary>"Where you left off" (shown again after it was written in Big Picture while the page is open).</summary>
     public void ShowLeftOff(Game game)

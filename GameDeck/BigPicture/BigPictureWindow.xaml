@@ -545,7 +545,7 @@
                 <StackPanel x:Name="DetailsHints" DockPanel.Dock="Bottom" Orientation="Horizontal"
                             HorizontalAlignment="Center" Margin="0,16,0,0"/>
                 <!-- the very same page the desktop library opens for a game -->
-                <views:GameDetailsView x:Name="DetailsView" HorizontalAlignment="Center"
+                <views:GameDetailsView x:Name="DetailsView" Centered="True"
                                        BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
                                        ScreenshotRequested="DetailsView_ScreenshotRequested"/>
             </DockPanel>

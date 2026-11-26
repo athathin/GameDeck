@@ -34,22 +34,31 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  SizeChanged="PageScroll_SizeChanged">
+        <StackPanel x:Name="PageRoot" Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
 
             <!-- back button -->
             <Button Style="{StaticResource PillButton}" Margin="0,0,0,22" Padding="14,8"
                     HorizontalAlignment="Left" Content="←  Library" FontSize="14"
                     Click="BackButton_Click" ToolTip="Back to the library (Esc)"/>
 
-            <Grid>
+            <!-- narrow: one column (the screenshots, history and sessions under the rest); wide: those in a column of their
+                 own on the right (UpdateLayoutMode moves SidePanel) -->
+            <Grid x:Name="PageGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition x:Name="GapColumn" Width="0"/>
+                    <ColumnDefinition x:Name="SideColumn" Width="0"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
                 <!-- cover (2:3 poster) -->
-                <Border Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
+                <Border Grid.RowSpan="2" Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
                         Background="{Binding PlaceholderBrush}">
                     <Grid>
                         <Grid.Clip>
@@ -63,7 +72,7 @@
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Column="1">
+                <StackPanel x:Name="InfoPanel" Grid.Column="1">
                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="SemiBold"
                                TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding SourceText}" Foreground="{DynamicResource TextMuted}" FontSize="15" Margin="0,4,0,0"/>
@@ -145,7 +154,10 @@
                         <TextBlock x:Name="ShotsHint" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,0"
                                    Text="None yet. Game Bar captures (Win + Alt + PrtScn) of this game show up here by themselves, or add your own."/>
                     </StackPanel>
+                </StackPanel>
 
+                <!-- history and sessions: under the rest (narrow), or in the right-hand column (wide) -->
+                <StackPanel x:Name="SidePanel" Grid.Column="1" Grid.Row="1">
                     <!-- play history: a square per day of the last weeks, darker the more was played (sessions from GameDeck) -->
                     <StackPanel x:Name="HistoryPanel" Margin="0,22,0,0">
                         <TextBlock Text="PLAY HISTORY" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"

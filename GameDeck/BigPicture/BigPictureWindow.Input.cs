@@ -88,8 +88,20 @@ public partial class BigPictureWindow
                 if (DetailsView.DataContext is Game game) OpenShotBrowse(game);   // (the game whose page is open)
                 break;
             case PadButton.Confirm: _ = PressPlayThenLaunch(); break;
+
+            // Down: Play → "Add screenshots" → then the page scrolls (history, sessions...). Up: the page scrolls back until
+            // "Add screenshots" is on screen again, then Play (at the top)
             case PadButton.Down when !_detailsOnAddShots: SelectDetailsButton(addShots: true); break;
-            case PadButton.Up when _detailsOnAddShots: SelectDetailsButton(addShots: false); break;
+            case PadButton.Down: DetailsView.ScrollPage(1); break;
+            case PadButton.Up when _detailsOnAddShots && !DetailsView.AddShotsInView && DetailsView.ScrollPage(-1): break;
+            case PadButton.Up when _detailsOnAddShots:
+                SelectDetailsButton(addShots: false);
+                DetailsView.ScrollToTop();
+                break;
+
+            // the triggers scroll a page at a time, whichever button is selected
+            case PadButton.RightTrigger: DetailsView.ScrollPage(1); break;
+            case PadButton.LeftTrigger: DetailsView.ScrollPage(-1); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
@@ -148,6 +160,12 @@ public partial class BigPictureWindow
 
         FillDetailsHints();
         ShowOverlay(Overlay.Details);
+
+        // whether the page is longer than the screen is only known once it is laid out: the "Scroll" hint follows then
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            if (_overlay == Overlay.Details) FillDetailsHints();
+        });
     }
 
     private void FillDetailsHints()
@@ -157,6 +175,9 @@ public partial class BigPictureWindow
 
         if (DetailsView.Shots.Count > 0)
             hints.Add((l.Y, "Screenshots"));
+
+        if (DetailsView.CanScroll)
+            hints.Add(($"{l.LeftTrigger} / {l.RightTrigger}", "Scroll"));
 
         hints.Add((l.Back, "Back"));
         FillHints(DetailsHints, hints.ToArray());
