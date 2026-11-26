@@ -37,6 +37,22 @@ public static class DisplayModes
         return Order(modes);
     }
 
+    /// <summary>
+    /// The modes to offer and the one in use (the launch routine's lists, desktop and Big Picture); nothing when Windows can't
+    /// be asked.
+    /// </summary>
+    public static (List<DisplayMode> Modes, DisplayMode? Current) ForChoosing()
+    {
+        try
+        {
+            return (Available(), Current());
+        }
+        catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException or System.ComponentModel.Win32Exception)
+        {
+            return ([], null);
+        }
+    }
+
     /// <summary>Biggest first, then fastest first (separate so the tests can check it).</summary>
     internal static List<DisplayMode> Order(IEnumerable<DisplayMode> modes) =>
         modes.Distinct()

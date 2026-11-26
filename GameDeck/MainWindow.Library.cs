@@ -27,6 +27,7 @@ public partial class MainWindow
             }
 
             DiskUsage.ApplySaved(_library.Games);   // the sizes measured before (new games are measured in the background)
+            SteamAppInfo.Apply(_library.Games, _steamApps);   // DLC and soundtracks installed as Steam apps aren't games
         }
 
         // a launcher / category that no longer has any games (after a scan) stops being a filter
@@ -68,6 +69,8 @@ public partial class MainWindow
         IEnumerable<Game> shown = _library.Games;
         if (!_showHidden)
             shown = shown.Where(g => !g.IsHidden);
+        if (!_showAddOns)
+            shown = shown.Where(g => !g.IsAddOn);
         if (_sourceFilters.Count > 0)
             shown = shown.Where(g => _sourceFilters.Contains(g.Source));
         if (_categoryFilters.Count > 0)
@@ -116,7 +119,7 @@ public partial class MainWindow
             };
         EmptyText.Visibility = realCount == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        UpdateContinue(_view is not ("Favorites" or "Recent") && !filtered && !_showHidden);
+        UpdateContinue(_view is not ("Favorites" or "Recent") && !filtered && !_showHidden && !_showAddOns);
     }
 
     private IOrderedEnumerable<Game> Sort(IEnumerable<Game> games) => _sort switch
@@ -300,7 +303,7 @@ public partial class MainWindow
     }
 
     private bool HasActiveFilters => _sourceFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden;
+                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden || _showAddOns;
 
     /// <summary>The filter icon: opens the Library Filters panel. (While it's open the icon can't be clicked, so clicking it closes the panel.)</summary>
     private void FilterButton_Click(object sender, RoutedEventArgs e)
@@ -340,6 +343,8 @@ public partial class MainWindow
 
         if (_showHidden)
             AddFilterChip("Hidden games", () => _showHidden = false);
+        if (_showAddOns)
+            AddFilterChip("DLC and soundtracks", () => _showAddOns = false);
 
         var any = FilterChips.Children.Count > 0;
         FilterChips.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
@@ -403,6 +408,7 @@ public partial class MainWindow
         _smartFilters.Clear();
         _genreFilters.Clear();
         _showHidden = false;
+        _showAddOns = false;
         FiltersChanged();
     }
 
@@ -498,6 +504,8 @@ public partial class MainWindow
 
         _buildingFilterPanel = true;
         HiddenCheckBox.IsChecked = _showHidden;
+        AddOnsCheckBox.IsChecked = _showAddOns;
+        AddOnsCheckBox.Visibility = _showAddOns || _library.Games.Any(g => g.IsAddOn) ? Visibility.Visible : Visibility.Collapsed;
         _buildingFilterPanel = false;
 
         // sort order (one of four)
@@ -550,6 +558,14 @@ public partial class MainWindow
         if (_buildingFilterPanel) return;
 
         _showHidden = HiddenCheckBox.IsChecked == true;
+        Refresh();
+    }
+
+    private void AddOnsCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_buildingFilterPanel) return;
+
+        _showAddOns = AddOnsCheckBox.IsChecked == true;
         Refresh();
     }
 }

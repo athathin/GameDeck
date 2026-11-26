@@ -125,6 +125,9 @@
                                Margin="2,4,0,0"/>
                     <TextBlock x:Name="GenresText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
                                Margin="2,4,0,0"/>
+                    <!-- its DLC and soundtracks that Steam installed as apps of their own (kept out of the library) -->
+                    <TextBlock x:Name="AddOnsText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
+                               Margin="2,4,0,0"/>
 
                     <!-- "where I left off": written when the game was closed (or from its menu) -->
                     <StackPanel x:Name="LeftOffPanel" Margin="0,22,0,0">

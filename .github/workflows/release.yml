@@ -4,6 +4,8 @@
 # removed (their pages and notes stay), so only the newest version can be downloaded. GameDeck itself looks at the latest
 # release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below must
 # stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
+# A push whose last commit message contains "[replace release]" rebuilds the current version's release from scratch (its
+# downloads and notes are replaced) instead of skipping it. Copies that already have that version don't update to it.
 name: Release
 
 on:
@@ -36,9 +38,21 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          gh release view "v${{ steps.version.outputs.version }}" *> $null
-          "released=$($LASTEXITCODE -eq 0)".ToLower() >> $env:GITHUB_OUTPUT
+          $tag = "v${{ steps.version.outputs.version }}"
+          gh release view $tag *> $null
+          $released = $LASTEXITCODE -eq 0
+
+          # "[replace release]": the existing release and its tag go, so it is built again below from this commit
+          if ($released -and "$env:COMMIT_MESSAGE".Contains('[replace release]')) {
+            gh release delete $tag --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) { throw "The release $tag could not be removed to be replaced." }
+            Write-Host "Removed ${tag}: it is built again from this commit."
+            $released = $false
+          }
+
+          "released=$released".ToLower() >> $env:GITHUB_OUTPUT
           $global:LASTEXITCODE = 0
 
       - uses: actions/setup-dotnet@v6

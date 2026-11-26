@@ -26,10 +26,20 @@ public partial class BigPictureWindow
     // not null = choosing a folder (Settings › Screenshots, Settings › System › Backup): folders only
     private FolderChoice? _browseFolder;
 
+    /// <summary>
+    /// Choosing one program (a launch routine's "Add an app"): the browser's title, what choosing one does (a reason it can't be
+    /// used, or null when it was taken), and where Back goes once it is done.
+    /// </summary>
+    private sealed record ProgramChoice(string Title, Func<string, string?> Chosen, Action Done);
+
+    // not null = choosing one program for a launch routine
+    private ProgramChoice? _browseProgram;
+
     private void OpenBrowse()
     {
         _browseShotsFor = null;
         _browseFolder = null;
+        _browseProgram = null;
         StartBrowse();
     }
 
@@ -38,7 +48,30 @@ public partial class BigPictureWindow
     {
         _browseShotsFor = game;
         _browseFolder = null;
+        _browseProgram = null;
         StartBrowse();
+    }
+
+    /// <summary>The same browser, choosing one program (.exe) for a launch routine.</summary>
+    private void OpenProgramBrowse(ProgramChoice choice)
+    {
+        _browseShotsFor = null;
+        _browseFolder = null;
+        _browseProgram = choice;
+        StartBrowse();
+    }
+
+    private void ChooseProgram(string file)
+    {
+        var choice = _browseProgram!;
+        if (choice.Chosen(file) is { } problem)
+        {
+            ShowBrowseStatus(problem);   // (a system program, a launcher, the game itself: the browser stays open)
+            return;
+        }
+
+        _browseProgram = null;
+        choice.Done();
     }
 
     /// <summary>The same browser, choosing the folder the controller's screenshots are saved in (Settings › Screenshots).</summary>
@@ -60,6 +93,7 @@ public partial class BigPictureWindow
     private void OpenFolderBrowse(FolderChoice choice)
     {
         _browseShotsFor = null;
+        _browseProgram = null;
         _browseFolder = choice;
         StartBrowse();
     }
@@ -84,6 +118,13 @@ public partial class BigPictureWindow
     /// <summary>Back to where it was opened from: the settings, or the game's page (with its new screenshots).</summary>
     private void CloseBrowse()
     {
+        if (_browseProgram is { } program)
+        {
+            _browseProgram = null;
+            program.Done();   // back to the launch routine
+            return;
+        }
+
         if (_browseShotsFor is null)
         {
             _browseFolder = null;
@@ -101,7 +142,7 @@ public partial class BigPictureWindow
     {
         var l = Labels();
 
-        var open = _browseFolder is not null ? "Open / choose" : "Open / pick";
+        var open = _browseFolder is not null || _browseProgram is not null ? "Open / choose" : "Open / pick";
 
         // "Add picked" only once something is picked (X does nothing before); the keyboard's F does the same as X here
         var hints = new List<(string, string)> { (l.Confirm, open) };
@@ -126,7 +167,7 @@ public partial class BigPictureWindow
         _browseRows = rows;
         BrowseTitle.Text = _browsePath ?? (_browseShotsFor is { } game
             ? $"Add screenshots to {game.DisplayName}: choose where to look"
-            : _browseFolder?.Title ?? "Add games: choose where to look");
+            : _browseFolder?.Title ?? _browseProgram?.Title ?? "Add games: choose where to look");
 
         if (firstRow || _browseIndex < 0 || _browseIndex >= rows.Count || rows[_browseIndex].IsHeader)
             _browseIndex = Math.Max(0, rows.FindIndex(r => !r.IsHeader));
@@ -193,7 +234,7 @@ public partial class BigPictureWindow
         var foldersOnly = _browseFolder is not null;
         if (_browseFolder is { } choice)
             rows.Add(new FilterRow(choice.ChooseHere, Activate: () => ChooseFolder(path)));
-        else if (!pictures)
+        else if (!pictures && _browseProgram is null)
             rows.Add(new FilterRow("Add this folder as a game  (GameDeck finds its program)", Activate: () => AddFolderAsGame(path)));
 
         List<string> folders = [];
@@ -241,7 +282,17 @@ public partial class BigPictureWindow
             }
         }
 
-        if (programs.Count > 0)
+        if (programs.Count > 0 && _browseProgram is not null)
+        {
+            // one program, chosen with a single press
+            rows.Add(new FilterRow("PROGRAMS  (choose one)", IsHeader: true));
+            foreach (var program in programs)
+            {
+                var file = program;
+                rows.Add(new FilterRow(Path.GetFileName(file), Activate: () => ChooseProgram(file)));
+            }
+        }
+        else if (programs.Count > 0)
         {
             rows.Add(new FilterRow(pictures ? "PICTURES  (pick the screenshots)" : "PROGRAMS  (pick the games' .exe files)", IsHeader: true));
             foreach (var program in programs)

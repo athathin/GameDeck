@@ -18,7 +18,7 @@ public partial class MainWindow
     private void UpdateContinue(bool wanted)
     {
         var games = wanted
-            ? _library.Games.Where(g => !g.IsHidden && g.LastPlayed is not null)
+            ? _library.Games.Where(g => !g.IsHidden && !g.IsAddOn && g.LastPlayed is not null)
                             .OrderByDescending(g => g.LastPlayed).Take(ContinueCount).ToList()
             : [];
 

@@ -18,7 +18,7 @@ public partial class BigPictureWindow
     }
 
     private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden;
+                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden || _showAddOns;
 
     private void ApplyTab(bool preserveSelection)
     {
@@ -71,6 +71,8 @@ public partial class BigPictureWindow
         IEnumerable<Game> source = _library;
         if (!_showHidden)
             source = source.Where(g => !g.IsHidden);
+        if (!_showAddOns)
+            source = source.Where(g => !g.IsAddOn);
         if (_launcherFilters.Count > 0)
             source = source.Where(g => _launcherFilters.Contains(g.Source));
         if (_categoryFilters.Count > 0)
@@ -150,6 +152,8 @@ public partial class BigPictureWindow
         parts.AddRange(_genreFilters.Order(StringComparer.CurrentCultureIgnoreCase));
         if (_showHidden)
             parts.Add("Hidden games");
+        if (_showAddOns)
+            parts.Add("DLC and soundtracks");
 
         FilterSummary.Text = "Showing: " + string.Join("  ·  ", parts);
         FilterSummary.Visibility = parts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -222,7 +226,7 @@ public partial class BigPictureWindow
 
         StatTotal.Text = total <= 0 ? "0 min" : Game.FormatPlaytime(total);
         StatPlayed.Text = played.Count.ToString();
-        StatLibrary.Text = visible.Count.ToString();
+        StatLibrary.Text = visible.Count(g => !g.IsAddOn).ToString();
 
         var week = _sessions.SecondsThisWeek();
         StatWeek.Text = week <= 0 ? "0 min" : week < 3600 ? $"{week / 60} min" : $"{week / 3600.0:0.#} h";

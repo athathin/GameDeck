@@ -16,7 +16,7 @@ public static class HomeShelves
 {
     public static List<Shelf> Build(IEnumerable<Game> library, int count, DateTime nowUtc)
     {
-        var games = library.Where(g => !g.IsHidden).ToList();
+        var games = library.Where(g => !g.IsHidden && !g.IsAddOn).ToList();   // (DLC and soundtracks aren't played by themselves)
         var today = DateOnly.FromDateTime(nowUtc.ToLocalTime());
 
         // the games played last first, then by name: the order of the shelves without an order of their own

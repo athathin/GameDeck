@@ -119,18 +119,7 @@ public partial class LaunchRoutineDialog : Window
     /// <summary>"Don't change", then every mode the main display offers (the one in use now marked), the saved one selected.</summary>
     private void FillDisplayList(DisplayMode? saved)
     {
-        List<DisplayMode> modes;
-        DisplayMode? current;
-        try
-        {
-            modes = DisplayModes.Available();
-            current = DisplayModes.Current();
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or EntryPointNotFoundException or DllNotFoundException)
-        {
-            modes = [];
-            current = null;
-        }
+        var (modes, current) = DisplayModes.ForChoosing();
 
         var choices = new List<DisplayChoice> { new(null) };
         choices.AddRange(modes.Select(m => new DisplayChoice(m, m == current ? "(now)" : null)));

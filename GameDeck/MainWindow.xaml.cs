@@ -26,6 +26,8 @@ public partial class MainWindow : Window
     private readonly HashSet<SmartFilter> _smartFilters = [];   // empty = no smart filter (Never played, Recently added...)
     private readonly HashSet<string> _genreFilters = new(StringComparer.CurrentCultureIgnoreCase);   // empty = every genre
     private bool _showHidden;
+    private bool _showAddOns;       // the "DLC and soundtracks" filter: Steam add-ons installed as apps are listed too
+    private Dictionary<string, SteamAppInfo.App> _steamApps = [];   // what kind of app each Steam game is (see SteamAppInfo)
     private bool _ready;            // stops the tab buttons from firing while the window is still being built
     private bool _launching;        // true while a game is being prepared (Vanguard starting), so a second click on Play is ignored
     private bool _exiting;          // true when the app is really quitting (tray "Exit", Windows shutting down)
@@ -103,11 +105,19 @@ public partial class MainWindow : Window
         ScreenshotService.Library = () => _library.Games;   // a game's page tells its captures from other games' (Portal / Portal 2)
         _userData.Load();   // favorites, last played, playtime, names...
         _sessions.Load();   // dated play sessions for the Stats tab
+
+        // Xbox games saved with the wrong app id (it said "can't find the file" at launch): put right, their data follows
+        foreach (var (oldKey, newKey) in _library.RepairXboxLinks())
+        {
+            _userData.RenameKey(oldKey, newKey);
+            _sessions.RenameKey(oldKey, newKey);
+        }
         UpdateTileSizeButton();
         Refresh();
         _ready = true;
         _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
         _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
+        _ = LoadSteamAppsAsync();          // and which Steam apps are DLC or soundtracks, not games
         FetchGenres();                  // the Steam games' genres not asked for yet
         // each game's size on disk (in the background, sizes older than a few days), once start-up is over: also in the tray
         _sizesTimer.Tick += SizesTimer_Tick;
@@ -244,7 +254,7 @@ public partial class MainWindow : Window
 
     /// <summary>The five games played last (hidden ones left out), for the tray menu. Clicking one starts it.</summary>
     private IReadOnlyList<TrayGame> RecentGamesForTray() => _library.Games
-        .Where(g => g.LastPlayed is not null && !g.IsHidden)
+        .Where(g => g.LastPlayed is not null && !g.IsHidden && !g.IsAddOn)
         .OrderByDescending(g => g.LastPlayed)
         .Take(5)
         .Select(g => new TrayGame(g.DisplayName, CoverService.FindCachedCover(g), () => _ = LaunchGameAsync(g)))
