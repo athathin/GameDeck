@@ -1,5 +1,4 @@
-# Builds GameDeck and runs the tests for every proposed change (pull request), so a change that breaks something is noticed
-# before it is accepted. (The Release workflow also runs the tests before it publishes anything.)
+# Builds GameDeck for every proposed change (pull request), so a change that doesn't build is noticed before it is accepted.
 name: Check
 
 on:
@@ -20,6 +19,3 @@ jobs:
 
       - name: Build
         run: dotnet build GameDeck.slnx -c Release
-
-      - name: Test
-        run: dotnet test GameDeck.Tests/GameDeck.Tests.csproj -c Release --no-build

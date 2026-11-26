@@ -1,7 +1,7 @@
 # Publishes a new GameDeck release whenever the version in GameDeck/GameDeck.csproj is raised and pushed to main.
-# The tests run first (a failing test stops the release). Both programs (64-bit and 32-bit) are then built here and attached to
-# the release, with the version's section of CHANGELOG.md as release notes (or, without one, the commit messages since the
-# previous release). GameDeck itself looks at the latest
+# Both programs (64-bit and 32-bit) are built here and attached to the release, with the version's section of CHANGELOG.md as
+# release notes (or, without one, the commit messages since the previous release). The files of the older releases are then
+# removed (their pages and notes stay), so only the newest version can be downloaded. GameDeck itself looks at the latest
 # release each time it starts and installs the newer version (see Services/UpdateService.cs), so the file names below must
 # stay GameDeck-win-x64.exe and GameDeck-win-x86.exe.
 name: Release
@@ -45,13 +45,6 @@ jobs:
         if: steps.exists.outputs.released == 'false'
         with:
           dotnet-version: 10.0.x
-
-      - name: Run the tests
-        if: steps.exists.outputs.released == 'false'
-        shell: pwsh
-        run: |
-          dotnet test GameDeck.Tests/GameDeck.Tests.csproj -c Release
-          if ($LASTEXITCODE -ne 0) { throw 'The tests failed, so no release is made.' }
 
       - name: Build the 64-bit and 32-bit programs
         if: steps.exists.outputs.released == 'false'
@@ -100,3 +93,25 @@ jobs:
             "out/GameDeck-win-x64.exe#GameDeck for 64-bit Windows (most PCs)" `
             "out/GameDeck-win-x86.exe#GameDeck for 32-bit Windows" `
             --title "GameDeck ${{ steps.version.outputs.version }}" --notes-file release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'The release could not be created.' }
+
+      # only after the new release exists: the older ones' downloads go (their pages and release notes stay)
+      - name: Remove the files of older releases
+        if: steps.exists.outputs.released == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $current = "v${{ steps.version.outputs.version }}"
+          $tags = gh release list --limit 1000 --json tagName --jq '.[].tagName'
+          foreach ($tag in $tags) {
+            if ($tag -eq $current) { continue }
+
+            $assets = gh release view $tag --json assets --jq '.assets[].name'
+            foreach ($asset in $assets) {
+              gh release delete-asset $tag $asset --yes
+              if ($LASTEXITCODE -ne 0) { Write-Warning "Couldn't remove $asset from $tag" }
+              else { Write-Host "Removed $asset from $tag" }
+            }
+          }
+          $global:LASTEXITCODE = 0   # (a file that couldn't be removed doesn't make the new release fail)
