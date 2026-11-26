@@ -306,8 +306,8 @@ public partial class BigPictureWindow
     {
         if (((FrameworkElement)sender).DataContext is not Game game) return;
 
-        // scrolled far away: free the picture, unless the main window's own tile still shows this game (or the Continue row does)
-        if (!_continueItems.Contains(game) && _touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
+        // scrolled far away: free the picture, unless the main window's own tile still shows this game (or the home row does)
+        if (!_continueItems.Any(i => i.Game == game) && _touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
         {
             game.CoverWanted = false;
             game.Cover = null;

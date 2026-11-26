@@ -143,9 +143,11 @@
 
             <!-- middle: the row of games, then the selected game's name and details -->
             <Grid x:Name="MiddleArea" Grid.Row="1">
-                <!-- "Continue playing": the games played last (only on the plain All games list, when the screen is tall enough) -->
+                <!-- the home row: a shelf of games, Continue playing first; X (or a click on the title) shows the next shelf
+                     (only on the plain All games list, when the screen is tall enough) -->
                 <StackPanel x:Name="ContinuePanel" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="6,8,0,0" Visibility="Collapsed">
-                    <TextBlock Text="CONTINUE PLAYING" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,0,0,10"/>
+                    <TextBlock x:Name="ShelfTitle" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,0,0,10"
+                               HorizontalAlignment="Left" Cursor="Hand" MouseLeftButtonUp="ShelfTitle_MouseLeftButtonUp"/>
                     <ListBox x:Name="ContinueList" Background="Transparent" BorderThickness="0" Focusable="False">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
@@ -182,13 +184,14 @@
                                         <ColumnDefinition Width="51"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Border Background="{Binding PlaceholderBrush}">
-                                        <Image Source="{Binding Cover}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <Border Background="{Binding Game.PlaceholderBrush}">
+                                        <Image Source="{Binding Game.Cover}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
-                                        <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="SemiBold"
+                                        <TextBlock Text="{Binding Game.DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding LastPlayedText}" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,3,0,0"/>
+                                        <TextBlock Text="{Binding Note}" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,3,0,0"
+                                                   TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>

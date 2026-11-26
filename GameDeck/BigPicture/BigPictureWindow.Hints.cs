@@ -52,6 +52,9 @@ public partial class BigPictureWindow
         if (IsGamesTab && !_topFocus && !_stripFocus)
             items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU"));
 
+        if (_stripFocus && _shelves.Count > 1)
+            items.Add((RoundButton(l.X, onController), "NEXT SHELF"));
+
         if (_tab == StatsTab && !_topFocus)
             items.Add((RoundButton(l.X, onController), "REFRESH"));
 
