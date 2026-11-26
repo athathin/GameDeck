@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
         <!-- big blue "Play" button -->
         <Style x:Key="PlayButton" TargetType="Button">
             <Setter Property="Foreground" Value="#0B1220"/>
@@ -88,6 +90,14 @@
                             <StackPanel>
                                 <TextBlock x:Name="RankText" Foreground="{DynamicResource TextPrimary}" FontSize="24" FontWeight="SemiBold"/>
                                 <TextBlock Text="most played rank" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- from Steam's (or GOG Galaxy's) files on this PC: only when they say -->
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14" MinWidth="170"
+                                Visibility="{Binding HasAchievements, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding AchievementsText}" Foreground="{DynamicResource TextPrimary}" FontSize="24" FontWeight="SemiBold"/>
+                                <TextBlock Text="achievements" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
                     </WrapPanel>

@@ -19,7 +19,7 @@ namespace GameDeck.Services;
 /// </summary>
 public static class LauncherPlaytime
 {
-    private static readonly string GalaxyDatabase = Path.Combine(
+    internal static readonly string GalaxyDatabase = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "GOG.com", "Galaxy", "storage", "galaxy-2.0.db");
 
     private static readonly string ItchDatabase = Path.Combine(
@@ -81,7 +81,7 @@ public static class LauncherPlaytime
                                   r.IsDBNull(3) ? null : TitleOf(r.GetString(3)))) : [];
 
     /// <summary>Galaxy keeps a title as JSON: {"title":"Cyberpunk 2077"}.</summary>
-    private static string? TitleOf(string json)
+    internal static string? TitleOf(string json)
     {
         try
         {
@@ -95,7 +95,7 @@ public static class LauncherPlaytime
     }
 
     /// <summary>GOG's games on this PC: product id -> the program GameDeck starts (its launch target, see GogScanner).</summary>
-    private static Dictionary<string, string> GogProductIds()
+    internal static Dictionary<string, string> GogProductIds()
     {
         var ids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var root = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(@"SOFTWARE\GOG.com\Games");
@@ -120,28 +120,38 @@ public static class LauncherPlaytime
 
         foreach (var row in rows)
         {
-            var split = row.ReleaseKey.IndexOf('_');
-            if (split <= 0) continue;
-
-            var platform = row.ReleaseKey[..split];
-            var id = row.ReleaseKey[(split + 1)..];
-
-            IEnumerable<string> matches = platform.ToLowerInvariant() switch
-            {
-                "steam" => [$"steam://rungameid/{id}"],
-                "gog" => gogExeById.TryGetValue(id, out var exe) ? [exe] : [],
-                _ when GalaxyPlatforms.TryGetValue(platform, out var source) && CoverService.Normalize(row.Title) is { Length: > 0 } title =>
-                    games.Where(g => (source.Length == 0 ? g.Source is not ("Steam" or "GOG") : g.Source == source) &&
-                                     (CoverService.Normalize(g.Name) == title || CoverService.Normalize(g.DisplayName) == title))
-                         .Select(g => g.LaunchTarget),
-                _ => []
-            };
-
-            foreach (var target in matches.Where(targets.Contains))
+            foreach (var target in GalaxyTargets(row.ReleaseKey, row.Title, games, gogExeById, targets))
                 Merge(played, new() { [target] = new Played(row.Minutes * 60, row.LastPlayedUtc) });
         }
 
         return played;
+    }
+
+    /// <summary>
+    /// The launch targets of GameDeck's games that one of Galaxy's games ("steam_620", "gog_1423049311", "uplay_...") is:
+    /// Steam and GOG by id, the others by exact title within the same launcher.
+    /// </summary>
+    internal static IEnumerable<string> GalaxyTargets(string releaseKey, string? galaxyTitle, IReadOnlyCollection<Game> games,
+                                                      IReadOnlyDictionary<string, string> gogExeById, IReadOnlySet<string> targets)
+    {
+        var split = releaseKey.IndexOf('_');
+        if (split <= 0) return [];
+
+        var platform = releaseKey[..split];
+        var id = releaseKey[(split + 1)..];
+
+        IEnumerable<string> matches = platform.ToLowerInvariant() switch
+        {
+            "steam" => [$"steam://rungameid/{id}"],
+            "gog" => gogExeById.TryGetValue(id, out var exe) ? [exe] : [],
+            _ when GalaxyPlatforms.TryGetValue(platform, out var source) && CoverService.Normalize(galaxyTitle) is { Length: > 0 } title =>
+                games.Where(g => (source.Length == 0 ? g.Source is not ("Steam" or "GOG") : g.Source == source) &&
+                                 (CoverService.Normalize(g.Name) == title || CoverService.Normalize(g.DisplayName) == title))
+                     .Select(g => g.LaunchTarget),
+            _ => []
+        };
+
+        return matches.Where(targets.Contains);
     }
 
     // ---------- itch.io ----------
@@ -173,7 +183,7 @@ public static class LauncherPlaytime
     /// Runs a query on a copy of the database: the launcher may be running and using it, and its database is never touched.
     /// (The -wal file holds the latest changes of a database in use: it is copied with it.)
     /// </summary>
-    private static List<T> Query<T>(string database, string sql, Func<SqliteDataReader, T> read)
+    internal static List<T> Query<T>(string database, string sql, Func<SqliteDataReader, T> read)
     {
         var copy = Path.Combine(Path.GetTempPath(), $"gamedeck-{Guid.NewGuid():N}.db");
         try

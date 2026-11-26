@@ -66,10 +66,13 @@ public partial class MainWindow : Window
         // the launchers write the hours of a game when it closes: read them again a little later
         _tracker.Ended += async game =>
         {
-            if (game.Source is not ("Steam" or "itch.io") || !SettingsService.ImportPlaytime) return;
+            if (game.Source is not ("Steam" or "itch.io")) return;
 
             await Task.Delay(TimeSpan.FromSeconds(15));
-            await LoadLauncherPlaytimeAsync();
+            if (SettingsService.ImportPlaytime)
+                await LoadLauncherPlaytimeAsync();
+            if (game.Source == "Steam")
+                await LoadAchievementsAsync();   // (the ones unlocked in that session)
         };
 
         // the game was closed: bring GameDeck back the way it was left
@@ -100,6 +103,7 @@ public partial class MainWindow : Window
         Refresh();
         _ready = true;
         _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
+        _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
         FetchGenres();                  // the Steam games' genres not asked for yet
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe

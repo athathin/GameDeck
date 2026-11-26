@@ -236,6 +236,23 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public string LastPlayedText => LastPlayed is { } time ? time.ToLocalTime().ToString("d MMM yyyy") : "Never";
 
+    private string? _achievementsText;
+
+    /// <summary>"23 / 50" from Steam's (or GOG Galaxy's) files on this PC, or null when they don't say (see Achievements).</summary>
+    [JsonIgnore]
+    public string? AchievementsText
+    {
+        get => _achievementsText;
+        set
+        {
+            if (Set(ref _achievementsText, value))
+                Notify(nameof(HasAchievements));
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasAchievements => _achievementsText is not null;
+
     private long _playtimeSeconds;
 
     [JsonIgnore]

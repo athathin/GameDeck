@@ -83,6 +83,7 @@ public partial class MainWindow
 
         Refresh();
         _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
+        _ = LoadAchievementsAsync();                // (and their achievements)
         FetchGenres();                           // (and their genres)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
@@ -262,6 +263,23 @@ public partial class MainWindow
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             CrashLog.Write(ex, "Steam playtime");   // (the games keep GameDeck's own playtime)
+        }
+    }
+
+    /// <summary>The achievements unlocked per game, from Steam's (and GOG Galaxy's) files on this PC (see Achievements), read in the background.</summary>
+    private async Task LoadAchievementsAsync()
+    {
+        try
+        {
+            var games = _library.Games.ToList();
+            var counts = await Task.Run(() => Achievements.Read(games));
+
+            foreach (var game in games)
+                game.AchievementsText = counts.TryGetValue(game.LaunchTarget, out var count) ? count.ToString() : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Achievements");   // (the game pages just don't show them)
         }
     }
 
