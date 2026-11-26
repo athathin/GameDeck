@@ -72,7 +72,7 @@ public partial class GameDetailsView : UserControl
         {
             var library = ScreenshotService.Library?.Invoke().ToList();   // (a copy, taken here: the folders are read in the background)
             files = await Task.Run(() => ScreenshotService.Find(game, library));
-            thumbnails = await Task.Run(() => files.Select(Thumbnail).ToList());   // (frozen pictures can be made on another thread)
+            thumbnails = await Task.Run(() => files.Select(f => ScreenshotService.Thumbnail(f)).ToList());   // (frozen pictures can be made on another thread)
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
@@ -117,8 +117,6 @@ public partial class GameDetailsView : UserControl
 
         return new ContextMenu { Items = { open, folder } };
     }
-
-    private static BitmapImage? Thumbnail(string file) => ScreenshotService.Thumbnail(file);
 
     private void AddShots_Click(object sender, RoutedEventArgs e)
     {

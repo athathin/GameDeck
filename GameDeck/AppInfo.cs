@@ -29,17 +29,20 @@ public static class AppInfo
     {
         get
         {
-            if (!IsBeta) return false;
-
+#if BETA
             // asked many times a second by the controller listener: look again only every couple of seconds
             var now = Environment.TickCount64;
             if (now - _checkedAt < 2000) return _normalRunning;
 
             _checkedAt = now;
             return _normalRunning = LookForNormalGameDeck();
+#else
+            return false;   // (the normal GameDeck is the one running)
+#endif
         }
     }
 
+#if BETA
     private static long _checkedAt = long.MinValue / 2;
     private static bool _normalRunning;
 
@@ -59,4 +62,5 @@ public static class AppInfo
             return true;   // it exists, we just may not open it
         }
     }
+#endif
 }

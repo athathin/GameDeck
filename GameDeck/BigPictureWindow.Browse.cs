@@ -1,6 +1,5 @@
 ﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -298,7 +297,7 @@ public partial class BigPictureWindow
     }
 
     private void RenderBrowse() =>
-        _ = RenderRows(BrowseList, _browseRows, _browseIndex, index =>
+        RenderRows(BrowseList, _browseRows, _browseIndex, index =>
         {
             _browseIndex = index;
             ActivateBrowseRow();

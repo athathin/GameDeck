@@ -1,4 +1,4 @@
-namespace GameDeck.Models;
+﻿namespace GameDeck.Models;
 
 /// <summary>Filters worked out from what GameDeck already knows about each game (playtime, when it was added).</summary>
 public enum SmartFilter

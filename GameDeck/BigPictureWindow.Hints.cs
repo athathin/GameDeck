@@ -1,10 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
-using GameDeck.Models;
 using GameDeck.Services;
 
 namespace GameDeck.Views;

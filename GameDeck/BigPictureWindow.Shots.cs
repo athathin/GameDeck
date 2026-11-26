@@ -1,5 +1,4 @@
-using System.IO;
-using System.Windows;
+﻿using System.IO;
 using System.Windows.Media.Imaging;
 using GameDeck.Services;
 

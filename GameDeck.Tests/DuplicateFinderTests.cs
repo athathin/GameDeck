@@ -1,4 +1,4 @@
-using GameDeck.Models;
+﻿using GameDeck.Models;
 using GameDeck.Services;
 
 namespace GameDeck.Tests;

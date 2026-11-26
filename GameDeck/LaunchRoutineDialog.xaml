@@ -1,4 +1,4 @@
-<Window x:Class="GameDeck.Views.LaunchRoutineDialog"
+﻿<Window x:Class="GameDeck.Views.LaunchRoutineDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Launch routine" Width="560" Height="720" MinHeight="420" ResizeMode="CanResizeWithGrip"

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace GameDeck.Services;
@@ -50,25 +50,7 @@ public static class RunningGame
         var window = FindMainWindow(folder);
         if (window == IntPtr.Zero) return false;
 
-        if (IsIconic(window))
-            ShowWindow(window, 9 /* SW_RESTORE */);
-
-        // sharing the input queue of the program in front makes Windows accept the focus change (as in WindowFocus)
-        var foreground = GetForegroundWindow();
-        var foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, out _);
-        var thisThread = GetCurrentThreadId();
-        var attached = foregroundThread != 0 && foregroundThread != thisThread && AttachThreadInput(thisThread, foregroundThread, true);
-
-        try
-        {
-            SetForegroundWindow(window);
-        }
-        finally
-        {
-            if (attached)
-                AttachThreadInput(thisThread, foregroundThread, false);
-        }
-
+        WindowFocus.BringToFront(window);
         return true;
     }
 
@@ -186,20 +168,5 @@ public static class RunningGame
     private static extern bool IsIconic(IntPtr window);
 
     [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr window, int command);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
-
-    [DllImport("kernel32.dll")]
-    private static extern uint GetCurrentThreadId();
-
-    [DllImport("user32.dll")]
-    private static extern bool AttachThreadInput(uint attach, uint attachTo, bool attachFlag);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr window);
 }

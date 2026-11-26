@@ -1,8 +1,7 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using GameDeck.Models;
 using GameDeck.Services;
 
 namespace GameDeck.Views;
@@ -34,6 +33,7 @@ public partial class BigPictureWindow
         _mediaLoaded = true;
         var version = ++_mediaVersion;
         _mediaCells.Clear();
+        _mediaRinged = null;
         MediaWrap.Children.Clear();
         _mediaIndex = 0;
         MediaHeader.Text = "Looking for screenshots…";
@@ -69,6 +69,7 @@ public partial class BigPictureWindow
         _mediaVersion++;
         _media = [];
         _mediaCells.Clear();
+        _mediaRinged = null;
         MediaWrap.Children.Clear();
     }
 
@@ -187,11 +188,18 @@ public partial class BigPictureWindow
             _ = AddMediaPageAsync(_mediaVersion);
     }
 
+    private Border? _mediaRinged;   // the picture that has the ring now (only it and the new one change on a move)
+
     /// <summary>The selected picture gets the accent ring (none while an icon at the top is the selected one).</summary>
     private void UpdateMediaSelection(bool scroll)
     {
-        for (var i = 0; i < _mediaCells.Count; i++)
-            _mediaCells[i].Picture.BorderBrush = i == _mediaIndex && !_topFocus ? Purple : Brushes.Transparent;
+        var wanted = _mediaIndex < _mediaCells.Count && !_topFocus ? _mediaCells[_mediaIndex].Picture : null;
+        if (!ReferenceEquals(wanted, _mediaRinged))
+        {
+            if (_mediaRinged is not null) _mediaRinged.BorderBrush = Brushes.Transparent;
+            if (wanted is not null) wanted.BorderBrush = Purple;
+            _mediaRinged = wanted;
+        }
 
         if (scroll && _mediaIndex < _mediaCells.Count)
             _mediaCells[_mediaIndex].Cell.BringIntoView();

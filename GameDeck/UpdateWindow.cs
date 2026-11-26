@@ -1,4 +1,4 @@
-using GameDeck.Services;
+﻿using GameDeck.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;

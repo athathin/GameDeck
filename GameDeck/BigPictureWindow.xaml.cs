@@ -9,13 +9,6 @@ using GameDeck.Services;
 
 namespace GameDeck.Views;
 
-/// <summary>
-/// Big Picture mode: the library full screen, with large tiles, made for a controller on the couch
-/// (Xbox, PlayStation and Nintendo controllers; the keyboard and mouse work too).
-/// Same tabs as the desktop library, plus search (with an on-screen keyboard), filters and a Power menu.
-/// Choosing a game closes this screen and starts the game through the <c>launch</c> callback, so everything the main
-/// window does around a launch still happens.
-/// </summary>
 /// <summary>What Big Picture's settings panel can ask of the main window: the actions of the desktop settings page.</summary>
 /// <remarks>Each action takes the window its dialogs belong to and returns a result line to show (null = nothing to say).</remarks>
 public record BigPictureSettingsActions(
@@ -50,6 +43,13 @@ public record BigPictureGameActions(
     Func<Game, Task<bool>> CloseGame,
     Func<Game, Task<bool>> ForceCloseGame);
 
+/// <summary>
+/// Big Picture mode: the library full screen, with large tiles, made for a controller on the couch
+/// (Xbox, PlayStation and Nintendo controllers; the keyboard and mouse work too).
+/// The tabs of the desktop library plus Media, search (with an on-screen keyboard), filters, settings and a Power menu.
+/// Choosing a game closes this screen and starts the game through the <c>launch</c> callback, so everything the main
+/// window does around a launch still happens.
+/// </summary>
 public partial class BigPictureWindow : Window
 {
     private const double Pitch = 248;   // one tile slot, see BigItem in the XAML
@@ -65,12 +65,10 @@ public partial class BigPictureWindow : Window
                                 string LeftTrigger, string RightTrigger, string Select, string Start, string Home);
 
     /// <summary>
-    /// One line of the filters panel: a heading, a tick box, a radio button or a plain action. With <paramref name="Steps"/> it is
-    /// a stepped slider (the sound volume): a bar of that many segments, filled up to the current one, that left / right move
-    /// with <paramref name="Adjust"/> (-1 or +1).
+    /// One line of a list panel (the filters, the game menu, the file browser): a heading, a tick box, a radio button or a plain
+    /// action. (The settings have their own rows: <c>SettingRow</c>.)
     /// </summary>
-    private record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false,
-                             Func<(int Index, int Count)>? Steps = null, Action<int>? Adjust = null);
+    private record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false);
 
     /// <summary>One entry of the Power menu. With a ConfirmTitle it asks "are you sure?" first.</summary>
     private record PowerEntry(string Text, Action Run, string? ConfirmTitle = null, string? ConfirmButton = null);
@@ -144,7 +142,6 @@ public partial class BigPictureWindow : Window
 
     // filters panel
     private List<FilterRow> _filterRows = [];
-    private List<Border> _filterCells = [];
     private int _filterIndex;
 
     // power menu

@@ -1,9 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -545,7 +543,7 @@ public partial class BigPictureWindow
     }
 
     private void RenderFilters() =>
-        _filterCells = RenderRows(FilterList, _filterRows, _filterIndex, index =>
+        RenderRows(FilterList, _filterRows, _filterIndex, index =>
         {
             _filterIndex = index;
             ActivateFilterRow();
@@ -567,10 +565,8 @@ public partial class BigPictureWindow
         finally { _renderingOnHover = false; }
     }
 
-    /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters and the settings share it).</summary>
-    /// <returns>One cell per row (an empty one for a heading), so the indexes line up with <paramref name="rows"/>.</returns>
-    private List<Border> RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate,
-                                    Action<int> hover)
+    /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters, the game menu and the file browser share it).</summary>
+    private void RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate, Action<int> hover)
     {
         panel.Children.Clear();
         var cells = new List<Border>();
@@ -606,25 +602,6 @@ public partial class BigPictureWindow
                 });
             }
 
-            if (row.Steps is not null)
-            {
-                // a stepped slider: one segment per step on the right, filled up to the current one
-                var (current, count) = row.Steps();
-                var bar = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
-                for (var step = 0; step < count; step++)
-                {
-                    bar.Children.Add(new Border
-                    {
-                        Width = 34, Height = 8, CornerRadius = new CornerRadius(4), Margin = new Thickness(5, 0, 0, 0),
-                        Background = step <= current ? (selected ? Dark : Purple) : Muted,
-                        Opacity = step <= current ? 1 : 0.5
-                    });
-                }
-
-                DockPanel.SetDock(bar, Dock.Right);
-                line.Children.Add(bar);
-            }
-
             line.Children.Add(new TextBlock
             {
                 Text = row.Text, FontSize = 19, VerticalAlignment = VerticalAlignment.Center,
@@ -656,8 +633,6 @@ public partial class BigPictureWindow
         // (not when the mouse chose the row: scrolling under the pointer would make the next row the one it points at)
         if (selectedIndex < cells.Count && !_renderingOnHover)
             cells[selectedIndex].BringIntoView();
-
-        return cells;
     }
 
     private void HandleFilters(PadButton button)

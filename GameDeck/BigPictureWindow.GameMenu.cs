@@ -1,9 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -23,7 +21,6 @@ public partial class BigPictureWindow
 
     private readonly Stack<MenuPage> _menuPages = new();
     private List<FilterRow> _menuRows = [];
-    private Game? _menuGame;
 
     private void Carousel_RightClick(object sender, MouseButtonEventArgs e)
     {
@@ -41,7 +38,6 @@ public partial class BigPictureWindow
     {
         if (_tab == StatsTab || Carousel.SelectedItem is not Game game) return;
 
-        _menuGame = game;
         _menuPages.Clear();
         _menuPages.Push(new MenuPage(game.DisplayName, () => MainMenuRows(game)));
 
@@ -70,7 +66,7 @@ public partial class BigPictureWindow
         GameMenuTitle.Text = page.Title;
         FillGameMenuHints();
 
-        _ = RenderRows(GameMenuList, _menuRows, page.Index, index =>
+        RenderRows(GameMenuList, _menuRows, page.Index, index =>
         {
             page.Index = index;
             ActivateMenuRow();

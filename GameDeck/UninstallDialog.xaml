@@ -1,4 +1,4 @@
-<Window x:Class="GameDeck.Views.UninstallDialog"
+﻿<Window x:Class="GameDeck.Views.UninstallDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="GameDeck" SizeToContent="WidthAndHeight" ResizeMode="NoResize"
