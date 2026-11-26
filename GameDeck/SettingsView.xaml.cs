@@ -59,7 +59,7 @@ public partial class SettingsView : UserControl
         ScaleNormalRadio.IsChecked = scale < 1.1;
         ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
         ScaleHugeRadio.IsChecked = scale >= 1.3;
-        BuildScreenSaverChoices();
+        BuildMinuteChoices();
 
         GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
 
@@ -335,21 +335,29 @@ public partial class SettingsView : UserControl
         ThemeService.Apply(theme);   // every open screen changes at once
     }
 
-    /// <summary>Off, 5 min, 10 min...: the saved one ticked.</summary>
-    private void BuildScreenSaverChoices()
+    /// <summary>Off, 5 min, 10 min... for the screen saver and the break reminder: the saved one ticked.</summary>
+    private void BuildMinuteChoices()
     {
-        ScreenSaverChoices.Children.Clear();
+        Fill(ScreenSaverChoices, "ScreenSaver", SettingsService.ScreenSaverChoices, SettingsService.ScreenSaverMinutes,
+            minutes => SettingsService.ScreenSaverMinutes = minutes);
+        Fill(BreakChoices, "BreakReminder", SettingsService.BreakReminderChoices, SettingsService.BreakReminderMinutes,
+            minutes => SettingsService.BreakReminderMinutes = minutes);
 
-        foreach (var minutes in SettingsService.ScreenSaverChoices)
+        void Fill(Panel panel, string group, int[] choices, int saved, Action<int> save)
         {
-            var radio = new RadioButton
+            panel.Children.Clear();
+
+            foreach (var minutes in choices)
             {
-                Content = minutes == 0 ? "Off" : $"{minutes} min", GroupName = "ScreenSaver", FontSize = 15,
-                Style = (Style)FindResource("DarkRadioButton"), IsChecked = minutes == SettingsService.ScreenSaverMinutes,
-                Margin = new Thickness(ScreenSaverChoices.Children.Count == 0 ? 0 : 32, 0, 0, 0)
-            };
-            radio.Checked += (_, _) => SettingsService.ScreenSaverMinutes = minutes;   // (attached after IsChecked was set)
-            ScreenSaverChoices.Children.Add(radio);
+                var radio = new RadioButton
+                {
+                    Content = minutes == 0 ? "Off" : minutes % 60 == 0 && minutes >= 60 ? $"{minutes / 60} h" : $"{minutes} min",
+                    GroupName = group, FontSize = 15, Style = (Style)FindResource("DarkRadioButton"), IsChecked = minutes == saved,
+                    Margin = new Thickness(panel.Children.Count == 0 ? 0 : 32, 0, 0, 0)
+                };
+                radio.Checked += (_, _) => save(minutes);   // (attached after IsChecked was set)
+                panel.Children.Add(radio);
+            }
         }
     }
 

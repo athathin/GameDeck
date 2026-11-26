@@ -82,6 +82,12 @@
                               Content="Show a notice in the corner when a game starts"
                               Checked="LaunchToastCheckBox_Changed" Unchecked="LaunchToastCheckBox_Changed"/>
 
+                    <TextBlock Text="Remind me to take a break" Foreground="{DynamicResource TextSecondary}" FontSize="14" Margin="0,18,0,0"/>
+                    <!-- one radio button per choice of SettingsService.BreakReminderChoices, made in code -->
+                    <StackPanel x:Name="BreakChoices" Orientation="Horizontal" Margin="0,10,0,0"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="A notice in the corner after every so long in one session of a game started from GameDeck."/>
+
                     <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
 
                     <CheckBox x:Name="ImportPlaytimeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"

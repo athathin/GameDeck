@@ -45,6 +45,8 @@ public static class SettingsService
 
         public int ScreenSaverMinutes { get; set; } = 10;
 
+        public int BreakReminderMinutes { get; set; }
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
@@ -176,6 +178,20 @@ public static class SettingsService
         set
         {
             Current.ImportPlaytime = value;
+            Save();
+        }
+    }
+
+    /// <summary>The break reminder times to choose from, in minutes of one session (0 = off).</summary>
+    public static readonly int[] BreakReminderChoices = [0, 60, 90, 120, 180];
+
+    /// <summary>A notice every so many minutes of one game session ("You've been playing for 2 hours"); 0 = off (the default).</summary>
+    public static int BreakReminderMinutes
+    {
+        get => BreakReminderChoices.Contains(Current.BreakReminderMinutes) ? Current.BreakReminderMinutes : 0;
+        set
+        {
+            Current.BreakReminderMinutes = value;
             Save();
         }
     }

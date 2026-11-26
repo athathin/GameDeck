@@ -16,6 +16,10 @@ public partial class BigPictureWindow
 
     private List<SettingRow> GeneralSettings()
     {
+        var breaks = SettingsService.BreakReminderChoices;
+        void StepBreaks(int step) => SettingsService.BreakReminderMinutes =
+            breaks[(Array.IndexOf(breaks, SettingsService.BreakReminderMinutes) + step + breaks.Length) % breaks.Length];
+
         var rows = new List<SettingRow>
         {
             Heading("Starting GameDeck"),
@@ -38,7 +42,15 @@ public partial class BigPictureWindow
             Toggle("Minimize GameDeck when a game starts", "It waits in the tray while you play",
                 () => SettingsService.MinimizeOnLaunch, on => SettingsService.MinimizeOnLaunch = on),
             Toggle("Show a notice when a game starts", "A small \"Game on!\" in the corner of the screen",
-                () => SettingsService.ShowLaunchToast, on => SettingsService.ShowLaunchToast = on)
+                () => SettingsService.ShowLaunchToast, on => SettingsService.ShowLaunchToast = on),
+            new("Remind me to take a break", "A notice after every so long in one session of a game started from GameDeck",
+                Value: () => SettingsService.BreakReminderMinutes switch
+                {
+                    0 => "Off",
+                    var m when m % 60 == 0 => m == 60 ? "Every hour" : $"Every {m / 60} hours",
+                    var m => $"Every {m / 60} h {m % 60} min"
+                },
+                Adjust: StepBreaks, Activate: () => StepBreaks(1))
         ]);
 
         return rows;

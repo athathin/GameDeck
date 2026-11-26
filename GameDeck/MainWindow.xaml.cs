@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     private TrayIcon? _tray;
     private readonly GlobalHotkey _hotkey = new();
     private readonly LowBatteryWarning _lowBattery = new();
+    private readonly BreakReminder _breaks;
     private QuickLaunchWindow? _quickLaunch;
 
     public ObservableCollection<Game> Games { get; } = new();
@@ -124,6 +125,10 @@ public partial class MainWindow : Window
         _lowBattery.Start();     // a notice when the controller's battery runs low (also during games)
         StartDailyUpdateCheck(); // left running for days: a newer version is still found (installed at the next start)
 
+        // "you've been playing for 2 hours" (Settings: off by default)
+        _breaks = new BreakReminder(() => _tracker.RunningGame is { } game && _tracker.RunningSinceUtc is { } since ? (game, since) : null);
+        _breaks.Start();
+
         // Windows shutting down / signing out must never be blocked by the "minimize or close?" pop-up
         Application.Current.SessionEnding += (_, _) => _exiting = true;
     }
@@ -173,6 +178,7 @@ public partial class MainWindow : Window
         _tracker.FlushAll();
         _hotkey.Dispose();
         _lowBattery.Dispose();
+        _breaks.Dispose();
         _updateTimer.Stop();
         _wake?.Dispose();
         _tray?.Dispose();

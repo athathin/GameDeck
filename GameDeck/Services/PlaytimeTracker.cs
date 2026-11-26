@@ -27,6 +27,9 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
     /// <summary>The game from GameDeck that is running now (the one started last when there are several), or null.</summary>
     public Game? RunningGame => _active.Count == 0 ? null : _active.Values.MaxBy(a => a.Start).Game;
 
+    /// <summary>When the running game (<see cref="RunningGame"/>) was seen starting (UTC), or null.</summary>
+    public DateTime? RunningSinceUtc => _active.Count == 0 ? null : _active.Values.MaxBy(a => a.Start).Start;
+
     /// <summary>Start tracking right after launching a game (call from the UI thread).</summary>
     public void Track(Game game) => _ = TrackAsync(game);
 
