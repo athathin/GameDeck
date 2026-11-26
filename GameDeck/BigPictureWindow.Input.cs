@@ -136,6 +136,7 @@ public partial class BigPictureWindow
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
         _detailsOnAddShots = false;
+        DetailsView.SetPlayLabel(resume: ReferenceEquals(game, NowPlaying));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
         FillDetailsHints();
@@ -418,6 +419,13 @@ public partial class BigPictureWindow
     private void LaunchSelected()
     {
         if (_closing || Carousel.SelectedItem is not Game game) return;
+
+        // the game is running already: Play means going back to it
+        if (ReferenceEquals(game, NowPlaying))
+        {
+            ResumeGame(game);
+            return;
+        }
 
         LaunchedGame = true;
         CloseScreen();

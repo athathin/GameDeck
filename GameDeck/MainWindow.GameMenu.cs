@@ -308,5 +308,8 @@ public partial class MainWindow
         RemoveCover: game => CoverService.RemoveCustomCoverAsync(game),
         CreateShortcut: CreateShortcut,
         Uninstall: ProviderActions.Uninstall,
-        RemoveFromLibrary: RemoveFromLibrary);
+        RemoveFromLibrary: RemoveFromLibrary,
+        RunningGame: () => _tracker.RunningGame,
+        Resume: ResumeRunningGame,
+        CloseGame: game => game.TrackingFolder is { } folder ? RunningGame.CloseAsync(folder) : Task.FromResult(false));
 }

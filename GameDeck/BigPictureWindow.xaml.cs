@@ -44,7 +44,10 @@ public record BigPictureGameActions(
     Func<Game, Task> RemoveCover,
     Action<Game, Window> CreateShortcut,
     Action<Game> Uninstall,
-    Action<Game, Window> RemoveFromLibrary);
+    Action<Game, Window> RemoveFromLibrary,
+    Func<Game?> RunningGame,
+    Action<Game> Resume,
+    Func<Game, Task<bool>> CloseGame);
 
 public partial class BigPictureWindow : Window
 {
@@ -216,6 +219,7 @@ public partial class BigPictureWindow : Window
         UpdateClock();
         ApplyTab(preserveSelection: false);
         UpdateControllerUi();
+        UpdateNowPlaying();
     }
 
     // ---------- picking up where it was left ----------
@@ -375,7 +379,10 @@ public partial class BigPictureWindow : Window
         }
 
         if (++_tick % 60 == 0)
+        {
             UpdateClock();
+            UpdateNowPlaying();   // (the game may have been closed meanwhile)
+        }
     }
 
 }

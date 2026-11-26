@@ -33,7 +33,10 @@ public partial class MainWindow
         // both answer them)
         _wake = new ControllerWakeService(
             canWake: () => SettingsService.ControllerWake && _bigPicture is null && !_tracker.IsTracking && !AppInfo.NormalGameDeckRunning,
-            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true });
+            canUseShortcuts: () => ControllerShortcuts.Enabled && _bigPicture is not { IsActive: true },
+            // during a game started from GameDeck, a plain Home press opens Big Picture over it (Resume / Close), like Steam
+            canOpenOverGame: () => SettingsService.ControllerWake && _bigPicture is null && _tracker.RunningGame is not null &&
+                                   !AppInfo.NormalGameDeckRunning);
 
         _wake.WakeRequested += OpenBigPicture;
         _wake.Begin();
@@ -185,6 +188,10 @@ public partial class MainWindow
 
         _bigPicture.Show();
         WindowFocus.BringToFront(_bigPicture);   // also when it was opened from a controller while another program was in front
+
+        // opened while a game from GameDeck is running (the Home button during the game): Resume / Close it first
+        if (_tracker.RunningGame is not null)
+            _bigPicture.ShowNowPlaying();
     }
 
     private void BigPictureButton_Click(object sender, RoutedEventArgs e) => OpenBigPicture();

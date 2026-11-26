@@ -226,8 +226,21 @@ public partial class BigPictureWindow
         RenderPower();
     }
 
-    /// <summary>The menu, in groups like Steam's: the controller's shortcuts, the PC, GameDeck, and Cancel. Dangerous ones ask again first.</summary>
-    private List<List<PowerEntry>> PowerMenu() =>
+    /// <summary>
+    /// The menu, in groups like Steam's: the running game (Resume / Close) when there is one, the controller's shortcuts, the PC,
+    /// GameDeck, and Cancel. Dangerous ones ask again first.
+    /// </summary>
+    private List<List<PowerEntry>> PowerMenu()
+    {
+        var groups = PowerMenuGroups();
+
+        if (NowPlayingEntries() is { Count: > 0 } game)
+            groups.Insert(0, game);
+
+        return groups;
+    }
+
+    private List<List<PowerEntry>> PowerMenuGroups() =>
     [
         [
             new PowerEntry("Show Controller Shortcuts", OpenShortcuts)

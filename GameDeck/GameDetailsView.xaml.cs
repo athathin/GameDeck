@@ -172,6 +172,9 @@ public partial class GameDetailsView : UserControl
         PlayButton.Background = PlaySelected;
     }
 
+    /// <summary>"Resume" on the button while this game is running (Big Picture), otherwise "Play".</summary>
+    public void SetPlayLabel(bool resume) => PlayButton.Content = resume ? "▶  Resume" : "▶  Play";
+
     /// <summary>Draws "Add screenshots" as the selected button (the controller moved down to it) and scrolls it into sight.</summary>
     public void SelectAddShots()
     {
