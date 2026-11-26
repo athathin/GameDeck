@@ -139,12 +139,18 @@ public partial class MainWindow
     private const double MediaMinCellWidth = 220;   // the pictures are at least this wide; they stretch to fill the row
     private const double MediaCellGap = 14;
 
-    /// <summary>The width that makes the pictures of a row fill it (with the gap after each), each at least the minimum.</summary>
+    /// <summary>
+    /// The width that makes the pictures of a row fill it (with the gap after each), each at least the minimum. The room of the
+    /// scroll bar is always left out, also while it isn't showing: otherwise the pictures sized without it need it, and sized with
+    /// it don't, and the layout flips between the two for ever.
+    /// </summary>
     private double MediaCellWidth
     {
         get
         {
             var width = MediaWrap.ActualWidth;
+            if (MediaPanel.ComputedVerticalScrollBarVisibility != Visibility.Visible)
+                width -= SystemParameters.VerticalScrollBarWidth;
             if (width <= 0) return MediaMinCellWidth;
 
             var columns = Math.Max(1, (int)((width + 1) / (MediaMinCellWidth + MediaCellGap)));
