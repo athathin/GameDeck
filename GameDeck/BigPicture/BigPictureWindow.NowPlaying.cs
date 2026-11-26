@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using GameDeck.Models;
 using GameDeck.Services;
 
@@ -91,8 +92,75 @@ public partial class BigPictureWindow
         [
             new PowerEntry($"Resume {game.DisplayName}", () => ResumeGame(game)),
             new PowerEntry($"Close {game.DisplayName}", () => _ = CloseGameAsync(game),
-                $"Close {game.DisplayName}?", "Close game")
+                $"Close {game.DisplayName}?", "Close game"),
+            // a choice, not an action: each press shows the next one (the menu stays open)
+            new PowerEntry($"When it closes:  ‹ {_gameActions.GetAfterGame().Label()} ›", () =>
+            {
+                _gameActions.SetAfterGame(_gameActions.GetAfterGame().Next());
+                RenderPower();
+            })
         ];
+    }
+
+    // ---------- after the game: sleep or turn off, with a countdown that can be cancelled ----------
+
+    private DispatcherTimer? _countdownTimer;
+
+    /// <summary>
+    /// The game closed and "Put the PC to sleep" / "Turn off the PC" was chosen: the Power card counts down, with "now" and Cancel
+    /// (Back cancels too). Closing this screen cancels it.
+    /// </summary>
+    public void StartAfterGameCountdown(AfterGame choice, int seconds)
+    {
+        StopCountdown();
+        if (_closing || choice == AfterGame.ReturnToGameDeck) return;
+
+        var left = seconds;
+
+        void Show()
+        {
+            var keep = _powerIndex;
+            AskInPowerCard(choice.Countdown(left),
+            [
+                (choice.NowText(), () => { StopCountdown(); choice.Run(); }),
+                ("Cancel", StopCountdown)
+            ]);
+            _powerIndex = keep;   // (the second tick must not move the selection back)
+            RenderPower();
+        }
+
+        _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _countdownTimer.Tick += (_, _) =>
+        {
+            // the card was closed some other way (this screen closed, another panel opened): that cancels it
+            if (_closing || _overlay != Overlay.Power || _powerQuestion is null)
+            {
+                StopCountdown();
+                return;
+            }
+
+            if (--left > 0)
+            {
+                Show();
+                return;
+            }
+
+            StopCountdown();
+            _powerQuestion = null;
+            CloseOverlay();
+            choice.Run();
+        };
+
+        Show();
+        _powerIndex = 1;   // Cancel is selected: a press by chance doesn't turn the PC off
+        RenderPower();
+        _countdownTimer.Start();
+    }
+
+    private void StopCountdown()
+    {
+        _countdownTimer?.Stop();
+        _countdownTimer = null;
     }
 
     /// <summary>Back to the game: this screen closes and the game's window comes to the front.</summary>

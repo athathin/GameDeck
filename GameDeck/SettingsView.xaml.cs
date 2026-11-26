@@ -70,6 +70,7 @@ public partial class SettingsView : UserControl
 
         MinimizeOnLaunchCheckBox.IsChecked = SettingsService.MinimizeOnLaunch;
         LaunchToastCheckBox.IsChecked = SettingsService.ShowLaunchToast;
+        LeftOffCheckBox.IsChecked = SettingsService.AskWhereLeftOff;
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
         ControllerShortcutsCheckBox.IsChecked = SettingsService.ControllerShortcuts;
@@ -338,6 +339,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.ShowLaunchToast = LaunchToastCheckBox.IsChecked == true;
+    }
+
+    private void LeftOffCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.AskWhereLeftOff = LeftOffCheckBox.IsChecked == true;
     }
 
     private void OnlineCoversCheckBox_Changed(object sender, RoutedEventArgs e)

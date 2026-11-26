@@ -29,12 +29,31 @@ public partial class BigPictureWindow
     // the same keyboard types a game's note (Game menu > Notes…): _noteGame is set while that is going on
     private Game? _noteGame;
     private string _noteText = "";
+    private bool _noteLeftOff;   // typing "where I left off" instead of the game's notes
     private const int NoteLimit = 300;
+    private const int LeftOffLimit = 200;
 
-    private void OpenNote(Game game)
+    private int NoteMax => _noteLeftOff ? LeftOffLimit : NoteLimit;
+
+    /// <summary>
+    /// The game closed after a real session (the main window asks): "where did you leave off?" with the on-screen keyboard.
+    /// Done saves it, Back skips it (an earlier note stays).
+    /// </summary>
+    public void AskWhereLeftOff(Game game)
+    {
+        if (_closing) return;
+
+        if (_overlay != Overlay.None)
+            CloseOverlay();
+
+        OpenNote(game, leftOff: true, empty: true);   // (empty, so the question shows: Back keeps the earlier note)
+    }
+
+    private void OpenNote(Game game, bool leftOff = false, bool empty = false)
     {
         _noteGame = game;
-        _noteText = game.Notes ?? "";
+        _noteLeftOff = leftOff;
+        _noteText = empty ? "" : (leftOff ? game.LeftOff : game.Notes) ?? "";
         _caret = _noteText.Length;
         _shift = false;
         _caps = CapsMode.Off;
@@ -53,8 +72,20 @@ public partial class BigPictureWindow
         _noteGame = null;
 
         if (save && game is not null)
-            _gameActions.SetNotes(game, text);
+        {
+            if (_noteLeftOff)
+            {
+                _gameActions.SetLeftOff(game, text);
+                DetailsView.ShowLeftOff(game);   // (when its page is open behind the keyboard)
+                UpdateContinue();                // the home row's "Left off: …"
+            }
+            else
+            {
+                _gameActions.SetNotes(game, text);
+            }
+        }
 
+        _noteLeftOff = false;
         CloseOverlay();
     }
 
@@ -368,7 +399,7 @@ public partial class BigPictureWindow
     {
         var (before, after) = (EditText[..Caret], EditText[Caret..]);
 
-        if (EditText.Length + text.Length > (_noteGame is not null ? NoteLimit : 40)) return;
+        if (EditText.Length + text.Length > (_noteGame is not null ? NoteMax : 40)) return;
         if (text == " " && (before.Length == 0 || before.EndsWith(' ') || after.StartsWith(' '))) return;   // no leading or double spaces
 
         // a letter typed uses up a single Caps press: back to lowercase (a letter that didn't fit leaves it on)
@@ -401,9 +432,11 @@ public partial class BigPictureWindow
 
         if (_noteGame is not null)
         {
-            QueryHint.Text = "Type a note about " + _noteGame.DisplayName;
+            QueryHint.Text = _noteLeftOff
+                ? $"Where did you leave off in {_noteGame.DisplayName}? Done saves it, Back skips"
+                : "Type a note about " + _noteGame.DisplayName;
             QueryHint.Visibility = _noteText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-            ResultCountText.Text = $"{_noteText.Length} / {NoteLimit}";
+            ResultCountText.Text = $"{_noteText.Length} / {NoteMax}";
             return;
         }
 

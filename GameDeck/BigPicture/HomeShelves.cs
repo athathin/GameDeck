@@ -28,7 +28,9 @@ public static class HomeShelves
 
         var shelves = new List<Shelf>
         {
-            Make("CONTINUE PLAYING", games.Where(g => g.LastPlayed is not null).OrderByDescending(g => g.LastPlayed), Played),
+            // (with "where I left off" in place of the date when there is one)
+            Make("CONTINUE PLAYING", games.Where(g => g.LastPlayed is not null).OrderByDescending(g => g.LastPlayed),
+                g => g.HasLeftOff ? "Left off: " + g.LeftOff : Played(g)),
             Make("UP NEXT", Usual(games.Where(g => g.Status == GameStatus.UpNext)), Played),
             Make("RECENTLY ADDED", games
                     .Where(g => SmartFilter.RecentlyAdded.Matches(g, nowUtc))

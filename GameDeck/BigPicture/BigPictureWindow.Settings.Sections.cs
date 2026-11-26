@@ -43,6 +43,8 @@ public partial class BigPictureWindow
                 () => SettingsService.MinimizeOnLaunch, on => SettingsService.MinimizeOnLaunch = on),
             Toggle("Show a notice when a game starts", "A small \"Game on!\" in the corner of the screen",
                 () => SettingsService.ShowLaunchToast, on => SettingsService.ShowLaunchToast = on),
+            Toggle("Ask where I left off when a game closes", "After 10 minutes or more. Shown on the game's page and in Continue playing",
+                () => SettingsService.AskWhereLeftOff, on => SettingsService.AskWhereLeftOff = on),
             new("Remind me to take a break", "A notice after every so long in one session of a game started from GameDeck",
                 Value: () => SettingsService.BreakReminderMinutes switch
                 {

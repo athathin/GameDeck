@@ -127,6 +127,7 @@ public partial class BigPictureWindow
         SortMode.Playtime => games.OrderByDescending(g => g.PlaytimeSeconds).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.LastPlayed => games.OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.Source => games.OrderBy(g => g.Source, StringComparer.CurrentCultureIgnoreCase).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
+        SortMode.Size => games.OrderByDescending(g => g.SizeBytes ?? -1).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         _ => games.OrderBy(ByName, StringComparer.CurrentCultureIgnoreCase)
     };
 
@@ -239,6 +240,15 @@ public partial class BigPictureWindow
         YearHeadline.Text = yearly.Headline;
         YearCompare.Text = yearly.Compare;
         YearLines.ItemsSource = yearly.Lines;
+
+        var disk = DiskUsage.Summary(visible, DateTime.UtcNow);
+        DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
+        if (disk is not null)
+        {
+            DiskHeadline.Text = disk.Headline;
+            DiskCompare.Text = disk.Compare;
+            DiskLines.ItemsSource = disk.Lines;
+        }
 
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);

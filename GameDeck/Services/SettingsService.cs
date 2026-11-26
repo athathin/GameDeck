@@ -18,7 +18,8 @@ public enum SortMode
     Name,
     Playtime,
     LastPlayed,
-    Source
+    Source,
+    Size   // the most space on disk first (see DiskUsage)
 }
 
 /// <summary>Small app settings, saved in %AppData%\GameDeck\settings.json.</summary>
@@ -46,6 +47,8 @@ public static class SettingsService
         public int ScreenSaverMinutes { get; set; } = 10;
 
         public int BreakReminderMinutes { get; set; }
+
+        public bool AskWhereLeftOff { get; set; } = true;
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
@@ -196,6 +199,20 @@ public static class SettingsService
         set
         {
             Current.BreakReminderMinutes = value;
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// When a game started from GameDeck closes after a real session (10 minutes or more), ask "where did you leave off?" (the answer
+    /// shows on the game's page and in Continue playing next time). On by default; the question can always be skipped.
+    /// </summary>
+    public static bool AskWhereLeftOff
+    {
+        get => Current.AskWhereLeftOff;
+        set
+        {
+            Current.AskWhereLeftOff = value;
             Save();
         }
     }

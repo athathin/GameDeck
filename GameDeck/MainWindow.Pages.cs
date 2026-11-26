@@ -53,6 +53,15 @@ public partial class MainWindow
         YearCompare.Text = yearly.Compare;
         YearLines.ItemsSource = yearly.Lines;
 
+        var disk = DiskUsage.Summary(_library.Games.Where(g => !g.IsHidden), DateTime.UtcNow);
+        DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
+        if (disk is not null)
+        {
+            DiskHeadline.Text = disk.Headline;
+            DiskCompare.Text = disk.Compare;
+            DiskLines.ItemsSource = disk.Lines;
+        }
+
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
 
@@ -85,6 +94,7 @@ public partial class MainWindow
         _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
         _ = LoadAchievementsAsync();                // (and their achievements)
         FetchGenres();                           // (and their genres)
+        MeasureSizes();                          // (and their size on disk)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
     }
@@ -280,6 +290,43 @@ public partial class MainWindow
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
             CrashLog.Write(ex, "Achievements");   // (the game pages just don't show them)
+        }
+    }
+
+    /// <summary>Measures the games' install folders in the background (sizes older than a few days, new games; see DiskUsage).</summary>
+    private async void MeasureSizes()
+    {
+        try
+        {
+            await DiskUsage.MeasureAsync(_library.Games.ToList(), () =>
+            {
+                _sizesTimer.Stop();
+                _sizesTimer.Start();   // (one redraw once a few sizes came in, not one per game)
+            }, busy: () => _tracker.IsTracking);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Disk usage");
+        }
+    }
+
+    // redraws what shows the sizes (the "Largest first" order, the Stats tab) shortly after new sizes came in
+    private System.Windows.Threading.DispatcherTimer? _sizesTimerField;
+
+    private System.Windows.Threading.DispatcherTimer _sizesTimer
+    {
+        get
+        {
+            if (_sizesTimerField is not null) return _sizesTimerField;
+
+            _sizesTimerField = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _sizesTimerField.Tick += (_, _) =>
+            {
+                _sizesTimerField.Stop();
+                if (_sort == SortMode.Size || _view == "Stats")
+                    Refresh(reapplyUserData: false);
+            };
+            return _sizesTimerField;
         }
     }
 
@@ -487,7 +534,8 @@ public partial class MainWindow
                 .OrderByDescending(g => g.PlaytimeSeconds)
                 .ToList();
 
-            DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game));
+            DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game),
+                _sessions.History(page.Game!));
         }
         else if (page.Kind == PageKind.Settings)
         {

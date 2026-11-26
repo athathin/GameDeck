@@ -19,6 +19,12 @@ public partial class LaunchRoutineDialog : Window
         public string Display => System.IO.Path.GetFileNameWithoutExtension(Path);
     }
 
+    /// <summary>One line of the screen list: a mode, or "Don't change" (null).</summary>
+    public record DisplayChoice(DisplayMode? Mode, string? Note = null)
+    {
+        public string Display => (Mode?.Text ?? "Don't change") + (Note is null ? "" : "   " + Note);
+    }
+
     private readonly Game _game;
     private readonly ObservableCollection<AppEntry> _startApps = [];
     private readonly ObservableCollection<AppEntry> _closeApps = [];
@@ -44,6 +50,7 @@ public partial class LaunchRoutineDialog : Window
         AskCheckBox.IsChecked = profile.AskBeforeClosing;
         ReopenCheckBox.IsChecked = profile.ReopenClosedAppsAfter;
         PowerCheckBox.IsChecked = profile.HighPerformancePower;
+        FillDisplayList(profile.Display);
 
         // without a known folder GameDeck can't tell when the game ends, so the "after" steps could never run
         if (game.TrackingFolder is null)
@@ -107,6 +114,39 @@ public partial class LaunchRoutineDialog : Window
             _closeApps.Remove(entry);
     }
 
+    // ---------- screen ----------
+
+    /// <summary>"Don't change", then every mode the main display offers (the one in use now marked), the saved one selected.</summary>
+    private void FillDisplayList(DisplayMode? saved)
+    {
+        List<DisplayMode> modes;
+        DisplayMode? current;
+        try
+        {
+            modes = DisplayModes.Available();
+            current = DisplayModes.Current();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or EntryPointNotFoundException or DllNotFoundException)
+        {
+            modes = [];
+            current = null;
+        }
+
+        var choices = new List<DisplayChoice> { new(null) };
+        choices.AddRange(modes.Select(m => new DisplayChoice(m, m == current ? "(now)" : null)));
+
+        // a saved mode the display doesn't offer any more (another screen now): still listed, so saving keeps it unless changed
+        if (saved is not null && !modes.Contains(saved))
+            choices.Add(new DisplayChoice(saved, "(not offered by this screen now)"));
+
+        DisplayList.ItemsSource = choices;
+        DisplayList.SelectedItem = choices.FirstOrDefault(c => c.Mode == saved) ?? choices[0];
+        DisplayList.ScrollIntoView(DisplayList.SelectedItem);
+
+        if (modes.Count == 0)
+            DisplayHint.Text = "Windows didn't list any modes for your main display, so this can't be used on this PC.";
+    }
+
     // ---------- helpers ----------
 
     private string? PickExe(string title)
@@ -130,7 +170,8 @@ public partial class LaunchRoutineDialog : Window
             CloseApps = _closeApps.Select(a => a.Path).ToList(),
             AskBeforeClosing = AskCheckBox.IsChecked == true,
             ReopenClosedAppsAfter = ReopenCheckBox.IsChecked == true,
-            HighPerformancePower = PowerCheckBox.IsChecked == true
+            HighPerformancePower = PowerCheckBox.IsChecked == true,
+            Display = (DisplayList.SelectedItem as DisplayChoice)?.Mode
         };
 
         // closing apps without asking is allowed, but say what it means once

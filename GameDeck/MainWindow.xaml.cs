@@ -78,8 +78,12 @@ public partial class MainWindow : Window
         // the game was closed: bring GameDeck back the way it was left
         _tracker.Closed += ResumeAfterGame;
 
+        // and measure what was skipped while it ran (sizes are only read between games)
+        _tracker.Closed += (_, _) => MeasureSizes();
+
         // GameDeck was closed (or crashed) while a routine had switched the power plan: put it back
         _ = Task.Run(LaunchRoutineService.RestorePendingPowerPlan);
+        _ = Task.Run(DisplayModes.RestorePending);   // (and the screen mode a game's routine had switched)
         _sort = SettingsService.SortMode;
 
         _tileSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
@@ -105,6 +109,8 @@ public partial class MainWindow : Window
         _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
         _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
         FetchGenres();                  // the Steam games' genres not asked for yet
+        // each game's size on disk (in the background, sizes older than a few days), once start-up is over: also in the tray
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(MeasureSizes));
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe
 
@@ -229,7 +235,8 @@ public partial class MainWindow : Window
     /// <summary>Puts the icon in the tray without showing the window (used when Windows starts GameDeck at sign-in).</summary>
     public void StartInTray()
     {
-        _tray ??= new TrayIcon(open: ShowFromTray, bigPicture: OpenBigPicture, exit: ExitApp, recentGames: RecentGamesForTray);
+        _tray ??= new TrayIcon(open: ShowFromTray, bigPicture: OpenBigPicture, exit: ExitApp, recentGames: RecentGamesForTray,
+                               afterGame: AfterGameForTray, setAfterGame: choice => _afterGame = choice);
         _tray.Show();
         ReleaseMemory();
     }

@@ -38,16 +38,19 @@ public partial class GameDetailsView : UserControl
     }
 
     /// <summary>Shows one game. The playtime and last-played text keep updating by themselves (they bind to the game).</summary>
-    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions)
+    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions, GameHistory? history)
     {
         DataContext = game;
 
         SessionsList.ItemsSource = sessions;
         SessionsPanel.Visibility = sessions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ShowHistory(history);
 
         RankText.Text = game.PlaytimeSeconds > 0 ? $"#{rank} of {playedCount}" : "-";
         RatingStarsText.Text = game.RatingText;
         RatingStarsText.Visibility = game.HasRating ? Visibility.Visible : Visibility.Collapsed;
+
+        ShowLeftOff(game);
 
         NotesText.Text = game.Notes ?? "";
         NotesPanel.Visibility = game.HasNotes ? Visibility.Visible : Visibility.Collapsed;
@@ -62,6 +65,76 @@ public partial class GameDetailsView : UserControl
 
         GenresText.Text = game.Genres.Count > 0 ? "Genres: " + string.Join(", ", game.Genres) : "";
         GenresText.Visibility = game.Genres.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>"Where you left off" (shown again after it was written in Big Picture while the page is open).</summary>
+    public void ShowLeftOff(Game game)
+    {
+        if (!ReferenceEquals(DataContext, game)) return;
+
+        LeftOffPanel.Visibility = game.HasLeftOff ? Visibility.Visible : Visibility.Collapsed;
+        LeftOffText.Text = game.LeftOff ?? "";
+        LeftOffHeader.Text = game.LeftOffUtc is { } when
+            ? "WHERE YOU LEFT OFF  ·  " + when.ToLocalTime().ToString("d MMM yyyy").ToUpperInvariant()
+            : "WHERE YOU LEFT OFF";
+    }
+
+    // ---- play history ----
+
+    private const double DayCell = 14;
+    private const double DayGap = 3;
+
+    /// <summary>A line of numbers, then a square per day (a column per week, Monday at the top), darker the more was played.</summary>
+    private void ShowHistory(GameHistory? history)
+    {
+        HistoryGrid.Children.Clear();
+        HistoryGrid.ColumnDefinitions.Clear();
+        HistoryGrid.RowDefinitions.Clear();
+
+        if (history is null)
+        {
+            HistoryPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        HistoryPanel.Visibility = Visibility.Visible;
+
+        var sessions = history.Sessions == 1 ? "1 session" : $"{history.Sessions} sessions";
+        var days = history.DaysPlayed == 1 ? "1 day" : $"{history.DaysPlayed} days";
+        HistorySummary.Text = history.Sessions == 1
+            ? $"{sessions}  ·  {Game.FormatPlaytime(history.LongestSeconds)}"
+            : $"{sessions} on {days}  ·  average {Game.FormatPlaytime(history.AverageSeconds)}  ·  longest {Game.FormatPlaytime(history.LongestSeconds)}";
+
+        var weeks = history.Days.Count / 7;
+        for (var w = 0; w < weeks; w++)
+            HistoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DayCell + DayGap) });
+        for (var d = 0; d < 7; d++)
+            HistoryGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(DayCell + DayGap) });
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var most = Math.Max(1, history.Days.Max(d => d.Seconds));
+        var accent = (Brush)FindResource("Accent");
+        var empty = (Brush)FindResource("RaisedBg");
+
+        for (var i = 0; i < history.Days.Count; i++)
+        {
+            var (day, seconds) = history.Days[i];
+            if (day > today) continue;   // (the rest of this week)
+
+            var cell = new Border
+            {
+                Width = DayCell, Height = DayCell, CornerRadius = new CornerRadius(3),
+                Background = seconds > 0 ? accent : empty,
+                Opacity = seconds > 0 ? 0.35 + 0.65 * seconds / most : 1,
+                ToolTip = $"{day:ddd d MMM yyyy}: {(seconds > 0 ? Game.FormatPlaytime(seconds) : "not played")}"
+            };
+
+            Grid.SetColumn(cell, i / 7);
+            Grid.SetRow(cell, i % 7);
+            HistoryGrid.Children.Add(cell);
+        }
+
+        HistoryRange.Text = $"The last {weeks} weeks, from {history.Days[0].Day:d MMM}. Each column is a week, Monday at the top.";
     }
 
     // ---- screenshots ----

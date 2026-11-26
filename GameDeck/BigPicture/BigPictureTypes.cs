@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using GameDeck.Models;
+using GameDeck.Services;
 
 namespace GameDeck.Views;
 
@@ -38,7 +39,10 @@ public record BigPictureGameActions(
     Func<Game?> RunningGame,
     Action<Game> Resume,
     Func<Game, Task<bool>> CloseGame,
-    Func<Game, Task<bool>> ForceCloseGame);
+    Func<Game, Task<bool>> ForceCloseGame,
+    Action<Game, string?> SetLeftOff,
+    Func<AfterGame> GetAfterGame,
+    Action<AfterGame> SetAfterGame);
 
 /// <summary>
 /// One line of a list panel (the filters, the game menu, the file browser): a heading, a tick box, a radio button or a plain

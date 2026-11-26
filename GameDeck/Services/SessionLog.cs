@@ -10,6 +10,12 @@ public record SessionRow(string Game, string When, string Duration);
 /// <summary>The "this week" card of the Stats tab: a headline, how it compares with last week, and a few facts.</summary>
 public record WeekSummary(string Headline, string Compare, IReadOnlyList<string> Lines);
 
+/// <summary>
+/// A game's play history (its page): how many sessions, their average and longest length, and the seconds played on each day
+/// of the last weeks, Monday first, oldest week first (<see cref="Days"/> ends with this week's Sunday, which may be ahead).
+/// </summary>
+public record GameHistory(int Sessions, long AverageSeconds, long LongestSeconds, int DaysPlayed, IReadOnlyList<(DateOnly Day, long Seconds)> Days);
+
 /// <summary>One bar of a stats chart.</summary>
 public record ChartBar(string Label, string Value, double Height, double Opacity, string ToolTip);
 
@@ -85,11 +91,14 @@ public class SessionLog
 
     private Dictionary<DateOnly, long>? _perDay;
 
-    private Dictionary<DateOnly, long> ComputeSecondsPerDay()
+    private Dictionary<DateOnly, long> ComputeSecondsPerDay() => PerDay(_sessions);
+
+    /// <summary>Seconds per local calendar day of these sessions (one that runs past midnight is split between the days).</summary>
+    private static Dictionary<DateOnly, long> PerDay(IEnumerable<Session> sessions)
     {
         var days = new Dictionary<DateOnly, long>();
 
-        foreach (var session in _sessions)
+        foreach (var session in sessions)
         {
             var start = session.StartUtc.ToLocalTime();
             var end = start.AddSeconds(session.Seconds);
@@ -256,6 +265,27 @@ public class SessionLog
         }
 
         return new WeekSummary(headline, compare, lines);
+    }
+
+    /// <summary>
+    /// One game's history for its page: its sessions recorded by GameDeck and the time played per day over the last
+    /// <paramref name="weeks"/> weeks (Monday to Sunday). Null when it has no sessions.
+    /// </summary>
+    public GameHistory? History(Game game, int weeks = 20, DateTime? now = null)
+    {
+        var mine = _sessions.Where(s => s.Key.Equals(game.LaunchTarget, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (mine.Count == 0) return null;
+
+        var perDay = PerDay(mine);
+        var firstMonday = MondayOf(DateOnly.FromDateTime(now ?? DateTime.Now)).AddDays(-7 * (weeks - 1));
+
+        var days = Enumerable.Range(0, weeks * 7)
+            .Select(i => firstMonday.AddDays(i))
+            .Select(day => (day, perDay.GetValueOrDefault(day)))
+            .ToList();
+
+        var total = mine.Sum(s => s.Seconds);
+        return new GameHistory(mine.Count, total / mine.Count, mine.Max(s => s.Seconds), perDay.Count(p => p.Value > 0), days);
     }
 
     /// <summary>For tests: the sessions to work with, instead of the saved file.</summary>

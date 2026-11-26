@@ -141,7 +141,7 @@ public partial class BigPictureWindow
     private void OpenDetails(Game game)
     {
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
-        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
+        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game), _sessions.History(game));
         _detailsOnAddShots = false;
         DetailsView.SetPlayLabel(resume: ReferenceEquals(game, NowPlaying));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button

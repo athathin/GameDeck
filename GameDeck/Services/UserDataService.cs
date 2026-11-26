@@ -34,6 +34,10 @@ public class UserDataService
         public int Rating { get; set; }          // 0 = not rated, 1 to 5 stars
         public string? Notes { get; set; }
 
+        /// <summary>"Where I left off" (see Game.LeftOff) and when it was written.</summary>
+        public string? LeftOff { get; set; }
+        public DateTime? LeftOffUtc { get; set; }
+
         public LaunchProfile? Profile { get; set; }
 
         /// <summary>When the game first showed up in GameDeck; DateTime.MinValue = not known (see <see cref="RecordAddedDates"/>).</summary>
@@ -91,6 +95,8 @@ public class UserDataService
         game.Status = entry.Status;
         game.Rating = Math.Clamp(entry.Rating, 0, 5);
         game.Notes = entry.Notes;
+        game.LeftOffUtc = entry.LeftOffUtc;
+        game.LeftOff = entry.LeftOff;
         game.Profile = entry.Profile?.Clone();   // a copy, like the categories
         game.AddedUtc = entry.AddedUtc;
     }
@@ -204,6 +210,19 @@ public class UserDataService
         Apply(game);
     }
 
+    /// <summary>Replaces "where I left off" (empty removes it).</summary>
+    public void SetLeftOff(Game game, string? text)
+    {
+        var entry = GetEntry(game);
+        text = text?.Trim();
+
+        entry.LeftOff = string.IsNullOrEmpty(text) ? null : text;
+        entry.LeftOffUtc = entry.LeftOff is null ? null : DateTime.UtcNow;
+
+        Save();
+        Apply(game);
+    }
+
     /// <summary>Replaces the game's categories (used by the right-click Categories menu).</summary>
     public void SetTags(Game game, List<string> tags)
     {
@@ -271,6 +290,13 @@ public class UserDataService
 
             if (kept.Status == GameStatus.None)
                 kept.Status = entry.Status;
+
+            // the newer "where I left off" wins
+            if (entry.LeftOff is not null && (kept.LeftOff is null || entry.LeftOffUtc > kept.LeftOffUtc))
+            {
+                kept.LeftOff = entry.LeftOff;
+                kept.LeftOffUtc = entry.LeftOffUtc;
+            }
 
             if (entry.Tags is { Count: > 0 })
             {

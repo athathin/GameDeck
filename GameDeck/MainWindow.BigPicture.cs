@@ -61,18 +61,89 @@ public partial class MainWindow
     private int _bigPictureTab;
     private Game? _bigPictureGame;
 
-    private void ResumeAfterGame(Game game)
+    /// <summary>What happens when the running game closes (Big Picture's Now Playing, the tray menu); back to "go back" afterwards.</summary>
+    private AfterGame _afterGame = AfterGame.ReturnToGameDeck;
+
+    /// <summary>Sessions shorter than this don't ask "where did you leave off?" (a quick look, a crash at start).</summary>
+    private static readonly TimeSpan LeftOffMinimum = TimeSpan.FromMinutes(10);
+
+    private void ResumeAfterGame(Game game, TimeSpan length)
     {
         if (!_resume.Remove(game, out var mode)) return;
 
-        // another game from GameDeck is still running: stay out of its way
+        // the choice is for the game that was running: used up now
+        var after = _afterGame;
+        _afterGame = AfterGame.ReturnToGameDeck;
+
+        // another game from GameDeck is still running: stay out of its way (and don't put the PC to sleep under it)
         if (_tracker.IsTracking) return;
+
+        if (after != AfterGame.ReturnToGameDeck)
+        {
+            StartAfterGameCountdown(after, game, mode);
+            return;
+        }
 
         if (mode == ResumeMode.BigPicture)
             OpenBigPicture(_bigPictureTab, _bigPictureGame);
         else if (mode == ResumeMode.Desktop)
             BringToFront();
+
+        // "where did you leave off?": only where GameDeck came back on screen (not when it waits in the tray), after a real session
+        if (SettingsService.AskWhereLeftOff && length >= LeftOffMinimum && mode != ResumeMode.None)
+            AskWhereLeftOff(game, mode);
     }
+
+    /// <summary>Asks for a short note about where the game was left (Big Picture: with its on-screen keyboard). Skipping keeps the old one.</summary>
+    private void AskWhereLeftOff(Game game, ResumeMode mode)
+    {
+        if (mode == ResumeMode.BigPicture)
+        {
+            _bigPicture?.AskWhereLeftOff(game);
+            return;
+        }
+
+        if (!IsVisible) return;
+
+        var dialog = new TextPromptDialog($"Where did you leave off in {game.DisplayName}?",
+            "A few words for next time, like \"Find the key in the castle\". They show on the game's page and in Continue playing. " +
+            "Turn this question off in Settings.", game.LeftOff ?? "", "Save", freeText: true, cancelText: "Skip") { Owner = this };
+
+        if (dialog.ShowDialog() == true)
+            SetLeftOff(game, dialog.Value);
+    }
+
+    /// <summary>Saves "where I left off" and shows it where it appears (the game's page, Continue playing).</summary>
+    private void SetLeftOff(Game game, string? text)
+    {
+        _userData.SetLeftOff(game, text);
+
+        if (_page.Kind == PageKind.Details && ReferenceEquals(_page.Game, game))
+            DetailsPanel.ShowLeftOff(game);
+    }
+
+    /// <summary>
+    /// "Put the PC to sleep" / "Turn off the PC" was chosen for when the game closes: a minute's countdown that can be cancelled,
+    /// in Big Picture's Power card when the game was started there (the controller works there), otherwise in a window on top.
+    /// </summary>
+    private void StartAfterGameCountdown(AfterGame after, Game game, ResumeMode mode)
+    {
+        if (mode == ResumeMode.BigPicture || _bigPicture is not null)
+        {
+            OpenBigPicture(_bigPictureTab, _bigPictureGame);
+            if (_bigPicture is not null)
+            {
+                _bigPicture.StartAfterGameCountdown(after, PowerCountdownWindow.Seconds);
+                return;
+            }
+        }
+
+        PowerCountdownWindow.Start(after, game.DisplayName);
+    }
+
+    /// <summary>The tray menu's lines while a game from GameDeck runs: its name and the choice for when it closes.</summary>
+    private (string Game, AfterGame Choice)? AfterGameForTray() =>
+        _tracker.RunningGame is { } running ? (running.DisplayName, _afterGame) : null;
 
     /// <summary>
     /// Console-style start ("Open GameDeck in Big Picture mode"): Big Picture, with the desktop window behind it, so exiting

@@ -25,6 +25,8 @@ public partial class MainWindow
                 _userData.Apply(game);
                 game.Genres = GenreService.For(game);
             }
+
+            DiskUsage.ApplySaved(_library.Games);   // the sizes measured before (new games are measured in the background)
         }
 
         // a launcher / category that no longer has any games (after a scan) stops being a filter
@@ -122,6 +124,7 @@ public partial class MainWindow
         SortMode.Playtime => games.OrderByDescending(g => g.PlaytimeSeconds).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.LastPlayed => games.OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.Source => games.OrderBy(g => g.Source, StringComparer.CurrentCultureIgnoreCase).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
+        SortMode.Size => games.OrderByDescending(g => g.SizeBytes ?? -1).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         _ => games.OrderBy(ByName, StringComparer.CurrentCultureIgnoreCase)
     };
 
@@ -521,6 +524,7 @@ public partial class MainWindow
         AddSort("Most played", SortMode.Playtime);
         AddSort("Recently played", SortMode.LastPlayed);
         AddSort("Launcher", SortMode.Source);
+        AddSort("Largest first", SortMode.Size);
     }
 
     private CheckBox FilterCheckBox(string text, bool isChecked, Action<bool> changed)

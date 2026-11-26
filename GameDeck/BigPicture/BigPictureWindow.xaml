@@ -335,6 +335,24 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- the space the games take (DiskUsage): once some sizes are known -->
+                        <StackPanel x:Name="DiskPanel" Visibility="Collapsed">
+                            <TextBlock Text="SPACE ON DISK" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,30,0,10"/>
+                            <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="26,20">
+                                <StackPanel>
+                                    <TextBlock x:Name="DiskHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="28" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="DiskCompare" Foreground="{DynamicResource TextSecondary}" FontSize="17" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <ItemsControl x:Name="DiskLines" Margin="0,12,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="17" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <Grid Margin="0,30,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
