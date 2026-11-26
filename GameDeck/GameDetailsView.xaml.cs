@@ -167,10 +167,41 @@ public partial class GameDetailsView : UserControl
     /// <summary>Draws the Play button as the selected one: a white glow and a slightly bigger, brighter button.</summary>
     public void SelectPlay()
     {
-        PlayButton.RenderTransformOrigin = new Point(0.5, 0.5);
-        PlayButton.RenderTransform = new ScaleTransform(1.06, 1.06);
+        Unselect(AddShotsButton);
+        Select(PlayButton);
         PlayButton.Background = PlaySelected;
-        PlayButton.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+    }
+
+    /// <summary>Draws "Add screenshots" as the selected button (the controller moved down to it) and scrolls it into sight.</summary>
+    public void SelectAddShots()
+    {
+        Unselect(PlayButton);
+        Select(AddShotsButton);
+        AddShotsButton.Background = PlaySelected;
+        AddShotsButton.Foreground = Brushes.White;
+        AddShotsButton.BringIntoView();
+    }
+
+    /// <summary>Reloads the game's screenshots (after some were added from Big Picture).</summary>
+    public void ReloadShots()
+    {
+        if (DataContext is Game game)
+            LoadShots(game);
+    }
+
+    private static void Select(Button button)
+    {
+        button.RenderTransformOrigin = new Point(0.5, 0.5);
+        button.RenderTransform = new ScaleTransform(1.06, 1.06);
+        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+    }
+
+    private static void Unselect(Button button)
+    {
+        button.ClearValue(RenderTransformProperty);
+        button.ClearValue(BackgroundProperty);
+        button.ClearValue(ForegroundProperty);
+        button.ClearValue(EffectProperty);
     }
 
     /// <summary>Draws the Play button as pressed: darker and pushed in.</summary>

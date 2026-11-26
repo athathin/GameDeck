@@ -75,14 +75,34 @@ public partial class BigPictureWindow
         }
     }
 
+    // on a game's page: false = Play is selected, true = "Add screenshots" (Down moves to it, Up back to Play)
+    private bool _detailsOnAddShots;
+
     private void HandleDetails(PadButton button)
     {
         switch (button)
         {
+            case PadButton.Confirm when _detailsOnAddShots:
+                if (DetailsView.DataContext is Game game) OpenShotBrowse(game);   // (the game whose page is open)
+                break;
             case PadButton.Confirm: _ = PressPlayThenLaunch(); break;
+            case PadButton.Down when !_detailsOnAddShots: SelectDetailsButton(addShots: true); break;
+            case PadButton.Up when _detailsOnAddShots: SelectDetailsButton(addShots: false); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
+    }
+
+    private void SelectDetailsButton(bool addShots)
+    {
+        _detailsOnAddShots = addShots;
+
+        if (addShots)
+            DetailsView.SelectAddShots();
+        else
+            DetailsView.SelectPlay();
+
+        FillDetailsHints();
     }
 
     private bool _pressingPlay;
@@ -115,6 +135,7 @@ public partial class BigPictureWindow
 
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
+        _detailsOnAddShots = false;
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
         FillDetailsHints();
@@ -124,10 +145,13 @@ public partial class BigPictureWindow
     private void FillDetailsHints()
     {
         var l = Labels();
+        var hints = new List<(string, string)> { (l.Confirm, _detailsOnAddShots ? "Add screenshots" : "Play") };
+
         if (DetailsView.Shots.Count > 0)
-            FillHints(DetailsHints, (l.Confirm, "Play"), (l.Y, "Screenshots"), (l.Back, "Back"));
-        else
-            FillHints(DetailsHints, (l.Confirm, "Play"), (l.Back, "Back"));
+            hints.Add((l.Y, "Screenshots"));
+
+        hints.Add((l.Back, "Back"));
+        FillHints(DetailsHints, hints.ToArray());
     }
 
     /// <summary>The input device changed while a panel was open: its hints show the other device's buttons now.</summary>

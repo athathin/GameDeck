@@ -10,7 +10,19 @@ namespace GameDeck.Services;
 /// </summary>
 public static class ScreenshotService
 {
-    private static readonly string[] Extensions = [".png", ".jpg", ".jpeg", ".bmp"];
+    /// <summary>The kinds of pictures GameDeck shows and adds.</summary>
+    internal static readonly string[] Extensions = [".png", ".jpg", ".jpeg", ".bmp"];
+
+    /// <summary>Where screenshots usually are, for Big Picture's picture browser: Pictures › Screenshots, Videos › Captures.</summary>
+    internal static IEnumerable<(string Name, string Path)> UsualPlaces()
+    {
+        if (SettingsService.ScreenshotFolder is { } chosen)
+            yield return ("Your screenshots folder  (Settings)", chosen);
+
+        yield return ("Screenshots  (Pictures)", PicturesScreenshots);
+        yield return ("Captures  (Game Bar, in Videos)", CapturesFolder);
+        yield return ("Pictures", Environment.GetFolderPath(Environment.SpecialFolder.MyPictures));
+    }
 
     private static readonly string Root = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "screenshots");
