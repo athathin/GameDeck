@@ -110,7 +110,7 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public List<string> Tags { get; set; } = [];
 
-    /// <summary>The genres the Steam store gives a Steam game (see GenreService); empty for the others.</summary>
+    /// <summary>The game's genres from the Steam store (see GenreService); empty when it isn't on Steam.</summary>
     [JsonIgnore]
     public List<string> Genres { get; set; } = [];
 

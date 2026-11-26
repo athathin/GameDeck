@@ -492,7 +492,7 @@ public partial class BigPictureWindow
 
         var genres = _library.SelectMany(g => g.Genres).Distinct(StringComparer.CurrentCultureIgnoreCase)
             .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (genres.Count > 0)   // (Steam games get theirs from the Steam store: none yet, no heading)
+        if (genres.Count > 0)   // (games get theirs from the Steam store: none yet, no heading)
         {
             rows.Add(new FilterRow("GENRE", IsHeader: true));
             foreach (var genre in genres)

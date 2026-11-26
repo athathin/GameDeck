@@ -464,8 +464,8 @@ public partial class MainWindow
             GenreList.Children.Add(new TextBlock
             {
                 Text = SettingsService.OnlineCovers
-                    ? "None yet. Steam games get their genres from the Steam store in the background."
-                    : "Steam games get their genres from the Steam store while \"Download cover art from the internet\" is on.",
+                    ? "None yet. Games get their genres from the Steam store in the background (games that aren't on Steam get none)."
+                    : "Games get their genres from the Steam store while \"Download cover art from the internet\" is on.",
                 Foreground = ThemeService.TextMuted,
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap
