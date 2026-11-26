@@ -20,7 +20,7 @@
                                 <Setter TargetName="bd" Property="Background" Value="{DynamicResource RaisedBg}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#8037FE"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -109,6 +109,18 @@
                           Content="Use the High performance power plan while playing"/>
                 <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="12" TextWrapping="Wrap" Margin="28,4,0,10"
                            Text="Your current power plan is put back when the game ends (and at the next GameDeck start if something interrupts that)."/>
+
+                <!-- screen mode -->
+                <TextBlock Text="SCREEN WHILE PLAYING" Style="{StaticResource FieldHeader}" Margin="2,28,0,8"/>
+                <ListBox x:Name="DisplayList" Style="{StaticResource AppListBox}" Height="150">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Display}" Foreground="{DynamicResource TextPrimary}" FontSize="13"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock x:Name="DisplayHint" Foreground="{DynamicResource TextMuted}" FontSize="12" TextWrapping="Wrap" Margin="2,8,0,10"
+                           Text="The resolution and refresh rate of your main display while the game runs. Your normal settings come back when the game ends (and at the next GameDeck start if something interrupts that). Windows' own display settings are never changed."/>
             </StackPanel>
         </ScrollViewer>
 
@@ -116,7 +128,7 @@
             <Button Content="Cancel" IsCancel="True" Style="{StaticResource DialogButton}"
                     Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}"/>
             <Button x:Name="SaveButton" Content="Save" IsDefault="True" Click="SaveButton_Click"
-                    Style="{StaticResource DialogButton}" Background="#8037FE" Foreground="White"/>
+                    Style="{StaticResource DialogButton}" Background="{DynamicResource Accent}" Foreground="White"/>
         </StackPanel>
     </Grid>
 </Window>

@@ -10,6 +10,12 @@ public record SessionRow(string Game, string When, string Duration);
 /// <summary>The "this week" card of the Stats tab: a headline, how it compares with last week, and a few facts.</summary>
 public record WeekSummary(string Headline, string Compare, IReadOnlyList<string> Lines);
 
+/// <summary>
+/// A game's play history (its page): how many sessions, their average and longest length, and the seconds played on each day
+/// of the last weeks, Monday first, oldest week first (<see cref="Days"/> ends with this week's Sunday, which may be ahead).
+/// </summary>
+public record GameHistory(int Sessions, long AverageSeconds, long LongestSeconds, int DaysPlayed, IReadOnlyList<(DateOnly Day, long Seconds)> Days);
+
 /// <summary>One bar of a stats chart.</summary>
 public record ChartBar(string Label, string Value, double Height, double Opacity, string ToolTip);
 
@@ -85,11 +91,14 @@ public class SessionLog
 
     private Dictionary<DateOnly, long>? _perDay;
 
-    private Dictionary<DateOnly, long> ComputeSecondsPerDay()
+    private Dictionary<DateOnly, long> ComputeSecondsPerDay() => PerDay(_sessions);
+
+    /// <summary>Seconds per local calendar day of these sessions (one that runs past midnight is split between the days).</summary>
+    private static Dictionary<DateOnly, long> PerDay(IEnumerable<Session> sessions)
     {
         var days = new Dictionary<DateOnly, long>();
 
-        foreach (var session in _sessions)
+        foreach (var session in sessions)
         {
             var start = session.StartUtc.ToLocalTime();
             var end = start.AddSeconds(session.Seconds);
@@ -200,6 +209,90 @@ public class SessionLog
             lines.Add($"Busiest day: {busiest.Day:dddd} ({Game.FormatPlaytime(busiest.Seconds)})");
 
         return new WeekSummary(headline, compare, lines);
+    }
+
+    /// <summary>
+    /// "Your year in games": the hours this calendar year, the days played, the most played games, the longest session, the
+    /// busiest month, the favorite day of the week and the games played for the first time. Hidden games are left out of the facts.
+    /// </summary>
+    public WeekSummary ThisYear(IReadOnlySet<string>? excludeKeys = null, DateTime? now = null)
+    {
+        var today = DateOnly.FromDateTime(now ?? DateTime.Now);
+        var year = today.Year;
+
+        var perDay = SecondsPerDay().Where(p => p.Key.Year == year && p.Value > 0).ToList();
+        var seconds = perDay.Sum(p => p.Value);
+
+        var headline = seconds <= 0 ? $"Nothing played yet in {year}" : $"{Game.FormatPlaytime(seconds)} in {year}";
+        var compare = perDay.Count switch
+        {
+            0 => "Games you play from GameDeck are counted here",
+            1 => "Played on 1 day",
+            var n => $"Played on {n} of {today.DayOfYear} days"
+        };
+
+        var lines = new List<string>();
+        var sessions = _sessions
+            .Where(s => s.StartUtc.ToLocalTime().Year == year)
+            .Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key))
+            .ToList();
+
+        if (sessions.Count > 0)
+        {
+            var top = sessions.GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(g => (Name: g.OrderByDescending(s => s.StartUtc).First().Name, Seconds: g.Sum(s => s.Seconds)))
+                .OrderByDescending(g => g.Seconds).Take(3).ToList();
+            lines.Add("Most played: " + string.Join(",  ", top.Select((g, i) => $"{i + 1}. {g.Name} ({Game.FormatPlaytime(g.Seconds)})")));
+
+            var longest = sessions.MaxBy(s => s.Seconds)!;
+            lines.Add($"Longest session: {Game.FormatPlaytime(longest.Seconds)} ({longest.Name}, {longest.StartUtc.ToLocalTime():d MMMM})");
+
+            // games whose first session ever is from this year
+            var firsts = _sessions.Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key))
+                .GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                .Count(g => g.Min(s => s.StartUtc).ToLocalTime().Year == year);
+            if (firsts > 0)
+                lines.Add(firsts == 1 ? "1 game played for the first time" : $"{firsts} games played for the first time");
+
+            // (by the day each session started, so the hidden games stay out here too)
+            var month = sessions.GroupBy(s => s.StartUtc.ToLocalTime().Month).Select(g => (Month: g.Key, Seconds: g.Sum(s => s.Seconds)))
+                .MaxBy(m => m.Seconds);
+            lines.Add($"Busiest month: {new DateTime(year, month.Month, 1):MMMM} ({Game.FormatPlaytime(month.Seconds)})");
+
+            var weekday = sessions.GroupBy(s => s.StartUtc.ToLocalTime().DayOfWeek).Select(g => (Day: g.Key, Seconds: g.Sum(s => s.Seconds)))
+                .MaxBy(d => d.Seconds);
+            lines.Add($"You play most on {weekday.Day}s");
+        }
+
+        return new WeekSummary(headline, compare, lines);
+    }
+
+    /// <summary>
+    /// One game's history for its page: its sessions recorded by GameDeck and the time played per day over the last
+    /// <paramref name="weeks"/> weeks (Monday to Sunday). Null when it has no sessions.
+    /// </summary>
+    public GameHistory? History(Game game, int weeks = 20, DateTime? now = null)
+    {
+        var mine = _sessions.Where(s => s.Key.Equals(game.LaunchTarget, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (mine.Count == 0) return null;
+
+        var perDay = PerDay(mine);
+        var firstMonday = MondayOf(DateOnly.FromDateTime(now ?? DateTime.Now)).AddDays(-7 * (weeks - 1));
+
+        var days = Enumerable.Range(0, weeks * 7)
+            .Select(i => firstMonday.AddDays(i))
+            .Select(day => (day, perDay.GetValueOrDefault(day)))
+            .ToList();
+
+        var total = mine.Sum(s => s.Seconds);
+        return new GameHistory(mine.Count, total / mine.Count, mine.Max(s => s.Seconds), perDay.Count(p => p.Value > 0), days);
+    }
+
+    /// <summary>For tests: the sessions to work with, instead of the saved file.</summary>
+    internal void UseSessions(List<Session> sessions)
+    {
+        _sessions = sessions;
+        _perDay = null;
     }
 
     /// <summary>Days in a row with some play. The streak is still alive if you played yesterday but not yet today.</summary>

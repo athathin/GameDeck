@@ -8,7 +8,7 @@
         MouseLeftButtonUp="Window_MouseLeftButtonUp">
 
     <!-- the margin leaves room for the shadow, which the transparent window would otherwise clip -->
-    <Border Margin="14" Width="330" Background="{DynamicResource AppBg}" CornerRadius="10" BorderBrush="#8037FE" BorderThickness="1"
+    <Border Margin="14" Width="330" Background="{DynamicResource AppBg}" CornerRadius="10" BorderBrush="{DynamicResource Accent}" BorderThickness="1"
             Padding="18,14,18,15" Cursor="Hand">
         <Border.Effect>
             <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.55" Color="Black"/>

@@ -46,7 +46,7 @@
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#8037FE"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -78,7 +78,7 @@
                         <Grid>
                             <Border Background="{DynamicResource RaisedBg}" CornerRadius="4"/>
                             <Border x:Name="PART_Track">
-                                <Border x:Name="PART_Indicator" Background="#8037FE" CornerRadius="4"
+                                <Border x:Name="PART_Indicator" Background="{DynamicResource Accent}" CornerRadius="4"
                                         HorizontalAlignment="Left"/>
                             </Border>
                         </Grid>
@@ -121,7 +121,7 @@
                                         </Border.Background>
                                     </Border>
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <Border Width="54" Height="54" CornerRadius="27" Background="#8037FE" HorizontalAlignment="Center">
+                                        <Border Width="54" Height="54" CornerRadius="27" Background="{DynamicResource Accent}" HorizontalAlignment="Center">
                                             <TextBlock Text="&#xE8B1;" FontFamily="Segoe MDL2 Assets" FontSize="26" Foreground="White"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
@@ -290,6 +290,9 @@
 
                                             <TextBlock Text="CATEGORY" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
                                             <StackPanel x:Name="CategoryList"/>
+
+                                            <TextBlock Text="GENRE" Style="{StaticResource FilterHeader}" Margin="0,22,0,10"/>
+                                            <StackPanel x:Name="GenreList"/>
                                         </StackPanel>
                                     </Grid>
                                 </ScrollViewer>
@@ -331,7 +334,8 @@
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
                                         <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding LastPlayedText}" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding ContinueNote}" ToolTip="{Binding ContinueNote}" Foreground="{DynamicResource TextMuted}"
+                                                   FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Grid>
                             </views:RoundedClipBorder>
@@ -371,6 +375,7 @@
                                     <ContextMenu>
                                         <MenuItem Header="{Binding FavoriteMenuText}" Click="FavoriteMenuItem_Click"/>
                                         <MenuItem Header="Edit game…" Click="EditMenuItem_Click"/>
+                                        <MenuItem Header="Where I left off…" Click="LeftOffMenuItem_Click"/>
                                         <MenuItem Header="Launch routine…" Click="RoutineMenuItem_Click"/>
                                         <!-- the items inside are built when it opens (CategoriesMenu_SubmenuOpened); the placeholder makes it a submenu -->
                                         <MenuItem Header="Categories" SubmenuOpened="CategoriesMenu_SubmenuOpened">
@@ -432,7 +437,7 @@
 
                                 <!-- status badge (Playing / Completed / Up next / Dropped) -->
                                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,8,0,0"
-                                        Background="#CC8037FE" CornerRadius="4" Padding="6,2" IsHitTestVisible="False"
+                                        Background="{DynamicResource AccentBadge}" CornerRadius="4" Padding="6,2" IsHitTestVisible="False"
                                         Visibility="{Binding HasStatus, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="{Binding StatusText}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
@@ -444,7 +449,7 @@
                                     <TextBlock Text="★" Foreground="#FFC857" FontSize="14"/>
                                 </Border>
 
-                                <Border x:Name="Highlight" BorderBrush="#8037FE" BorderThickness="2"
+                                <Border x:Name="Highlight" BorderBrush="{DynamicResource Accent}" BorderThickness="2"
                                         CornerRadius="4" Opacity="0" IsHitTestVisible="False"/>
                             </Grid>
                         </Viewbox>
@@ -474,8 +479,14 @@
             <ScrollViewer x:Name="MediaPanel" Grid.Row="3" Visibility="Collapsed"
                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="8,0,8,24">
-                    <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,14"/>
-                    <WrapPanel x:Name="MediaWrap"/>
+                    <DockPanel Margin="2,0,0,14">
+                        <!-- the game filter: a menu of the games that have pictures (MainWindow.Media.cs) -->
+                        <Button x:Name="MediaGameButton" DockPanel.Dock="Left" Style="{StaticResource PillButton}" Padding="14,6" FontSize="13"
+                                Margin="0,0,14,0" Visibility="Collapsed" Click="MediaGameButton_Click"/>
+                        <TextBlock x:Name="MediaHeader" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="MediaWrap" SizeChanged="MediaWrap_SizeChanged"/>
                     <Button x:Name="MediaMoreButton" Style="{StaticResource PillButton}" Padding="16,8" FontSize="14"
                             HorizontalAlignment="Left" Margin="2,6,0,0" Visibility="Collapsed" Click="MediaMoreButton_Click"/>
                 </StackPanel>
@@ -544,6 +555,41 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
+
+                    <TextBlock Text="THIS YEAR" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold" Margin="2,24,0,10"/>
+                    <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="22,16">
+                        <StackPanel>
+                            <TextBlock x:Name="YearHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="22" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="YearCompare" Foreground="{DynamicResource TextSecondary}" FontSize="15" Margin="0,4,0,0"/>
+                            <ItemsControl x:Name="YearLines" Margin="0,12,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="15" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- the space the games take (DiskUsage): once some sizes are known -->
+                    <StackPanel x:Name="DiskPanel" Visibility="Collapsed">
+                        <TextBlock Text="SPACE ON DISK" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold" Margin="2,24,0,10"/>
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="10" Padding="22,16">
+                            <StackPanel>
+                                <TextBlock x:Name="DiskHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="22" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="DiskCompare" Foreground="{DynamicResource TextSecondary}" FontSize="15" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <ItemsControl x:Name="DiskLines" Margin="0,12,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="15" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Foreground="{DynamicResource TextHint}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Text="Sort the library by &quot;Largest first&quot; to see them all. Right-click a game and choose Uninstall to free its space."/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
 
                     <Grid Margin="0,28,0,0">
                         <Grid.ColumnDefinitions>
@@ -635,6 +681,7 @@
                             BackRequested="SettingsPanel_BackRequested"
                             AddGamesRequested="SettingsPanel_AddGamesRequested"
                             OnlineCoversChanged="SettingsPanel_OnlineCoversChanged"
+                            PlaytimeSourcesChanged="SettingsPanel_PlaytimeSourcesChanged"
                             QuickLaunchChanged="SettingsPanel_QuickLaunchChanged"
                             UninstallRequested="SettingsPanel_UninstallRequested"
                             ScanRequested="SettingsPanel_ScanRequested"

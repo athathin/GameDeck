@@ -1,9 +1,9 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -29,12 +29,31 @@ public partial class BigPictureWindow
     // the same keyboard types a game's note (Game menu > Notes…): _noteGame is set while that is going on
     private Game? _noteGame;
     private string _noteText = "";
+    private bool _noteLeftOff;   // typing "where I left off" instead of the game's notes
     private const int NoteLimit = 300;
+    private const int LeftOffLimit = 200;
 
-    private void OpenNote(Game game)
+    private int NoteMax => _noteLeftOff ? LeftOffLimit : NoteLimit;
+
+    /// <summary>
+    /// The game closed after a real session (the main window asks): "where did you leave off?" with the on-screen keyboard.
+    /// Done saves it, Back skips it (an earlier note stays).
+    /// </summary>
+    public void AskWhereLeftOff(Game game)
+    {
+        if (_closing) return;
+
+        if (_overlay != Overlay.None)
+            CloseOverlay();
+
+        OpenNote(game, leftOff: true, empty: true);   // (empty, so the question shows: Back keeps the earlier note)
+    }
+
+    private void OpenNote(Game game, bool leftOff = false, bool empty = false)
     {
         _noteGame = game;
-        _noteText = game.Notes ?? "";
+        _noteLeftOff = leftOff;
+        _noteText = empty ? "" : (leftOff ? game.LeftOff : game.Notes) ?? "";
         _caret = _noteText.Length;
         _shift = false;
         _caps = CapsMode.Off;
@@ -53,8 +72,20 @@ public partial class BigPictureWindow
         _noteGame = null;
 
         if (save && game is not null)
-            _gameActions.SetNotes(game, text);
+        {
+            if (_noteLeftOff)
+            {
+                _gameActions.SetLeftOff(game, text);
+                DetailsView.ShowLeftOff(game);   // (when its page is open behind the keyboard)
+                UpdateContinue();                // the home row's "Left off: …"
+            }
+            else
+            {
+                _gameActions.SetNotes(game, text);
+            }
+        }
 
+        _noteLeftOff = false;
         CloseOverlay();
     }
 
@@ -170,7 +201,7 @@ public partial class BigPictureWindow
                 var color = selected ? Dark : lit ? Brushes.White : ThemeService.TextPrimary;
 
                 var cell = _keyCells[r][c];
-                cell.Background = selected ? ThemeService.SelectBg : lit ? Purple : KeyBackground;
+                cell.Background = selected ? ThemeService.SelectBg : lit ? Accent : KeyBackground;
 
                 var drawn = (faces, color);
                 if (cell.Tag is { } before && before.Equals(drawn)) continue;
@@ -368,7 +399,7 @@ public partial class BigPictureWindow
     {
         var (before, after) = (EditText[..Caret], EditText[Caret..]);
 
-        if (EditText.Length + text.Length > (_noteGame is not null ? NoteLimit : 40)) return;
+        if (EditText.Length + text.Length > (_noteGame is not null ? NoteMax : 40)) return;
         if (text == " " && (before.Length == 0 || before.EndsWith(' ') || after.StartsWith(' '))) return;   // no leading or double spaces
 
         // a letter typed uses up a single Caps press: back to lowercase (a letter that didn't fit leaves it on)
@@ -401,9 +432,11 @@ public partial class BigPictureWindow
 
         if (_noteGame is not null)
         {
-            QueryHint.Text = "Type a note about " + _noteGame.DisplayName;
+            QueryHint.Text = _noteLeftOff
+                ? $"Where did you leave off in {_noteGame.DisplayName}? Done saves it, Back skips"
+                : "Type a note about " + _noteGame.DisplayName;
             QueryHint.Visibility = _noteText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-            ResultCountText.Text = $"{_noteText.Length} / {NoteLimit}";
+            ResultCountText.Text = $"{_noteText.Length} / {NoteMax}";
             return;
         }
 
@@ -444,250 +477,5 @@ public partial class BigPictureWindow
             Text = "←  →", Foreground = Muted, FontSize = 18, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0)
         });
         CaretHints.Children.Add(ButtonCap(l.RightTrigger, color));
-    }
-
-    // ---------- filters ----------
-
-    private void OpenFilters()
-    {
-        if (!IsGamesTab) return;   // (Stats and Media have nothing to filter)
-
-        _filterIndex = 0;
-        ShowOverlay(Overlay.Filters);
-        RebuildFilters();
-        BuildOverlayHints();
-    }
-
-    /// <summary>Lists the launchers, categories and statuses that exist in the library, then the sort orders.</summary>
-    private void RebuildFilters()
-    {
-        var rows = new List<FilterRow> { new("Clear all filters", Activate: ClearFilters) };
-
-        var launchers = _library.Select(g => g.Source).Append(ManualSource).Distinct()   // "Other" is always offered
-            .OrderBy(s => s == ManualSource).ThenBy(s => s, StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (launchers.Count > 0)
-        {
-            rows.Add(new FilterRow("LAUNCHER", IsHeader: true));
-            foreach (var launcher in launchers)
-            {
-                var chosen = launcher;
-                rows.Add(new FilterRow(LauncherName(chosen), IsOn: () => _launcherFilters.Contains(chosen),
-                                       Activate: () => Toggle(_launcherFilters, chosen)));
-            }
-        }
-
-        var categories = _library.SelectMany(g => g.Tags).Distinct(StringComparer.CurrentCultureIgnoreCase)
-            .OrderBy(t => t, StringComparer.CurrentCultureIgnoreCase).ToList();
-
-        rows.Add(new FilterRow("CATEGORY", IsHeader: true));
-        if (categories.Count == 0)
-            rows.Add(new FilterRow("None yet. Open a game's menu, then Categories › New category…"));
-
-        foreach (var category in categories)
-        {
-            var chosen = category;
-            rows.Add(new FilterRow(chosen, IsOn: () => _categoryFilters.Contains(chosen),
-                                   Activate: () => Toggle(_categoryFilters, chosen)));
-        }
-
-        rows.Add(new FilterRow("STATUS", IsHeader: true));
-        foreach (var status in Enum.GetValues<GameStatus>().Where(s => s != GameStatus.None))
-        {
-            var chosen = status;
-            rows.Add(new FilterRow(chosen.Label(), IsOn: () => _statusFilters.Contains(chosen),
-                                   Activate: () => Toggle(_statusFilters, chosen)));
-        }
-
-        rows.Add(new FilterRow("SMART FILTERS", IsHeader: true));
-        foreach (var smart in Enum.GetValues<SmartFilter>())
-        {
-            var chosen = smart;
-            rows.Add(new FilterRow(chosen.Label(), IsOn: () => _smartFilters.Contains(chosen),
-                                   Activate: () => Toggle(_smartFilters, chosen)));
-        }
-
-        rows.Add(new FilterRow("SHOW", IsHeader: true));
-        rows.Add(new FilterRow("Hidden games", IsOn: () => _showHidden, Activate: () => _showHidden = !_showHidden));
-
-        rows.Add(new FilterRow("SORT BY", IsHeader: true));
-        foreach (var (text, mode) in new[]
-                 {
-                     ("Name (A–Z)", SortMode.Name), ("Most played", SortMode.Playtime),
-                     ("Recently played", SortMode.LastPlayed), ("Launcher", SortMode.Source)
-                 })
-        {
-            var chosen = mode;
-            rows.Add(new FilterRow(text, IsOn: () => _sort == chosen, Activate: () => { _sort = chosen; SettingsService.SortMode = chosen; }, IsRadio: true));
-        }
-
-        _filterRows = rows;
-        if (_filterRows[_filterIndex].IsHeader)
-            _filterIndex = 0;
-
-        RenderFilters();
-    }
-
-    private static void Toggle<T>(HashSet<T> set, T value)
-    {
-        if (!set.Remove(value))
-            set.Add(value);
-    }
-
-    private void ClearFilters()
-    {
-        _launcherFilters.Clear();
-        _categoryFilters.Clear();
-        _statusFilters.Clear();
-        _smartFilters.Clear();
-        _showHidden = false;
-    }
-
-    private void RenderFilters() =>
-        RenderRows(FilterList, _filterRows, _filterIndex, index =>
-        {
-            _filterIndex = index;
-            ActivateFilterRow();
-        }, index =>
-        {
-            if (_filterIndex == index) return;
-
-            _filterIndex = index;
-            RenderOnHover(RenderFilters);
-        });
-
-    private bool _renderingOnHover;
-
-    /// <summary>Redraws a list because the mouse moved onto another row: the list must not scroll while that happens.</summary>
-    private void RenderOnHover(Action render)
-    {
-        _renderingOnHover = true;
-        try { render(); }
-        finally { _renderingOnHover = false; }
-    }
-
-    /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters, the game menu and the file browser share it).</summary>
-    private void RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate, Action<int> hover)
-    {
-        panel.Children.Clear();
-        var cells = new List<Border>();
-
-        for (var i = 0; i < rows.Count; i++)
-        {
-            var row = rows[i];
-
-            if (row.IsHeader)
-            {
-                panel.Children.Add(new TextBlock
-                {
-                    Text = row.Text, Foreground = Muted, FontSize = 14,
-                    FontWeight = FontWeights.SemiBold, Margin = new Thickness(14, 22, 0, 8)
-                });
-                cells.Add(new Border());   // keeps the indexes lined up with the rows
-                continue;
-            }
-
-            var selected = i == selectedIndex;
-            var on = row.IsOn?.Invoke() == true;
-
-            var line = new DockPanel();
-            if (row.IsOn is not null)
-            {
-                // tick box / radio button, drawn with Windows' own icon font
-                var glyph = row.IsRadio ? (on ? "" : "") : (on ? "" : "");
-                line.Children.Add(new TextBlock
-                {
-                    Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
-                    Foreground = selected ? Dark : on ? Purple : Muted,
-                    Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
-                });
-            }
-
-            line.Children.Add(new TextBlock
-            {
-                Text = row.Text, FontSize = 19, VerticalAlignment = VerticalAlignment.Center,
-                Foreground = selected ? Dark : TextGrey, TextTrimming = TextTrimming.CharacterEllipsis
-            });
-
-            var cell = new Border
-            {
-                Background = selected ? ThemeService.SelectBg : Brushes.Transparent,
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(16, 12, 16, 12),
-                Margin = new Thickness(0, 1, 0, 1),
-                Child = line,
-                Cursor = Cursors.Hand
-            };
-
-            var index = i;
-            cell.MouseEnter += (_, _) =>
-            {
-                if (PointerIsChoosing) hover(index);   // (not rows that scroll under a hidden pointer)
-            };
-            cell.MouseLeftButtonUp += (_, _) => activate(index);
-
-            cells.Add(cell);
-            panel.Children.Add(cell);
-        }
-
-        // keep the selected row on screen when the panel is long
-        // (not when the mouse chose the row: scrolling under the pointer would make the next row the one it points at)
-        if (selectedIndex < cells.Count && !_renderingOnHover)
-            cells[selectedIndex].BringIntoView();
-    }
-
-    private void HandleFilters(PadButton button)
-    {
-        switch (button)
-        {
-            case PadButton.Up: MoveFilter(-1); break;
-            case PadButton.Down: MoveFilter(1); break;
-            case PadButton.Confirm: ActivateFilterRow(); break;
-            case PadButton.Back or PadButton.Select: CloseOverlay(); break;
-        }
-    }
-
-    private void MoveFilter(int step)
-    {
-        var next = _filterIndex;
-
-        do
-        {
-            next += step;
-            if (next < 0 || next >= _filterRows.Count) return;   // at the end: stay where we are
-        }
-        while (_filterRows[next].IsHeader);
-
-        _filterIndex = next;
-        RenderFilters();
-    }
-
-    private void ActivateFilterRow()
-    {
-        _filterRows[_filterIndex].Activate?.Invoke();
-
-        RebuildFilters();                       // ticks change
-        ApplyTab(preserveSelection: false);     // the list behind the panel follows
-    }
-
-    // ---------- menus on top of the screen ----------
-
-    private void ShowOverlay(Overlay overlay)
-    {
-        _overlay = overlay;
-        SearchOverlay.Visibility = overlay == Overlay.Search ? Visibility.Visible : Visibility.Collapsed;
-        FilterOverlay.Visibility = overlay == Overlay.Filters ? Visibility.Visible : Visibility.Collapsed;
-        PowerOverlay.Visibility = overlay == Overlay.Power ? Visibility.Visible : Visibility.Collapsed;
-        DetailsOverlay.Visibility = overlay == Overlay.Details ? Visibility.Visible : Visibility.Collapsed;
-        SettingsOverlay.Visibility = overlay == Overlay.Settings ? Visibility.Visible : Visibility.Collapsed;
-        GameMenuOverlay.Visibility = overlay == Overlay.GameMenu ? Visibility.Visible : Visibility.Collapsed;
-        BrowseOverlay.Visibility = overlay == Overlay.Browse ? Visibility.Visible : Visibility.Collapsed;
-        ShotOverlay.Visibility = overlay == Overlay.Shots ? Visibility.Visible : Visibility.Collapsed;
-        ShortcutsOverlay.Visibility = overlay == Overlay.Shortcuts ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void CloseOverlay()
-    {
-        ShowOverlay(Overlay.None);
-        UpdateDetails();
     }
 }

@@ -15,8 +15,11 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
     /// <summary>Raised when a launched game is over (or was never found running): the launch routine's "after" steps run now.</summary>
     public event Action<Game>? Ended;
 
-    /// <summary>Raised only when the game was really seen running and has now been closed (not when it was never found).</summary>
-    public event Action<Game>? Closed;
+    /// <summary>
+    /// Raised only when the game was really seen running and has now been closed (not when it was never found), with how long
+    /// the session lasted.
+    /// </summary>
+    public event Action<Game, TimeSpan>? Closed;
 
     private readonly HashSet<string> _watching = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, (Game Game, DateTime Start)> _active = new(StringComparer.OrdinalIgnoreCase);
@@ -26,6 +29,9 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
 
     /// <summary>The game from GameDeck that is running now (the one started last when there are several), or null.</summary>
     public Game? RunningGame => _active.Count == 0 ? null : _active.Values.MaxBy(a => a.Start).Game;
+
+    /// <summary>When the running game (<see cref="RunningGame"/>) was seen starting (UTC), or null.</summary>
+    public DateTime? RunningSinceUtc => _active.Count == 0 ? null : _active.Values.MaxBy(a => a.Start).Start;
 
     /// <summary>Start tracking right after launching a game (call from the UI thread).</summary>
     public void Track(Game game) => _ = TrackAsync(game);
@@ -53,6 +59,7 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
         if (folder is null || !_watching.Add(key)) return;
 
         var wasRunning = false;
+        var length = TimeSpan.Zero;
 
         try
         {
@@ -84,14 +91,18 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
                 process = await Task.Run(() => FindGameProcess(folder, 100L * 1024 * 1024));
             }
 
+            length = end - start;
             if (_active.Remove(key))
-                Finish(game, start, end - start);
+                Finish(game, start, length);
         }
         catch
         {
             // Windows refused access to the process, etc.: save what we have counted so far
             if (_active.Remove(key, out var session))
-                Finish(game, session.Start, DateTime.UtcNow - session.Start);
+            {
+                length = DateTime.UtcNow - session.Start;
+                Finish(game, session.Start, length);
+            }
         }
         finally
         {
@@ -99,7 +110,7 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
             Ended?.Invoke(game);
 
             if (wasRunning)
-                Closed?.Invoke(game);
+                Closed?.Invoke(game, length);
         }
     }
 

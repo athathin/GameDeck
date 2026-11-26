@@ -1,0 +1,18 @@
+﻿<UserControl x:Class="GameDeck.Views.ScreenSaverView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:GameDeck.Views"
+             Visibility="Collapsed" Opacity="0">
+    <!-- Big Picture's screen saver: one cover and the clock at a time, on black, somewhere else every few seconds -->
+    <Grid Background="Black">
+        <Canvas x:Name="Area" ClipToBounds="True">
+            <StackPanel x:Name="Item">
+                <views:RoundedClipBorder CornerRadius="10" Width="300" Height="400">
+                    <Image x:Name="Cover" Stretch="UniformToFill"/>
+                </views:RoundedClipBorder>
+                <TextBlock x:Name="Clock" Foreground="#80FFFFFF" FontSize="34" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="0,18,0,0"/>
+            </StackPanel>
+        </Canvas>
+    </Grid>
+</UserControl>

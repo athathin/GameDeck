@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -17,7 +18,7 @@ public partial class BigPictureWindow
     }
 
     private bool HasActiveFilters => _launcherFilters.Count > 0 || _categoryFilters.Count > 0 || _statusFilters.Count > 0 ||
-                                     _smartFilters.Count > 0 || _showHidden;
+                                     _smartFilters.Count > 0 || _genreFilters.Count > 0 || _showHidden;
 
     private void ApplyTab(bool preserveSelection)
     {
@@ -64,6 +65,7 @@ public partial class BigPictureWindow
         // a launcher / category that no longer has any games (after a scan, an edit...) stops being a filter
         _launcherFilters.RemoveWhere(l => l != ManualSource && !_library.Any(g => g.Source == l));
         _categoryFilters.RemoveWhere(c => !_library.Any(g => g.Tags.Contains(c, StringComparer.CurrentCultureIgnoreCase)));
+        _genreFilters.RemoveWhere(genre => !_library.Any(g => g.Genres.Contains(genre, StringComparer.CurrentCultureIgnoreCase)));
 
         // narrow the library down by the filters and the search, like the desktop library does
         IEnumerable<Game> source = _library;
@@ -77,6 +79,8 @@ public partial class BigPictureWindow
             source = source.Where(g => _statusFilters.Contains(g.Status));
         if (_smartFilters.Count > 0)
             source = source.Where(g => _smartFilters.Any(f => f.Matches(g)));
+        if (_genreFilters.Count > 0)
+            source = source.Where(g => g.Genres.Any(_genreFilters.Contains));
         if (_query.Length > 0)
             source = source.Where(g => g.DisplayName.Contains(_query, StringComparison.CurrentCultureIgnoreCase) ||
                                        g.Name.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
@@ -123,6 +127,7 @@ public partial class BigPictureWindow
         SortMode.Playtime => games.OrderByDescending(g => g.PlaytimeSeconds).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.LastPlayed => games.OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.Source => games.OrderBy(g => g.Source, StringComparer.CurrentCultureIgnoreCase).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
+        SortMode.Size => games.OrderByDescending(g => g.SizeBytes ?? -1).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         _ => games.OrderBy(ByName, StringComparer.CurrentCultureIgnoreCase)
     };
 
@@ -142,6 +147,7 @@ public partial class BigPictureWindow
         parts.AddRange(_categoryFilters.Order());
         parts.AddRange(_statusFilters.OrderBy(s => s).Select(s => s.Label()));
         parts.AddRange(_smartFilters.OrderBy(s => s).Select(s => s.Label()));
+        parts.AddRange(_genreFilters.Order(StringComparer.CurrentCultureIgnoreCase));
         if (_showHidden)
             parts.Add("Hidden games");
 
@@ -230,6 +236,20 @@ public partial class BigPictureWindow
         WeekCompare.Text = weekly.Compare;
         WeekLines.ItemsSource = weekly.Lines;
 
+        var yearly = _sessions.ThisYear(_hiddenKeys);
+        YearHeadline.Text = yearly.Headline;
+        YearCompare.Text = yearly.Compare;
+        YearLines.ItemsSource = yearly.Lines;
+
+        var disk = DiskUsage.Summary(visible, DateTime.UtcNow);
+        DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
+        if (disk is not null)
+        {
+            DiskHeadline.Text = disk.Headline;
+            DiskCompare.Text = disk.Compare;
+            DiskLines.ItemsSource = disk.Lines;
+        }
+
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
 
@@ -245,7 +265,7 @@ public partial class BigPictureWindow
             var bar = new Grid { Height = 12 };
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(fraction, GridUnitType.Star) });
             bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - fraction + 0.0001, GridUnitType.Star) });
-            bar.Children.Add(new Border { CornerRadius = new CornerRadius(6), Background = Purple });
+            bar.Children.Add(new Border { CornerRadius = new CornerRadius(6), Background = Accent });
 
             var row = new Grid { Margin = new Thickness(0, 0, 0, 14) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
@@ -296,8 +316,8 @@ public partial class BigPictureWindow
     {
         if (((FrameworkElement)sender).DataContext is not Game game) return;
 
-        // scrolled far away: free the picture, unless the main window's own tile still shows this game (or the Continue row does)
-        if (!_continueItems.Contains(game) && _touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
+        // scrolled far away: free the picture, unless the main window's own tile still shows this game (or the home row does)
+        if (!_continueItems.Any(i => i.Game == game) && _touchedCovers.Remove(game, out var mainWindowWantedIt) && !mainWindowWantedIt)
         {
             game.CoverWanted = false;
             game.Cover = null;

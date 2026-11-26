@@ -18,7 +18,8 @@ public enum SortMode
     Name,
     Playtime,
     LastPlayed,
-    Source
+    Source,
+    Size   // the most space on disk first (see DiskUsage)
 }
 
 /// <summary>Small app settings, saved in %AppData%\GameDeck\settings.json.</summary>
@@ -39,6 +40,16 @@ public static class SettingsService
     {
         public bool OnlineCovers { get; set; } = true;
 
+        public bool ImportPlaytime { get; set; } = true;
+
+        public bool LowBatteryWarning { get; set; } = true;
+
+        public int ScreenSaverMinutes { get; set; } = 10;
+
+        public int BreakReminderMinutes { get; set; }
+
+        public bool AskWhereLeftOff { get; set; } = true;
+
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public CloseAction CloseAction { get; set; } = CloseAction.Ask;
 
@@ -58,6 +69,10 @@ public static class SettingsService
         public bool ControllerWake { get; set; } = true;
         public bool ControllerShortcuts { get; set; } = true;
         public string? ScreenshotFolder { get; set; }
+
+        public string? BackupFolder { get; set; }
+
+        public string? AccentColor { get; set; }
         public bool NavSounds { get; set; } = true;
         public double SoundVolume { get; set; } = 1.0;
 
@@ -160,6 +175,76 @@ public static class SettingsService
         }
     }
 
+    /// <summary>
+    /// Games show the playtime Steam, GOG Galaxy or the itch app counted (their files on this PC, see LauncherPlaytime) when it
+    /// is higher than GameDeck's.
+    /// </summary>
+    public static bool ImportPlaytime
+    {
+        get => Current.ImportPlaytime;
+        set
+        {
+            Current.ImportPlaytime = value;
+            Save();
+        }
+    }
+
+    /// <summary>The break reminder times to choose from, in minutes of one session (0 = off).</summary>
+    public static readonly int[] BreakReminderChoices = [0, 60, 90, 120, 180];
+
+    /// <summary>A notice every so many minutes of one game session ("You've been playing for 2 hours"); 0 = off (the default).</summary>
+    public static int BreakReminderMinutes
+    {
+        get => BreakReminderChoices.Contains(Current.BreakReminderMinutes) ? Current.BreakReminderMinutes : 0;
+        set
+        {
+            Current.BreakReminderMinutes = value;
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// When a game started from GameDeck closes after a real session (10 minutes or more), ask "where did you leave off?" (the answer
+    /// shows on the game's page and in Continue playing next time). On by default; the question can always be skipped.
+    /// </summary>
+    public static bool AskWhereLeftOff
+    {
+        get => Current.AskWhereLeftOff;
+        set
+        {
+            Current.AskWhereLeftOff = value;
+            Save();
+        }
+    }
+
+    /// <summary>The screen saver times to choose from, in minutes (0 = off).</summary>
+    public static readonly int[] ScreenSaverChoices = [0, 5, 10, 20, 30];
+
+    /// <summary>
+    /// After how many minutes without input Big Picture fades to its screen saver (covers moving on black, against burn-in on
+    /// OLED screens); 0 = never. One of <see cref="ScreenSaverChoices"/>.
+    /// </summary>
+    public static int ScreenSaverMinutes
+    {
+        get => ScreenSaverChoices.Contains(Current.ScreenSaverMinutes) ? Current.ScreenSaverMinutes : 10;
+        set
+        {
+            Current.ScreenSaverMinutes = value;
+            Save();
+        }
+    }
+
+    /// <summary>A notice when a connected Xbox controller's battery gets low (15%, then 5%), also during games.</summary>
+    public static bool LowBatteryWarning
+    {
+        get => Current.LowBatteryWarning;
+        set
+        {
+            Current.LowBatteryWarning = value;
+            Save();
+        }
+    }
+
     /// <summary>Hide GameDeck to the system tray each time a game is started from it.</summary>
     public static bool MinimizeOnLaunch
     {
@@ -226,6 +311,21 @@ public static class SettingsService
         }
     }
 
+    /// <summary>A backup file is saved in this folder every day (OneDrive, a USB drive...); null = off (the default).</summary>
+    public static string? BackupFolder
+    {
+        get => Current.BackupFolder;
+        set
+        {
+            Current.BackupFolder = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            Save();
+            BackupFolderChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The backup folder was chosen or turned off (the main window saves a first backup there at once).</summary>
+    public static event Action? BackupFolderChanged;
+
     /// <summary>Confirm with the B button and go back with A (the Nintendo arrangement), on any controller.</summary>
     public static bool SwapConfirmBack
     {
@@ -266,6 +366,17 @@ public static class SettingsService
         set
         {
             Current.Theme = value;
+            Save();
+        }
+    }
+
+    /// <summary>The accent color ("#8037FE", one of ThemeService.Accents); null = the default purple.</summary>
+    public static string? AccentColor
+    {
+        get => Current.AccentColor;
+        set
+        {
+            Current.AccentColor = value;
             Save();
         }
     }

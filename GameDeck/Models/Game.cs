@@ -110,6 +110,10 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public List<string> Tags { get; set; } = [];
 
+    /// <summary>The game's genres from the Steam store (see GenreService); empty when it isn't on Steam.</summary>
+    [JsonIgnore]
+    public List<string> Genres { get; set; } = [];
+
     /// <summary>What GameDeck does before / after starting this game (null = nothing).</summary>
     [JsonIgnore]
     public LaunchProfile? Profile { get; set; }
@@ -154,6 +158,59 @@ public class Game : INotifyPropertyChanged
 
     [JsonIgnore]
     public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
+    private string? _leftOff;
+
+    /// <summary>"Where I left off": a short note written when the game was closed (or from its menu), shown when you come back.</summary>
+    [JsonIgnore]
+    public string? LeftOff
+    {
+        get => _leftOff;
+        set
+        {
+            if (Set(ref _leftOff, value))
+            {
+                Notify(nameof(HasLeftOff));
+                Notify(nameof(ContinueNote));
+            }
+        }
+    }
+
+    /// <summary>When <see cref="LeftOff"/> was written (UTC).</summary>
+    [JsonIgnore]
+    public DateTime? LeftOffUtc { get; set; }
+
+    [JsonIgnore]
+    public bool HasLeftOff => !string.IsNullOrWhiteSpace(LeftOff);
+
+    /// <summary>The line under the name in "Continue playing": where you left off when there is a note, otherwise the last-played date.</summary>
+    [JsonIgnore]
+    public string ContinueNote => HasLeftOff ? "Left off: " + LeftOff : LastPlayedText;
+
+    // ---------- size on disk (see DiskUsage) ----------
+    private long? _sizeBytes;
+
+    /// <summary>The size of the game's install folder, or null when it isn't known (not measured yet, or not readable).</summary>
+    [JsonIgnore]
+    public long? SizeBytes
+    {
+        get => _sizeBytes;
+        set
+        {
+            if (Set(ref _sizeBytes, value))
+            {
+                Notify(nameof(SizeText));
+                Notify(nameof(HasSize));
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasSize => SizeBytes is not null;
+
+    /// <summary>"48.2 GB", or "" when not known.</summary>
+    [JsonIgnore]
+    public string SizeText => SizeBytes is { } bytes ? Services.DiskUsage.Format(bytes) : "";
 
     private GameStatus _status;
 
@@ -220,7 +277,10 @@ public class Game : INotifyPropertyChanged
         set
         {
             if (Set(ref _lastPlayed, value))
+            {
                 Notify(nameof(LastPlayedText));
+                Notify(nameof(ContinueNote));
+            }
         }
     }
 
@@ -231,6 +291,23 @@ public class Game : INotifyPropertyChanged
     /// <summary>Last-played date for the details page, e.g. "9 Nov 2026" or "Never".</summary>
     [JsonIgnore]
     public string LastPlayedText => LastPlayed is { } time ? time.ToLocalTime().ToString("d MMM yyyy") : "Never";
+
+    private string? _achievementsText;
+
+    /// <summary>"23 / 50" from Steam's (or GOG Galaxy's) files on this PC, or null when they don't say (see Achievements).</summary>
+    [JsonIgnore]
+    public string? AchievementsText
+    {
+        get => _achievementsText;
+        set
+        {
+            if (Set(ref _achievementsText, value))
+                Notify(nameof(HasAchievements));
+        }
+    }
+
+    [JsonIgnore]
+    public bool HasAchievements => _achievementsText is not null;
 
     private long _playtimeSeconds;
 

@@ -30,7 +30,10 @@ public class LaunchRoutineService
         public bool CloseStartedAfter { get; init; }
         public bool ReopenAfter { get; init; }
         public bool UsesHighPerformance { get; set; }
+        public bool ChangedDisplay { get; set; }       // the screen mode was switched for this game
     }
+
+    private string? _displayOwner;   // the game that switched the screen mode (only one at a time)
 
     private readonly Dictionary<string, Session> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _highPerformanceUsers = new(StringComparer.OrdinalIgnoreCase);
@@ -123,6 +126,14 @@ public class LaunchRoutineService
         if (profile.HighPerformancePower)
             session.UsesHighPerformance = await EnterHighPerformanceAsync(game.LaunchTarget);
 
+        // 4) screen mode (another game that changed it keeps it: its own end puts it back)
+        if (profile.Display is { } mode && _displayOwner is null && await Task.Run(() => DisplayModes.Apply(mode)))
+        {
+            session.ChangedDisplay = true;
+            _displayOwner = game.LaunchTarget;
+            await Task.Delay(1500);   // the screen goes black for a moment while it switches: let it settle before the game starts
+        }
+
         _sessions[game.LaunchTarget] = session;
 
         // only claim what really happened
@@ -133,6 +144,8 @@ public class LaunchRoutineService
             done.Add(session.Started.Count == 1 ? "Opened 1 app" : $"Opened {session.Started.Count} apps");
         if (session.UsesHighPerformance)
             done.Add("High performance power");
+        if (session.ChangedDisplay && profile.Display is { } changed)
+            done.Add($"Screen {changed.Width} × {changed.Height}, {changed.Hz} Hz");
 
         return new PrepareResult(true, done.Count > 0 ? string.Join(" · ", done) : null);
     }
@@ -162,6 +175,12 @@ public class LaunchRoutineService
         }
         finally
         {
+            if (session.ChangedDisplay)
+            {
+                _displayOwner = null;
+                await Task.Run(DisplayModes.Restore);
+            }
+
             if (session.UsesHighPerformance)
                 await LeaveHighPerformanceAsync(game.LaunchTarget);
         }

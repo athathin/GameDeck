@@ -26,8 +26,11 @@ public class LaunchProfile
     /// <summary>Switch Windows to the High performance power plan while the game runs.</summary>
     public bool HighPerformancePower { get; set; }
 
+    /// <summary>The main display's resolution and refresh rate while the game runs (null = don't change it).</summary>
+    public GameDeck.Services.DisplayMode? Display { get; set; }
+
     [JsonIgnore]
-    public bool IsEmpty => StartApps.Count == 0 && CloseApps.Count == 0 && !HighPerformancePower;
+    public bool IsEmpty => StartApps.Count == 0 && CloseApps.Count == 0 && !HighPerformancePower && Display is null;
 
     public LaunchProfile Clone() => new()
     {
@@ -36,6 +39,7 @@ public class LaunchProfile
         CloseApps = [.. CloseApps],
         AskBeforeClosing = AskBeforeClosing,
         ReopenClosedAppsAfter = ReopenClosedAppsAfter,
-        HighPerformancePower = HighPerformancePower
+        HighPerformancePower = HighPerformancePower,
+        Display = Display   // (a record: never changed, so it can be shared)
     };
 }

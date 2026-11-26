@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -17,7 +18,8 @@ public partial class BigPictureWindow
 
         NavSounds.Play(button switch
         {
-            PadButton.Confirm or PadButton.Start or PadButton.Y or PadButton.RightTrigger => NavSound.Select,
+            PadButton.Confirm or PadButton.Start or PadButton.Y => NavSound.Select,
+            PadButton.RightTrigger when _overlay == Overlay.None && IsGamesTab => NavSound.Select,   // (a random game; elsewhere it scrolls)
             PadButton.Back => NavSound.Back,
             _ => NavSound.Move
         });
@@ -54,7 +56,10 @@ public partial class BigPictureWindow
             case PadButton.Select: OpenFilters(); break;
             case PadButton.Start: OpenGameMenu(); break;   // the right-click menu of the desktop library
             case PadButton.Home: OpenPower(); break;
-            case PadButton.RightTrigger: PickRandom(); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger when _tab == StatsTab:
+                ScrollPage(StatsScroll, TriggerDirection(button));   // a page of the stats
+                break;
+            case PadButton.RightTrigger when IsGamesTab: PickRandom(); break;   // (LT does nothing on the row of games)
             case PadButton.LeftShoulder: SwitchTab(-1); break;
             case PadButton.RightShoulder: SwitchTab(1); break;
         }
@@ -87,8 +92,21 @@ public partial class BigPictureWindow
                 if (DetailsView.DataContext is Game game) OpenShotBrowse(game);   // (the game whose page is open)
                 break;
             case PadButton.Confirm: _ = PressPlayThenLaunch(); break;
+
+            // Down: Play → "Add screenshots" → then the page scrolls (history, sessions...). Up: the page scrolls back until
+            // "Add screenshots" is on screen again, then Play (at the top)
             case PadButton.Down when !_detailsOnAddShots: SelectDetailsButton(addShots: true); break;
-            case PadButton.Up when _detailsOnAddShots: SelectDetailsButton(addShots: false); break;
+            case PadButton.Down: ScrollPage(DetailsView.Scroller, 1, part: 1 / 3.0); break;
+            case PadButton.Up when _detailsOnAddShots:
+                if (DetailsView.AddShotsInView || !ScrollPage(DetailsView.Scroller, -1, part: 1 / 3.0))
+                {
+                    SelectDetailsButton(addShots: false);
+                    DetailsView.ScrollToTop();
+                }
+                break;
+
+            // the triggers scroll a page at a time, whichever button is selected
+            case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(DetailsView.Scroller, TriggerDirection(button)); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
@@ -140,13 +158,13 @@ public partial class BigPictureWindow
     private void OpenDetails(Game game)
     {
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
-        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game));
+        DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game), _sessions.History(game));
         _detailsOnAddShots = false;
         DetailsView.SetPlayLabel(resume: ReferenceEquals(game, NowPlaying));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
         FillDetailsHints();
-        ShowOverlay(Overlay.Details);
+        ShowOverlay(Overlay.Details);   // (the "Scroll" hint follows once the page is laid out)
     }
 
     private void FillDetailsHints()
@@ -158,6 +176,7 @@ public partial class BigPictureWindow
             hints.Add((l.Y, "Screenshots"));
 
         hints.Add((l.Back, "Back"));
+        AddScrollHint(hints, Scrollable(DetailsView.Scroller));
         FillHints(DetailsHints, hints.ToArray());
     }
 
@@ -167,6 +186,7 @@ public partial class BigPictureWindow
         switch (_overlay)
         {
             case Overlay.Settings: FillSettingsHints(); break;
+            case Overlay.Filters: FillFilterHints(); break;
             case Overlay.GameMenu when _menuPages.Count > 0: FillGameMenuHints(); break;
             case Overlay.Details: FillDetailsHints(); break;
             case Overlay.Browse: FillBrowseHints(); break;
@@ -181,6 +201,12 @@ public partial class BigPictureWindow
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (WakeFromScreenSaver())
+        {
+            e.Handled = true;   // the key only woke the screen
+            return;
+        }
+
         SetPadInUse(false);
 
         // choosing a new quick launch shortcut: every key press is part of it
@@ -247,8 +273,21 @@ public partial class BigPictureWindow
         e.Handled = true;
     }
 
+    /// <summary>A click during the screen saver only wakes the screen.</summary>
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (WakeFromScreenSaver())
+            e.Handled = true;
+    }
+
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (WakeFromScreenSaver())
+        {
+            e.Handled = true;
+            return;
+        }
+
         SetPadInUse(false);
 
         if (_overlay == Overlay.None)
@@ -345,81 +384,6 @@ public partial class BigPictureWindow
         {
             if (StripAvailable) FocusStrip(true);   // the row of last played games sits above the tiles
             else FocusTopBar(true);
-        }
-    }
-
-    // ---------- the icons at the top, reachable with the stick ----------
-
-    private bool _topFocus;
-    private int _topIndex;
-
-    private Border[]? _topIcons;
-
-    private Border[] TopIcons => _topIcons ??= [SearchButton, FilterButton, SettingsButton, PowerButton];
-
-    private void FocusTopBar(bool on)
-    {
-        _topFocus = on;
-        if (on)
-        {
-            _topIndex = Math.Clamp(_topIndex, 0, TopIcons.Length - 1);
-            _stripFocus = false;
-            ContinueList.SelectedIndex = -1;
-        }
-
-        // the selected tile has no ring while an icon is the selected one (two rings look like two selections)
-        HideTileRing(on);
-        if (_tab == MediaTab)
-            UpdateMediaSelection(scroll: false);
-
-        UpdateTopBar();
-        BuildMainHints();
-    }
-
-    /// <summary>Selected icon: white with a dark symbol, like the selected key or row elsewhere in this screen.</summary>
-    private void UpdateTopBar()
-    {
-        var icons = TopIcons;
-        for (var i = 0; i < icons.Length; i++)
-        {
-            var selected = _topFocus && i == _topIndex;
-            var glyph = (TextBlock)icons[i].Child;
-
-            if (selected)
-            {
-                icons[i].Background = ThemeService.SelectBg;
-                glyph.Foreground = Dark;
-            }
-            else
-            {
-                icons[i].ClearValue(BackgroundProperty);   // back to the style's colors (including the mouse hover)
-                glyph.Foreground = ThemeService.TextPrimary;
-            }
-        }
-    }
-
-    /// <summary>Returns true when the button was used up here.</summary>
-    private bool HandleTopBar(PadButton button)
-    {
-        switch (button)
-        {
-            case PadButton.Left: _topIndex = Math.Max(0, _topIndex - 1); UpdateTopBar(); return true;
-            case PadButton.Right: _topIndex = Math.Min(TopIcons.Length - 1, _topIndex + 1); UpdateTopBar(); return true;
-            case PadButton.Up: return true;
-            case PadButton.Down when StripAvailable: FocusStrip(true); return true;   // on to the row of last played games
-            case PadButton.Down or PadButton.Back: FocusTopBar(false); return true;   // back to the games
-
-            case PadButton.Confirm:
-                switch (_topIndex)
-                {
-                    case 0: OpenSearch(); break;
-                    case 1: OpenFilters(); break;
-                    case 2: OpenSettings(); break;
-                    default: OpenPower(); break;
-                }
-                return true;
-
-            default: return false;   // tabs, Home, favorite... keep working from up here
         }
     }
 

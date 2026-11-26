@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using GameDeck.Services;
 
 namespace GameDeck.Views;
@@ -16,6 +17,7 @@ public partial class SettingsView : UserControl
     public event EventHandler? ScanRequested;
     public event EventHandler? DuplicatesRequested;
     public event EventHandler? OnlineCoversChanged;
+    public event EventHandler? PlaytimeSourcesChanged;
     public event EventHandler? QuickLaunchChanged;
     public event EventHandler? UninstallRequested;
     public event EventHandler? ExportRequested;
@@ -48,6 +50,7 @@ public partial class SettingsView : UserControl
         AskHint.Visibility = action == CloseAction.Ask ? Visibility.Visible : Visibility.Collapsed;
 
         OnlineCoversCheckBox.IsChecked = SettingsService.OnlineCovers;
+        ImportPlaytimeCheckBox.IsChecked = SettingsService.ImportPlaytime;
 
         DarkThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Dark;
         LightThemeRadio.IsChecked = SettingsService.Theme == AppTheme.Light;
@@ -57,6 +60,8 @@ public partial class SettingsView : UserControl
         ScaleNormalRadio.IsChecked = scale < 1.1;
         ScaleLargeRadio.IsChecked = scale is >= 1.1 and < 1.3;
         ScaleHugeRadio.IsChecked = scale >= 1.3;
+        BuildMinuteChoices();
+        BuildAccentChoices();
 
         GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
 
@@ -65,9 +70,11 @@ public partial class SettingsView : UserControl
 
         MinimizeOnLaunchCheckBox.IsChecked = SettingsService.MinimizeOnLaunch;
         LaunchToastCheckBox.IsChecked = SettingsService.ShowLaunchToast;
+        LeftOffCheckBox.IsChecked = SettingsService.AskWhereLeftOff;
 
         ControllerWakeCheckBox.IsChecked = SettingsService.ControllerWake;
         ControllerShortcutsCheckBox.IsChecked = SettingsService.ControllerShortcuts;
+        LowBatteryCheckBox.IsChecked = SettingsService.LowBatteryWarning;
         NavSoundsCheckBox.IsChecked = SettingsService.NavSounds;
         ShowSoundVolume();
         SwapButtonsCheckBox.IsChecked = SettingsService.SwapConfirmBack;
@@ -75,8 +82,39 @@ public partial class SettingsView : UserControl
         StopCapturing();
         ShowQuickLaunchOptions();
         ShowScreenshotFolder();
+        ShowBackupFolder();
 
         _updating = false;
+    }
+
+    // ---------- the daily backup in a folder ----------
+
+    private void ShowBackupFolder()
+    {
+        BackupFolderText.Text = SettingsService.BackupFolder is { } folder
+            ? $"On: {BackupService.FolderIn(folder)}. The last 7 days are kept; Import backup restores any of them."
+            : "Off. Choose a folder in OneDrive, Google Drive or on a USB drive, and your data survives a reinstall or a new PC.";
+        BackupOffButton.Visibility = SettingsService.BackupFolder is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void BackupFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Save a GameDeck backup every day in",
+            InitialDirectory = SettingsService.BackupFolder is { } chosen && System.IO.Directory.Exists(chosen)
+                ? chosen : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+
+        SettingsService.BackupFolder = dialog.FolderName;   // (the first backup is saved there at once)
+        ShowBackupFolder();
+    }
+
+    private void BackupOffButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsService.BackupFolder = null;   // (the backups already saved stay)
+        ShowBackupFolder();
     }
 
     // ---------- where the controller's screenshots go ----------
@@ -117,6 +155,13 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.ControllerShortcuts = ControllerShortcutsCheckBox.IsChecked == true;   // the listeners check this on their own
+    }
+
+    private void LowBatteryCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.LowBatteryWarning = LowBatteryCheckBox.IsChecked == true;   // (checked on its own each minute)
     }
 
     /// <summary>Puts the volume slider on the saved volume and names it in the slider's tooltip ("Volume: 75%").</summary>
@@ -296,12 +341,27 @@ public partial class SettingsView : UserControl
         SettingsService.ShowLaunchToast = LaunchToastCheckBox.IsChecked == true;
     }
 
+    private void LeftOffCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.AskWhereLeftOff = LeftOffCheckBox.IsChecked == true;
+    }
+
     private void OnlineCoversCheckBox_Changed(object sender, RoutedEventArgs e)
     {
         if (_updating) return;
 
         SettingsService.OnlineCovers = OnlineCoversCheckBox.IsChecked == true;
         OnlineCoversChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ImportPlaytimeCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+
+        SettingsService.ImportPlaytime = ImportPlaytimeCheckBox.IsChecked == true;
+        PlaytimeSourcesChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
@@ -314,6 +374,61 @@ public partial class SettingsView : UserControl
 
         SettingsService.Theme = theme;
         ThemeService.Apply(theme);   // every open screen changes at once
+    }
+
+    /// <summary>The accent colors as round swatches (the chosen one ringed); a click changes the color everywhere at once.</summary>
+    private void BuildAccentChoices()
+    {
+        AccentChoices.Children.Clear();
+
+        foreach (var (name, hex) in ThemeService.Accents)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex);
+            var chosen = hex == ThemeService.AccentHex;
+
+            var swatch = new Border
+            {
+                Width = 34, Height = 34, CornerRadius = new CornerRadius(17), Margin = new Thickness(0, 0, 12, 0), Padding = new Thickness(3),
+                BorderThickness = new Thickness(2), BorderBrush = chosen ? ThemeService.TextPrimary : Brushes.Transparent,
+                Cursor = Cursors.Hand, ToolTip = name,
+                Child = new Border { CornerRadius = new CornerRadius(13), Background = new SolidColorBrush(color) }
+            };
+
+            swatch.MouseLeftButtonUp += (_, _) =>
+            {
+                SettingsService.AccentColor = hex;
+                ThemeService.ApplyAccent(hex);   // every open screen changes at once
+                BuildAccentChoices();
+            };
+
+            AccentChoices.Children.Add(swatch);
+        }
+    }
+
+    /// <summary>Off, 5 min, 10 min... for the screen saver and the break reminder: the saved one ticked.</summary>
+    private void BuildMinuteChoices()
+    {
+        Fill(ScreenSaverChoices, "ScreenSaver", SettingsService.ScreenSaverChoices, SettingsService.ScreenSaverMinutes,
+            minutes => SettingsService.ScreenSaverMinutes = minutes);
+        Fill(BreakChoices, "BreakReminder", SettingsService.BreakReminderChoices, SettingsService.BreakReminderMinutes,
+            minutes => SettingsService.BreakReminderMinutes = minutes);
+
+        void Fill(Panel panel, string group, int[] choices, int saved, Action<int> save)
+        {
+            panel.Children.Clear();
+
+            foreach (var minutes in choices)
+            {
+                var radio = new RadioButton
+                {
+                    Content = minutes == 0 ? "Off" : minutes % 60 == 0 && minutes >= 60 ? $"{minutes / 60} h" : $"{minutes} min",
+                    GroupName = group, FontSize = 15, Style = (Style)FindResource("DarkRadioButton"), IsChecked = minutes == saved,
+                    Margin = new Thickness(panel.Children.Count == 0 ? 0 : 32, 0, 0, 0)
+                };
+                radio.Checked += (_, _) => save(minutes);   // (attached after IsChecked was set)
+                panel.Children.Add(radio);
+            }
+        }
     }
 
     private void ScaleRadio_Checked(object sender, RoutedEventArgs e)

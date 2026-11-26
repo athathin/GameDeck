@@ -3,6 +3,24 @@
 What changed in each version of GameDeck. GameDeck installs new versions by itself when it starts (see the
 [README](README.md#updates)); the newest version is always on the [releases page](https://github.com/athathin/GameDeck/releases/latest).
 
+## 1.4.0 (26 Nov 2026)
+
+New:
+- **Where you left off**: after a session, GameDeck asks; the note shows on the game's page and in Continue playing.
+- **Game pages**: achievements, size on disk, a play-history calendar, and two columns on wide screens.
+- **Stats**: This year in games, and the space your games take. A Largest first sort.
+- **Playtime** from Steam, GOG Galaxy and itch.io, and **genres** (with a Genre filter).
+- **When the game closes**: go back to GameDeck, sleep or turn off the PC, after a countdown you can cancel.
+- **Launch routines** can set the screen's resolution and refresh rate.
+- **Big Picture**: a home row of shelves, a status bar (battery, Wi-Fi, Bluetooth, sound), a screen saver, LT / RT to scroll.
+- Break reminders, a low-battery warning, a daily backup to a folder you choose, seven accent colors, a Media filter by game.
+
+Changed and fixed:
+- Big Picture opens on the screen the desktop window is on.
+- Newer controller support (SDL 2.31): no more false "empty" batteries.
+- A daily check for updates while GameDeck runs.
+- The desktop Media tab fills its rows.
+
 ## 1.3.0 (26 Nov 2026)
 
 New:

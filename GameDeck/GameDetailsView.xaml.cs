@@ -38,16 +38,19 @@ public partial class GameDetailsView : UserControl
     }
 
     /// <summary>Shows one game. The playtime and last-played text keep updating by themselves (they bind to the game).</summary>
-    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions)
+    public void Show(Game game, int rank, int playedCount, IReadOnlyList<SessionRow> sessions, GameHistory? history)
     {
         DataContext = game;
 
         SessionsList.ItemsSource = sessions;
         SessionsPanel.Visibility = sessions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ShowHistory(history);
 
         RankText.Text = game.PlaytimeSeconds > 0 ? $"#{rank} of {playedCount}" : "-";
         RatingStarsText.Text = game.RatingText;
         RatingStarsText.Visibility = game.HasRating ? Visibility.Visible : Visibility.Collapsed;
+
+        ShowLeftOff(game);
 
         NotesText.Text = game.Notes ?? "";
         NotesPanel.Visibility = game.HasNotes ? Visibility.Visible : Visibility.Collapsed;
@@ -59,6 +62,143 @@ public partial class GameDetailsView : UserControl
 
         CategoriesText.Text = game.Tags.Count > 0 ? "Categories: " + string.Join(", ", game.Tags) : "";
         CategoriesText.Visibility = game.Tags.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        GenresText.Text = game.Genres.Count > 0 ? "Genres: " + string.Join(", ", game.Genres) : "";
+        GenresText.Visibility = game.Genres.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
+        PageScroll.ScrollToTop();
+    }
+
+    // ---- layout: one column, or two on a wide screen ----
+
+    /// <summary>From this width on, the play history and the sessions get a column of their own on the right.</summary>
+    private const double WideWidth = 1240;
+    private const double WideMaxWidth = 1640;
+
+    /// <summary>The page in the middle of its space (Big Picture) instead of on the left (the desktop window).</summary>
+    public bool Centered
+    {
+        get => PageRoot.HorizontalAlignment == HorizontalAlignment.Center;
+        set => PageRoot.HorizontalAlignment = value ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+    }
+
+    private void PageScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged)
+            UpdateLayoutMode();
+    }
+
+    /// <summary>
+    /// Wide (and something to put there): the cover, the game's info and screenshots, then a column with the play history and the
+    /// sessions. Otherwise everything in one column under the name, as before.
+    /// </summary>
+    private void UpdateLayoutMode()
+    {
+        var space = PageScroll.ViewportWidth > 0 ? PageScroll.ViewportWidth : PageScroll.ActualWidth;
+        var sideHasContent = HistoryPanel.Visibility == Visibility.Visible || SessionsPanel.Visibility == Visibility.Visible;
+        var wide = space >= WideWidth && sideHasContent;
+
+        // (the page's width is set when wide: sized by its content, the two columns wouldn't share it evenly)
+        PageRoot.MaxWidth = wide ? WideMaxWidth : 900;
+        PageRoot.Width = wide ? Math.Min(space - 16, WideMaxWidth) : double.NaN;
+
+        GapColumn.Width = new GridLength(wide ? 48 : 0);
+        SideColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        Grid.SetColumn(SidePanel, wide ? 3 : 1);
+        Grid.SetRow(SidePanel, wide ? 0 : 1);
+        SidePanel.Margin = new Thickness(0, wide ? -22 : 0, 0, 0);   // (level with the name: each section has room above it)
+    }
+
+    // ---- scrolling with a controller (Big Picture) ----
+
+    /// <summary>The page's scroller (Big Picture scrolls it with the controller).</summary>
+    public ScrollViewer Scroller => PageScroll;
+
+    /// <summary>True when "Add screenshots" is fully on screen (going up from it selects Play again only then).</summary>
+    public bool AddShotsInView
+    {
+        get
+        {
+            if (!AddShotsButton.IsVisible) return false;
+
+            var top = AddShotsButton.TransformToAncestor(PageScroll).Transform(new Point(0, 0)).Y;
+            return top >= 0 && top + AddShotsButton.ActualHeight <= PageScroll.ViewportHeight;
+        }
+    }
+
+    /// <summary>Back to the top of the page (Play selected again).</summary>
+    public void ScrollToTop() => PageScroll.ScrollToTop();
+
+    /// <summary>"Where you left off" (shown again after it was written in Big Picture while the page is open).</summary>
+    public void ShowLeftOff(Game game)
+    {
+        if (!ReferenceEquals(DataContext, game)) return;
+
+        LeftOffPanel.Visibility = game.HasLeftOff ? Visibility.Visible : Visibility.Collapsed;
+        LeftOffText.Text = game.LeftOff ?? "";
+        LeftOffHeader.Text = game.LeftOffUtc is { } when
+            ? "WHERE YOU LEFT OFF  ·  " + when.ToLocalTime().ToString("d MMM yyyy").ToUpperInvariant()
+            : "WHERE YOU LEFT OFF";
+    }
+
+    // ---- play history ----
+
+    private const double DayCell = 14;
+    private const double DayGap = 3;
+
+    /// <summary>A line of numbers, then a square per day (a column per week, Monday at the top), darker the more was played.</summary>
+    private void ShowHistory(GameHistory? history)
+    {
+        HistoryGrid.Children.Clear();
+        HistoryGrid.ColumnDefinitions.Clear();
+        HistoryGrid.RowDefinitions.Clear();
+
+        if (history is null)
+        {
+            HistoryPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        HistoryPanel.Visibility = Visibility.Visible;
+
+        var sessions = history.Sessions == 1 ? "1 session" : $"{history.Sessions} sessions";
+        var days = history.DaysPlayed == 1 ? "1 day" : $"{history.DaysPlayed} days";
+        HistorySummary.Text = history.Sessions == 1
+            ? $"{sessions}  ·  {Game.FormatPlaytime(history.LongestSeconds)}"
+            : $"{sessions} on {days}  ·  average {Game.FormatPlaytime(history.AverageSeconds)}  ·  longest {Game.FormatPlaytime(history.LongestSeconds)}";
+
+        var weeks = history.Days.Count / 7;
+        for (var w = 0; w < weeks; w++)
+            HistoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(DayCell + DayGap) });
+        for (var d = 0; d < 7; d++)
+            HistoryGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(DayCell + DayGap) });
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var most = Math.Max(1, history.Days.Max(d => d.Seconds));
+        var accent = (Brush)FindResource("Accent");
+        var empty = (Brush)FindResource("RaisedBg");
+
+        for (var i = 0; i < history.Days.Count; i++)
+        {
+            var (day, seconds) = history.Days[i];
+            if (day > today) continue;   // (the rest of this week)
+
+            var cell = new Border
+            {
+                Width = DayCell, Height = DayCell, CornerRadius = new CornerRadius(3),
+                Background = seconds > 0 ? accent : empty,
+                Opacity = seconds > 0 ? 0.35 + 0.65 * seconds / most : 1,
+                ToolTip = $"{day:ddd d MMM yyyy}: {(seconds > 0 ? Game.FormatPlaytime(seconds) : "not played")}"
+            };
+
+            Grid.SetColumn(cell, i / 7);
+            Grid.SetRow(cell, i % 7);
+            HistoryGrid.Children.Add(cell);
+        }
+
+        HistoryRange.Text = $"The last {weeks} weeks, from {history.Days[0].Day:d MMM}. Each column is a week, Monday at the top.";
     }
 
     // ---- screenshots ----
@@ -177,7 +317,7 @@ public partial class GameDetailsView : UserControl
     {
         button.RenderTransformOrigin = new Point(0.5, 0.5);
         button.RenderTransform = new ScaleTransform(1.06, 1.06);
-        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : Color.FromRgb(0x80, 0x37, 0xFE), BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
+        button.Effect = new DropShadowEffect { Color = ThemeService.Current == AppTheme.Dark ? Colors.White : ThemeService.AccentColor, BlurRadius = 22, ShadowDepth = 0, Opacity = 0.9 };
     }
 
     private static void Unselect(Button button)

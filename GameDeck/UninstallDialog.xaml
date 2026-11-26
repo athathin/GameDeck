@@ -34,7 +34,7 @@
             <Button Content="Cancel" IsCancel="True" Style="{StaticResource DialogButton}"
                     Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}" MinWidth="80"/>
             <Button Content="Keep my data" Click="KeepButton_Click" Style="{StaticResource DialogButton}"
-                    Background="#8037FE" Foreground="White" MinWidth="80"/>
+                    Background="{DynamicResource Accent}" Foreground="White" MinWidth="80"/>
             <Button Content="Remove everything" Click="RemoveAllButton_Click" Style="{StaticResource DialogButton}"
                     Background="#C0392B" Foreground="White" MinWidth="80"/>
         </StackPanel>

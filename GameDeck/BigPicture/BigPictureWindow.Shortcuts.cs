@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -25,7 +26,7 @@ public partial class BigPictureWindow
     private void RenderShortcuts()
     {
         var kind = _pad.ActiveKind == ControllerKind.None ? ControllerKind.Xbox : _pad.ActiveKind;
-        var l = LabelsFor(kind);
+        var l = ButtonLabels.For(kind);
         UIElement Home() => HomeIcon(l, onController: true, kind);
         UIElement Face(string label) => RoundButton(label, onController: true);
         var stickIn = kind == ControllerKind.PlayStation ? "L3" : "LS";
@@ -36,7 +37,7 @@ public partial class BigPictureWindow
         if (!SettingsService.ControllerShortcuts)
             ShortcutsLeft.Children.Add(new TextBlock
             {
-                Text = "The Home-button shortcuts are switched off in Settings.", Foreground = Purple, FontSize = 16,
+                Text = "The Home-button shortcuts are switched off in Settings.", Foreground = Accent, FontSize = 16,
                 TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 6)
             });
 
@@ -64,7 +65,8 @@ public partial class BigPictureWindow
             ShortcutRow("Favorite", Face(l.X)),
             ShortcutRow("Search", Face(l.Y)),
             ShortcutRow("Previous / Next Tab", Chip(l.Left), "/", Chip(l.Right)),
-            ShortcutRow("Random Game", Chip(l.RightTrigger)),
+            ShortcutRow("Random Game (on the row of games)", Chip(l.RightTrigger)),
+            ShortcutRow("Scroll a Page (pages, lists, Stats, Media)", Chip(l.LeftTrigger), "/", Chip(l.RightTrigger)),
             ShortcutRow("Filters", Chip(l.Select)),
             ShortcutRow("Game Menu", Chip(l.Start)),
             ShortcutRow("Power Menu", Home()));
@@ -76,7 +78,9 @@ public partial class BigPictureWindow
             ShortcutRow("Clear", Chip(l.Select)),
             ShortcutRow("Done", Chip(l.Start)));
 
-        FillHints(ShortcutsHints, (Labels().Back, "Close"));
+        var hints = new List<(string, string)> { (Labels().Back, "Close") };
+        AddScrollHint(hints, Scrollable(ShortcutsScroll));
+        FillHints(ShortcutsHints, hints.ToArray());
     }
 
     /// <summary>A heading in capitals, then its rows.</summary>
@@ -129,6 +133,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset - 90); break;
             case PadButton.Down: ShortcutsScroll.ScrollToVerticalOffset(ShortcutsScroll.VerticalOffset + 90); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(ShortcutsScroll, TriggerDirection(button)); break;
             case PadButton.Back or PadButton.Confirm or PadButton.Home:
                 if (_shortcutsFromSettings && button != PadButton.Home)
                     OpenSettings(keepPlace: true);

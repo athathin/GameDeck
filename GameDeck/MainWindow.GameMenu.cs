@@ -256,6 +256,13 @@ public partial class MainWindow
         _ = LaunchGameAsync(game);
     }
 
+    /// <summary>Right-click › "Where I left off…": write, change or clear the note shown on the game's page and in Continue playing.</summary>
+    private void LeftOffMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem { DataContext: Game game })
+            EditLeftOff(game, "A few words for next time. Leave it empty to remove the note.");
+    }
+
     private void UninstallMenuItem_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem { DataContext: Game game })
@@ -305,5 +312,8 @@ public partial class MainWindow
         RunningGame: () => _tracker.RunningGame,
         Resume: ResumeRunningGame,
         CloseGame: game => game.TrackingFolder is { } folder ? RunningGame.CloseAsync(folder) : Task.FromResult(false),
-        ForceCloseGame: game => game.TrackingFolder is { } folder ? RunningGame.ForceCloseAsync(folder) : Task.FromResult(false));
+        ForceCloseGame: game => game.TrackingFolder is { } folder ? RunningGame.ForceCloseAsync(folder) : Task.FromResult(false),
+        SetLeftOff: SetLeftOff,
+        GetAfterGame: () => _afterGame,
+        SetAfterGame: choice => _afterGame = choice);
 }

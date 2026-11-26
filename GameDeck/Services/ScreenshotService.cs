@@ -157,6 +157,23 @@ public static class ScreenshotService
             .ToList();
     }
 
+    /// <summary>The games of the Media tab's game filter: one per game that has pictures ("Other" for the rest).</summary>
+    public record MediaGroup(string Key, string Name, int Count);
+
+    /// <summary>What a picture is filtered by: its game's launch target, "" for the pictures of no game ("Other").</summary>
+    public static string GroupKey(MediaShot shot) => shot.Game?.LaunchTarget ?? "";
+
+    /// <summary>The games that have pictures, the one with the newest picture first, with how many each has; "Other" last.</summary>
+    public static List<MediaGroup> GroupsOf(IReadOnlyList<MediaShot> shots) =>
+        shots.GroupBy(GroupKey, StringComparer.OrdinalIgnoreCase)   // (groups keep the order of their first picture: the newest)
+            .Select(g => new MediaGroup(g.Key, g.First().Game?.DisplayName ?? "Other", g.Count()))
+            .OrderBy(g => g.Key.Length == 0)
+            .ToList();
+
+    /// <summary>The pictures of one group (<see cref="GroupKey"/>), or all of them for null.</summary>
+    public static List<MediaShot> Filter(List<MediaShot> shots, string? key) =>
+        key is null ? shots : shots.Where(s => string.Equals(GroupKey(s), key, StringComparison.OrdinalIgnoreCase)).ToList();
+
     /// <summary>The names a game's pictures can start with (its name, the name shown, the file-safe name), longest first.</summary>
     internal static List<(string Name, Game Game)> NamesOf(IEnumerable<Game> games) =>
         games.SelectMany(g => new[] { g.Name, g.DisplayName, SafeName(g.Name) }.Select(n => (Name: n.Trim(), Game: g)))

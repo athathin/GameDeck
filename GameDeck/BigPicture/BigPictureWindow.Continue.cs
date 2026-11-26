@@ -9,12 +9,14 @@ namespace GameDeck.Views;
 
 public partial class BigPictureWindow
 {
-    // ---------- "Continue playing": the games played last, as a small row above the tiles ----------
+    // ---------- the home row: a shelf of games above the tiles (Continue playing, Up next, a category...; X shows the next) ----------
 
-    private const int ContinueCount = 4;
     private const double ContinueRoom = 750;   // the middle of the screen must be this tall (the row sits above the tiles, which stay put)
+    private const double ShelfItemWidth = 272; // a game of the row with its gap (250 + the ring's 6 + 16)
 
-    private readonly ObservableCollection<Game> _continueItems = [];
+    private readonly ObservableCollection<ShelfItem> _continueItems = [];
+    private List<Shelf> _shelves = [];
+    private string? _shelfTitle;   // the shelf chosen with X (null = the first one)
     private bool _stripFocus;
     private int _stripIndex;
 
@@ -24,28 +26,62 @@ public partial class BigPictureWindow
         MiddleArea.SizeChanged += (_, _) => UpdateContinue();
     }
 
+    /// <summary>How many games fit in the row: as many as the screen is wide, from 4 to 8.</summary>
+    private int ShelfCount => Math.Clamp((int)((MiddleArea.ActualWidth - 12) / ShelfItemWidth), 4, 8);
+
     /// <summary>Fills the row (only on the plain "All games" list, and only when the screen is tall enough) and shows or hides it.</summary>
     private void UpdateContinue()
     {
         var wanted = _tab == 0 && !HasActiveFilters && _query.Length == 0 && MiddleArea.ActualHeight >= ContinueRoom;
 
-        var games = wanted
-            ? _library.Where(g => !g.IsHidden && g.LastPlayed is not null)
-                      .OrderByDescending(g => g.LastPlayed).Take(ContinueCount).ToList()
-            : [];
+        _shelves = wanted ? HomeShelves.Build(_library, ShelfCount, DateTime.UtcNow) : [];
+        var shelf = _shelves.FirstOrDefault(s => s.Title == _shelfTitle) ?? _shelves.FirstOrDefault();
 
-        if (!games.SequenceEqual(_continueItems))
+        var items = shelf?.Items ?? [];
+        if (!items.SequenceEqual(_continueItems))
         {
             _continueItems.Clear();
-            foreach (var game in games)
-                _continueItems.Add(game);
+            foreach (var item in items)
+                _continueItems.Add(item);
+
+            if (_stripFocus)
+            {
+                _stripIndex = Math.Clamp(_stripIndex, 0, Math.Max(0, _continueItems.Count - 1));
+                ContinueList.SelectedIndex = _stripIndex;
+            }
         }
+
+        // "CONTINUE PLAYING  ›  1 / 6": the › says X (or a click on the title) shows another shelf
+        if (shelf is not null)
+            ShelfTitle.Text = _shelves.Count > 1
+                ? $"{shelf.Title}   ›   {_shelves.IndexOf(shelf) + 1} / {_shelves.Count}"
+                : shelf.Title;
 
         var show = _continueItems.Count > 0;
         ContinuePanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
 
         if (!show && _stripFocus)
             FocusStrip(false);
+    }
+
+    /// <summary>X on the row, or a click on its title: the next shelf (after the last, the first again).</summary>
+    private void NextShelf()
+    {
+        if (_shelves.Count < 2) return;
+
+        var at = Math.Max(0, _shelves.FindIndex(s => s.Title == _shelfTitle));
+        _shelfTitle = _shelves[(at + 1) % _shelves.Count].Title;
+        _stripIndex = 0;
+        UpdateContinue();
+
+        if (_stripFocus)
+            ContinueList.SelectedIndex = 0;
+    }
+
+    private void ShelfTitle_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_overlay == Overlay.None)
+            NextShelf();
     }
 
     private bool StripAvailable => ContinuePanel.Visibility == Visibility.Visible && _continueItems.Count > 0;
@@ -97,8 +133,9 @@ public partial class BigPictureWindow
             case PadButton.Right: _stripIndex = Math.Min(_continueItems.Count - 1, _stripIndex + 1); ContinueList.SelectedIndex = _stripIndex; return true;
             case PadButton.Up: FocusTopBar(true); return true;                       // on to the icons at the top
             case PadButton.Down or PadButton.Back: FocusStrip(false); return true;   // back to the tiles
-            case PadButton.Confirm: OpenContinue(_continueItems[_stripIndex]); return true;
-            case PadButton.X or PadButton.Start: return true;                        // (those belong to the selected tile, not to this row)
+            case PadButton.Confirm: OpenContinue(_continueItems[_stripIndex].Game); return true;
+            case PadButton.X: NextShelf(); return true;                              // the next shelf: Up next, a category...
+            case PadButton.Start: return true;                                       // (the game menu belongs to the selected tile)
             default: return false;                                                   // tabs, search, Home... keep working from here
         }
     }
@@ -117,14 +154,14 @@ public partial class BigPictureWindow
     // a click on a game of the row
     private void ContinueItem_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (_overlay == Overlay.None && ((FrameworkElement)sender).DataContext is Game game)
-            OpenContinue(game);
+        if (_overlay == Overlay.None && ((FrameworkElement)sender).DataContext is ShelfItem item)
+            OpenContinue(item.Game);
     }
 
     // the row's covers: loaded like the tiles' (see Tile_Loaded), and kept while the row shows them
     private void ContinueItem_Loaded(object sender, RoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is not Game game) return;
+        if (((FrameworkElement)sender).DataContext is not ShelfItem { Game: var game }) return;
 
         _touchedCovers.TryAdd(game, game.CoverWanted);
         game.CoverWanted = true;

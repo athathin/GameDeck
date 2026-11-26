@@ -203,8 +203,11 @@ public static class CoverService
             ? game.LaunchTarget[SteamPrefix.Length..]
             : null;
 
-    /// <summary>Searches Steam's store by name; only accepts an exact (normalized) name match.</summary>
-    private static async Task<string?> FindSteamAppIdAsync(string name)
+    /// <summary>
+    /// Searches Steam's store by name; only accepts an exact (normalized) name match. Null when there is none; network and
+    /// rate-limit problems throw (so a "not on Steam" is never remembered by mistake). Also used for the genres of non-Steam games.
+    /// </summary>
+    internal static async Task<string?> FindSteamAppIdAsync(string name)
     {
         var url = $"https://store.steampowered.com/api/storesearch/?term={Uri.EscapeDataString(name)}&l=english&cc=us";
 
@@ -524,7 +527,8 @@ public static class CoverService
         }
     }
 
-    private static string Normalize(string? text) =>
+    /// <summary>A name to compare with another: letters and digits only, lower case ("Hitman™: Absolution" = "hitmanabsolution").</summary>
+    internal static string Normalize(string? text) =>
         new((text ?? "").Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
     // A game's key is asked for several times every time its cover is looked up (and a tile does that each time it scrolls

@@ -20,7 +20,7 @@
                                 <Setter TargetName="bd" Property="Background" Value="{DynamicResource RaisedBg}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#8037FE"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

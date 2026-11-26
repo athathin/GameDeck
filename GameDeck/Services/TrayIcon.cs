@@ -23,7 +23,10 @@ public sealed class TrayIcon : IDisposable
     private readonly Forms.NotifyIcon _icon;
     private readonly List<Forms.ToolStripItem> _recentItems = [];   // only exist while the menu is open
 
-    public TrayIcon(Action open, Action bigPicture, Action exit, Func<IReadOnlyList<TrayGame>> recentGames)
+    /// <param name="afterGame">While a game from GameDeck runs: its name and what happens when it closes (null = no game running).</param>
+    /// <param name="setAfterGame">One of the "when it closes" lines was clicked.</param>
+    public TrayIcon(Action open, Action bigPicture, Action exit, Func<IReadOnlyList<TrayGame>> recentGames,
+                    Func<(string Game, AfterGame Choice)?>? afterGame = null, Action<AfterGame>? setAfterGame = null)
     {
         var scale = DpiScale();
 
@@ -54,6 +57,37 @@ public sealed class TrayIcon : IDisposable
             catch { games = []; }
 
             var index = 0;
+
+            // while a game runs: "When Elden Ring closes", then the three choices, the chosen one ticked
+            (string Game, AfterGame Choice)? running = null;
+            try { running = afterGame?.Invoke(); }
+            catch { }
+
+            if (running is { } now && setAfterGame is not null)
+            {
+                var header = new Forms.ToolStripMenuItem("When " + now.Game + " closes:")
+                {
+                    Enabled = false,
+                    Padding = new Forms.Padding((int)(TextLeft * scale), (int)(8 * scale), (int)(24 * scale), (int)(4 * scale)),
+                    TextAlign = Drawing.ContentAlignment.MiddleLeft,
+                    AutoSize = true
+                };
+                menu.Items.Insert(index++, header);
+                _recentItems.Add(header);
+
+                foreach (var choice in Enum.GetValues<AfterGame>())
+                {
+                    var chosen = choice;
+                    var item = MenuItem((choice == now.Choice ? "✓  " : "     ") + choice.Label(), () => setAfterGame(chosen), scale);
+                    menu.Items.Insert(index++, item);
+                    _recentItems.Add(item);
+                }
+
+                var line = new Forms.ToolStripSeparator { Margin = new Forms.Padding(0, (int)(3 * scale), 0, (int)(3 * scale)) };
+                menu.Items.Insert(index++, line);
+                _recentItems.Add(line);
+            }
+
             foreach (var game in games)
             {
                 var item = RecentItem(game, scale);
@@ -213,7 +247,8 @@ public sealed class TrayIcon : IDisposable
             // unreadable picture: fall through to the letter icon
         }
 
-        using (var brush = new Drawing.SolidBrush(Drawing.Color.FromArgb(0x80, 0x37, 0xFE)))
+        var accent = ThemeService.AccentColor;
+        using (var brush = new Drawing.SolidBrush(Drawing.Color.FromArgb(accent.R, accent.G, accent.B)))
             g.FillRectangle(brush, 0, 0, size, size);
 
         var letter = game.Name.Trim().Length > 0 ? game.Name.Trim()[..1].ToUpperInvariant() : "?";

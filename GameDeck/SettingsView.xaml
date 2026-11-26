@@ -33,7 +33,7 @@
                         <Button Content="Find duplicates" Style="{StaticResource PillButton}" Click="DuplicatesButton_Click"
                                 ToolTip="Finds the same game listed twice (for example through two launchers) so you can merge them"/>
                     </StackPanel>
-                    <TextBlock x:Name="GamesStatus" Foreground="#8037FE" FontSize="13" TextWrapping="Wrap"
+                    <TextBlock x:Name="GamesStatus" Foreground="{DynamicResource Accent}" FontSize="13" TextWrapping="Wrap"
                                Margin="0,12,0,0" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
@@ -67,7 +67,7 @@
                               Checked="TrayCheckBox_Changed" Unchecked="TrayCheckBox_Changed"/>
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
                                Text="When this is off, closing the window closes GameDeck completely."/>
-                    <TextBlock x:Name="AskHint" Foreground="#8037FE" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                    <TextBlock x:Name="AskHint" Foreground="{DynamicResource Accent}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
                                Text="Not chosen yet: GameDeck asks you every time you close it."/>
 
                     <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
@@ -82,7 +82,25 @@
                               Content="Show a notice in the corner when a game starts"
                               Checked="LaunchToastCheckBox_Changed" Unchecked="LaunchToastCheckBox_Changed"/>
 
+                    <CheckBox x:Name="LeftOffCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,14,0,0"
+                              Content="Ask where I left off when a game closes"
+                              Checked="LeftOffCheckBox_Changed" Unchecked="LeftOffCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                               Text="After a session of 10 minutes or more. Your answer shows on the game's page and in Continue playing; you can always skip it."/>
+
+                    <TextBlock Text="Remind me to take a break" Foreground="{DynamicResource TextSecondary}" FontSize="14" Margin="0,18,0,0"/>
+                    <!-- one radio button per choice of SettingsService.BreakReminderChoices, made in code -->
+                    <StackPanel x:Name="BreakChoices" Orientation="Horizontal" Margin="0,10,0,0"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="A notice in the corner after every so long in one session of a game started from GameDeck."/>
+
                     <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
+
+                    <CheckBox x:Name="ImportPlaytimeCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
+                              Content="Include playtime from your launchers"
+                              Checked="ImportPlaytimeCheckBox_Changed" Unchecked="ImportPlaytimeCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,16"
+                               Text="Games show the hours Steam, GOG Galaxy (also for the launchers connected to it: Ubisoft, Xbox, EA...) or the itch.io app counted, when they are more than GameDeck's, including the time before you used GameDeck. Read from their files on this PC; nothing goes online."/>
 
                     <CheckBox x:Name="OnlineCoversCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15"
                               Content="Download cover art from the internet"
@@ -124,6 +142,10 @@
                                      Content="Follow Windows" Margin="32,0,0,0" Checked="ThemeRadio_Checked"/>
                     </StackPanel>
 
+                    <TextBlock Text="Accent color" Foreground="{DynamicResource TextSecondary}" FontSize="14" Margin="0,22,0,0"/>
+                    <!-- one round swatch per ThemeService.Accents, made in code; the chosen one has a ring -->
+                    <StackPanel x:Name="AccentChoices" Orientation="Horizontal" Margin="0,10,0,0"/>
+
                     <TextBlock Text="Big Picture size" Foreground="{DynamicResource TextSecondary}" FontSize="14" Margin="0,22,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <RadioButton x:Name="ScaleNormalRadio" Style="{StaticResource DarkRadioButton}" FontSize="15" GroupName="BigScale"
@@ -133,6 +155,12 @@
                         <RadioButton x:Name="ScaleHugeRadio" Style="{StaticResource DarkRadioButton}" FontSize="15" GroupName="BigScale"
                                      Content="Extra large (for a TV)" Margin="32,0,0,0" Checked="ScaleRadio_Checked"/>
                     </StackPanel>
+
+                    <TextBlock Text="Big Picture screen saver" Foreground="{DynamicResource TextSecondary}" FontSize="14" Margin="0,22,0,0"/>
+                    <!-- one radio button per choice of SettingsService.ScreenSaverChoices, made in code -->
+                    <StackPanel x:Name="ScreenSaverChoices" Orientation="Horizontal" Margin="0,12,0,0"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"
+                               Text="After that long without a button press, Big Picture fades to black with your game covers moving around: it protects OLED TVs from burn-in. Any button wakes it."/>
                 </StackPanel>
             </Border>
 
@@ -186,6 +214,12 @@
                     <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
                                Text="They also work during games (GameDeck only reads the controller). The full list: Big Picture › Power › Show Controller Shortcuts."/>
 
+                    <CheckBox x:Name="LowBatteryCheckBox" Style="{StaticResource DarkCheckBox}" FontSize="15" Margin="0,14,0,0"
+                              Content="Warn when the controller's battery is low"
+                              Checked="LowBatteryCheckBox_Changed" Unchecked="LowBatteryCheckBox_Changed"/>
+                    <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="28,5,0,0"
+                               Text="A notice in the corner at 15% and at 5%, also during games. For Xbox controllers over Bluetooth (the battery Windows' Bluetooth settings show)."/>
+
                 </StackPanel>
             </Border>
 
@@ -216,6 +250,18 @@
                                 Click="ExportButton_Click"/>
                         <Button Content="Import backup" Style="{StaticResource PillButton}"
                                 Click="ImportButton_Click"/>
+                    </StackPanel>
+
+                    <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="0,18"/>
+
+                    <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="15" TextWrapping="Wrap"
+                               Text="Save a backup every day in a folder you choose"/>
+                    <TextBlock x:Name="BackupFolderText" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <Button Content="Choose folder…" Style="{StaticResource PillButton}" Margin="0"
+                                Click="BackupFolderButton_Click"/>
+                        <Button x:Name="BackupOffButton" Content="Turn off" Style="{StaticResource PillButton}"
+                                Click="BackupOffButton_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

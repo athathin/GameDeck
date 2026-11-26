@@ -24,12 +24,15 @@ public partial class MainWindow : Window
     private readonly HashSet<string> _categoryFilters = new(StringComparer.CurrentCultureIgnoreCase);     // empty = every category
     private readonly HashSet<GameStatus> _statusFilters = [];   // empty = every status
     private readonly HashSet<SmartFilter> _smartFilters = [];   // empty = no smart filter (Never played, Recently added...)
+    private readonly HashSet<string> _genreFilters = new(StringComparer.CurrentCultureIgnoreCase);   // empty = every genre
     private bool _showHidden;
     private bool _ready;            // stops the tab buttons from firing while the window is still being built
     private bool _launching;        // true while a game is being prepared (Vanguard starting), so a second click on Play is ignored
     private bool _exiting;          // true when the app is really quitting (tray "Exit", Windows shutting down)
     private TrayIcon? _tray;
     private readonly GlobalHotkey _hotkey = new();
+    private readonly LowBatteryWarning _lowBattery = new();
+    private readonly BreakReminder _breaks;
     private QuickLaunchWindow? _quickLaunch;
 
     public ObservableCollection<Game> Games { get; } = new();
@@ -60,11 +63,27 @@ public partial class MainWindow : Window
         // Big Picture's "Now playing" banner and the game page's Resume button change straight away
         _tracker.Ended += _ => _bigPicture?.GameEnded();
 
+        // the launchers write the hours of a game when it closes: read them again a little later
+        _tracker.Ended += async game =>
+        {
+            if (game.Source is not ("Steam" or "itch.io")) return;
+
+            await Task.Delay(TimeSpan.FromSeconds(15));
+            if (SettingsService.ImportPlaytime)
+                await LoadLauncherPlaytimeAsync();
+            if (game.Source == "Steam")
+                await LoadAchievementsAsync();   // (the ones unlocked in that session)
+        };
+
         // the game was closed: bring GameDeck back the way it was left
         _tracker.Closed += ResumeAfterGame;
 
+        // and measure what was skipped while it ran (sizes are only read between games)
+        _tracker.Closed += (_, _) => MeasureSizes();
+
         // GameDeck was closed (or crashed) while a routine had switched the power plan: put it back
         _ = Task.Run(LaunchRoutineService.RestorePendingPowerPlan);
+        _ = Task.Run(DisplayModes.RestorePending);   // (and the screen mode a game's routine had switched)
         _sort = SettingsService.SortMode;
 
         _tileSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
@@ -87,6 +106,12 @@ public partial class MainWindow : Window
         UpdateTileSizeButton();
         Refresh();
         _ready = true;
+        _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
+        _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
+        FetchGenres();                  // the Steam games' genres not asked for yet
+        // each game's size on disk (in the background, sizes older than a few days), once start-up is over: also in the tray
+        _sizesTimer.Tick += SizesTimer_Tick;
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(MeasureSizes));
 
         StartupService.RefreshPath();   // keeps "launch when Windows starts" pointing at this .exe
 
@@ -108,6 +133,13 @@ public partial class MainWindow : Window
         ApplyQuickLaunchHotkey();
 
         StartControllerWake();   // Home button on a controller opens Big Picture mode
+        _lowBattery.Start();     // a notice when the controller's battery runs low (also during games)
+        StartDailyUpdateCheck(); // left running for days: a newer version is still found (installed at the next start)
+        StartFolderBackups();    // a backup every day in the folder the user chose (Settings: off by default)
+
+        // "you've been playing for 2 hours" (Settings: off by default)
+        _breaks = new BreakReminder(() => _tracker.RunningGame is { } game && _tracker.RunningSinceUtc is { } since ? (game, since) : null);
+        _breaks.Start();
 
         // Windows shutting down / signing out must never be blocked by the "minimize or close?" pop-up
         Application.Current.SessionEnding += (_, _) => _exiting = true;
@@ -157,6 +189,10 @@ public partial class MainWindow : Window
         SettingsService.TileScale = TileScale;
         _tracker.FlushAll();
         _hotkey.Dispose();
+        _lowBattery.Dispose();
+        _breaks.Dispose();
+        _updateTimer.Stop();
+        StopFolderBackups();
         _wake?.Dispose();
         _tray?.Dispose();
     }
@@ -200,7 +236,8 @@ public partial class MainWindow : Window
     /// <summary>Puts the icon in the tray without showing the window (used when Windows starts GameDeck at sign-in).</summary>
     public void StartInTray()
     {
-        _tray ??= new TrayIcon(open: ShowFromTray, bigPicture: OpenBigPicture, exit: ExitApp, recentGames: RecentGamesForTray);
+        _tray ??= new TrayIcon(open: ShowFromTray, bigPicture: OpenBigPicture, exit: ExitApp, recentGames: RecentGamesForTray,
+                               afterGame: AfterGameForTray, setAfterGame: choice => _afterGame = choice);
         _tray.Show();
         ReleaseMemory();
     }

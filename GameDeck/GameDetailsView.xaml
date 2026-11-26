@@ -3,10 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
         <!-- big blue "Play" button -->
         <Style x:Key="PlayButton" TargetType="Button">
             <Setter Property="Foreground" Value="#0B1220"/>
-            <Setter Property="Background" Value="#8037FE"/>
+            <Setter Property="Background" Value="{DynamicResource Accent}"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Padding" Value="44,12"/>
@@ -32,22 +34,31 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                  SizeChanged="PageScroll_SizeChanged">
+        <StackPanel x:Name="PageRoot" Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
 
             <!-- back button -->
             <Button Style="{StaticResource PillButton}" Margin="0,0,0,22" Padding="14,8"
                     HorizontalAlignment="Left" Content="←  Library" FontSize="14"
                     Click="BackButton_Click" ToolTip="Back to the library (Esc)"/>
 
-            <Grid>
+            <!-- narrow: one column (the screenshots, history and sessions under the rest); wide: those in a column of their
+                 own on the right (UpdateLayoutMode moves SidePanel) -->
+            <Grid x:Name="PageGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition x:Name="GapColumn" Width="0"/>
+                    <ColumnDefinition x:Name="SideColumn" Width="0"/>
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
                 <!-- cover (2:3 poster) -->
-                <Border Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
+                <Border Grid.RowSpan="2" Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
                         Background="{Binding PlaceholderBrush}">
                     <Grid>
                         <Grid.Clip>
@@ -61,7 +72,7 @@
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Column="1">
+                <StackPanel x:Name="InfoPanel" Grid.Column="1">
                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="SemiBold"
                                TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding SourceText}" Foreground="{DynamicResource TextMuted}" FontSize="15" Margin="0,4,0,0"/>
@@ -90,12 +101,40 @@
                                 <TextBlock Text="most played rank" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
                             </StackPanel>
                         </Border>
+                        <!-- from Steam's (or GOG Galaxy's) files on this PC: only when they say -->
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14" MinWidth="170"
+                                Visibility="{Binding HasAchievements, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding AchievementsText}" Foreground="{DynamicResource TextPrimary}" FontSize="24" FontWeight="SemiBold"/>
+                                <TextBlock Text="achievements" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- the install folder's size (DiskUsage): only once it is known -->
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="22,16" Margin="0,0,14,14" MinWidth="170"
+                                Visibility="{Binding HasSize, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SizeText}" Foreground="{DynamicResource TextPrimary}" FontSize="24" FontWeight="SemiBold"/>
+                                <TextBlock Text="on disk" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
                     </WrapPanel>
 
                     <TextBlock x:Name="RatingStarsText" Foreground="#FFC857" FontSize="22" Margin="2,10,0,0"/>
 
                     <TextBlock x:Name="CategoriesText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
                                Margin="2,4,0,0"/>
+                    <TextBlock x:Name="GenresText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
+                               Margin="2,4,0,0"/>
+
+                    <!-- "where I left off": written when the game was closed (or from its menu) -->
+                    <StackPanel x:Name="LeftOffPanel" Margin="0,22,0,0">
+                        <TextBlock x:Name="LeftOffHeader" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
+                                   Margin="2,0,0,10"/>
+                        <Border Background="{DynamicResource PanelBg}" CornerRadius="8" Padding="16,12" BorderThickness="3,0,0,0"
+                                BorderBrush="{DynamicResource Accent}" HorizontalAlignment="Left">
+                            <TextBlock x:Name="LeftOffText" Foreground="{DynamicResource TextPrimary}" FontSize="15" TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
 
                     <StackPanel x:Name="NotesPanel" Margin="0,22,0,0">
                         <TextBlock Text="YOUR NOTES" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
@@ -114,6 +153,19 @@
                         <WrapPanel x:Name="ShotsWrap"/>
                         <TextBlock x:Name="ShotsHint" Foreground="{DynamicResource TextMuted}" FontSize="13" TextWrapping="Wrap" Margin="2,0,0,0"
                                    Text="None yet. Game Bar captures (Win + Alt + PrtScn) of this game show up here by themselves, or add your own."/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- history and sessions: under the rest (narrow), or in the right-hand column (wide) -->
+                <StackPanel x:Name="SidePanel" Grid.Column="1" Grid.Row="1">
+                    <!-- play history: a square per day of the last weeks, darker the more was played (sessions from GameDeck) -->
+                    <StackPanel x:Name="HistoryPanel" Margin="0,22,0,0">
+                        <TextBlock Text="PLAY HISTORY" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
+                                   Margin="2,0,0,10"/>
+                        <TextBlock x:Name="HistorySummary" Foreground="{DynamicResource TextSecondary}" FontSize="14" TextWrapping="Wrap"
+                                   Margin="2,0,0,12"/>
+                        <Grid x:Name="HistoryGrid" HorizontalAlignment="Left" Margin="2,0,0,0"/>
+                        <TextBlock x:Name="HistoryRange" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="2,8,0,0"/>
                     </StackPanel>
 
                     <StackPanel x:Name="SessionsPanel" Margin="0,22,0,0">

@@ -42,11 +42,25 @@ public partial class MainWindow
         StatStreak.Text = FormatDays(current);
         StatLongestStreak.Text = FormatDays(longest);
 
-        var weekly = _sessions.ThisWeek(_library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
-                                                       .ToHashSet(StringComparer.OrdinalIgnoreCase));
+        var hidden = _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var weekly = _sessions.ThisWeek(hidden);
         WeekHeadline.Text = weekly.Headline;
         WeekCompare.Text = weekly.Compare;
         WeekLines.ItemsSource = weekly.Lines;
+
+        var yearly = _sessions.ThisYear(hidden);
+        YearHeadline.Text = yearly.Headline;
+        YearCompare.Text = yearly.Compare;
+        YearLines.ItemsSource = yearly.Lines;
+
+        var disk = DiskUsage.Summary(_library.Games.Where(g => !g.IsHidden), DateTime.UtcNow);
+        DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
+        if (disk is not null)
+        {
+            DiskHeadline.Text = disk.Headline;
+            DiskCompare.Text = disk.Compare;
+            DiskLines.ItemsSource = disk.Lines;
+        }
 
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
@@ -77,6 +91,10 @@ public partial class MainWindow
         await Task.Run(_library.Scan);           // background thread keeps the window responsive
 
         Refresh();
+        _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
+        _ = LoadAchievementsAsync();                // (and their achievements)
+        FetchGenres();                           // (and their genres)
+        MeasureSizes();                          // (and their size on disk)
         SettingsPanel.SetScanning(false);
         SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
     }
@@ -228,6 +246,78 @@ public partial class MainWindow
 
         CoverService.ClearMisses();
         _ = LoadVisibleCoversAsync();   // fetch covers that were skipped while offline
+        FetchGenres();                  // and the genres
+    }
+
+    /// <summary>Asks the Steam store, in the background, for the genres of the games that have none yet (see GenreService).</summary>
+    private void FetchGenres() => _ = GenreService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
+
+    private void SettingsPanel_PlaytimeSourcesChanged(object? sender, EventArgs e) => _ = LoadLauncherPlaytimeAsync();
+
+    /// <summary>
+    /// Reads the playtime Steam, GOG Galaxy and the itch app counted (their files on this PC, see LauncherPlaytime) in the
+    /// background and shows it on the games (the higher of the launcher's and GameDeck's). With "Include playtime from your launchers" off, only GameDeck's own playtime is shown.
+    /// </summary>
+    private async Task LoadLauncherPlaytimeAsync()
+    {
+        try
+        {
+            var games = _library.Games.ToList();   // (a copy: the files are read in the background)
+            var played = SettingsService.ImportPlaytime
+                ? await Task.Run(() => LauncherPlaytime.Read(games))
+                : new Dictionary<string, SteamPlaytime.Played>();
+
+            _userData.SetExternalPlaytime(played);
+            Refresh();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Steam playtime");   // (the games keep GameDeck's own playtime)
+        }
+    }
+
+    /// <summary>The achievements unlocked per game, from Steam's (and GOG Galaxy's) files on this PC (see Achievements), read in the background.</summary>
+    private async Task LoadAchievementsAsync()
+    {
+        try
+        {
+            var games = _library.Games.ToList();
+            var counts = await Task.Run(() => Achievements.Read(games));
+
+            foreach (var game in games)
+                game.AchievementsText = counts.TryGetValue(game.LaunchTarget, out var count) ? count.ToString() : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Achievements");   // (the game pages just don't show them)
+        }
+    }
+
+    /// <summary>Measures the games' install folders in the background (sizes older than a few days, new games; see DiskUsage).</summary>
+    private async void MeasureSizes()
+    {
+        try
+        {
+            await DiskUsage.MeasureAsync(_library.Games.ToList(), () =>
+            {
+                _sizesTimer.Stop();
+                _sizesTimer.Start();   // (one redraw once a few sizes came in, not one per game)
+            }, busy: () => _tracker.IsTracking);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CrashLog.Write(ex, "Disk usage");
+        }
+    }
+
+    // redraws what shows the sizes (the "Largest first" order, the Stats tab) shortly after new sizes came in
+    private readonly System.Windows.Threading.DispatcherTimer _sizesTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+
+    private void SizesTimer_Tick(object? sender, EventArgs e)
+    {
+        _sizesTimer.Stop();
+        if (_sort == SortMode.Size || _view == "Stats")
+            Refresh(reapplyUserData: false);
     }
 
     // ---------- settings screen ----------
@@ -329,7 +419,8 @@ public partial class MainWindow
         Uninstall: Uninstall,
         GetLibrary: () => (_library.Games.ToList(),
                            _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget)
-                               .ToHashSet(StringComparer.OrdinalIgnoreCase)));
+                               .ToHashSet(StringComparer.OrdinalIgnoreCase)),
+        PlaytimeSourcesChanged: () => _ = LoadLauncherPlaytimeAsync());
 
     // ---------- clicking on the grid ----------
 
@@ -433,7 +524,8 @@ public partial class MainWindow
                 .OrderByDescending(g => g.PlaytimeSeconds)
                 .ToList();
 
-            DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game));
+            DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game),
+                _sessions.History(page.Game!));
         }
         else if (page.Kind == PageKind.Settings)
         {

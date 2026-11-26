@@ -2,6 +2,7 @@
 using System.Windows;
 using GameDeck.Models;
 using GameDeck.Services;
+using static GameDeck.Views.BigPictureLook;
 
 namespace GameDeck.Views;
 
@@ -19,13 +20,16 @@ public partial class BigPictureWindow
     // null = adding games (.exe files, from Settings); a game = adding pictures to its screenshots (from its page)
     private Game? _browseShotsFor;
 
-    // true = choosing the folder the controller's screenshots are saved in (Settings › Screenshots): folders only
-    private bool _browseForSaveFolder;
+    /// <summary>Choosing a folder for a setting: the browser's title, its "use this folder" row, what choosing one does.</summary>
+    private sealed record FolderChoice(string Title, string ChooseHere, Action<string> Chosen);
+
+    // not null = choosing a folder (Settings › Screenshots, Settings › System › Backup): folders only
+    private FolderChoice? _browseFolder;
 
     private void OpenBrowse()
     {
         _browseShotsFor = null;
-        _browseForSaveFolder = false;
+        _browseFolder = null;
         StartBrowse();
     }
 
@@ -33,23 +37,38 @@ public partial class BigPictureWindow
     private void OpenShotBrowse(Game game)
     {
         _browseShotsFor = game;
-        _browseForSaveFolder = false;
+        _browseFolder = null;
         StartBrowse();
     }
 
     /// <summary>The same browser, choosing the folder the controller's screenshots are saved in (Settings › Screenshots).</summary>
-    private void OpenSaveFolderBrowse()
+    private void OpenSaveFolderBrowse() => OpenFolderBrowse(new(
+        "Save the controller's screenshots in: choose a folder", "Save screenshots here", folder =>
+        {
+            SettingsService.ScreenshotFolder = folder;
+            ShowSettingsStatus("Screenshots are saved in " + folder);
+        }));
+
+    /// <summary>The same browser, choosing the folder a backup is saved in every day (Settings › System).</summary>
+    private void OpenBackupFolderBrowse() => OpenFolderBrowse(new(
+        "Save a backup every day in: choose a folder (OneDrive, a USB drive...)", "Save the backups here", folder =>
+        {
+            SettingsService.BackupFolder = folder;
+            ShowSettingsStatus("A backup is saved every day in " + BackupService.FolderIn(folder));
+        }));
+
+    private void OpenFolderBrowse(FolderChoice choice)
     {
         _browseShotsFor = null;
-        _browseForSaveFolder = true;
+        _browseFolder = choice;
         StartBrowse();
     }
 
-    private void ChooseSaveFolder(string folder)
+    private void ChooseFolder(string folder)
     {
-        SettingsService.ScreenshotFolder = folder;
+        var choice = _browseFolder!;
         CloseBrowse();
-        ShowSettingsStatus("Screenshots are saved in " + folder);
+        choice.Chosen(folder);   // (after closing: its message shows on the settings)
     }
 
     private void StartBrowse()
@@ -67,7 +86,7 @@ public partial class BigPictureWindow
     {
         if (_browseShotsFor is null)
         {
-            _browseForSaveFolder = false;
+            _browseFolder = null;
             OpenSettings(keepPlace: true);   // the section it was opened from (Library › Add games, Screenshots › Browse)
             return;
         }
@@ -82,13 +101,16 @@ public partial class BigPictureWindow
     {
         var l = Labels();
 
-        var open = _browseForSaveFolder ? "Open / choose" : "Open / pick";
+        var open = _browseFolder is not null ? "Open / choose" : "Open / pick";
 
         // "Add picked" only once something is picked (X does nothing before); the keyboard's F does the same as X here
+        var hints = new List<(string, string)> { (l.Confirm, open) };
         if (_browsePicked.Count > 0)
-            FillHints(BrowseHints, (l.Confirm, open), (l.X, "Add picked"), (l.Back, _browsePath is null ? "Close" : "Up"));
-        else
-            FillHints(BrowseHints, (l.Confirm, open), (l.Back, _browsePath is null ? "Close" : "Up"));
+            hints.Add((l.X, "Add picked"));
+        hints.Add((l.Back, _browsePath is null ? "Close" : "Up"));
+
+        AddScrollHint(hints, Scrollable(ScrollOf(BrowseList)));
+        FillHints(BrowseHints, hints.ToArray());
     }
 
     /// <summary>Builds the rows of the current folder (or the start page) and draws them.</summary>
@@ -104,9 +126,7 @@ public partial class BigPictureWindow
         _browseRows = rows;
         BrowseTitle.Text = _browsePath ?? (_browseShotsFor is { } game
             ? $"Add screenshots to {game.DisplayName}: choose where to look"
-            : _browseForSaveFolder
-                ? "Save the controller's screenshots in: choose a folder"
-                : "Add games: choose where to look");
+            : _browseFolder?.Title ?? "Add games: choose where to look");
 
         if (firstRow || _browseIndex < 0 || _browseIndex >= rows.Count || rows[_browseIndex].IsHeader)
             _browseIndex = Math.Max(0, rows.FindIndex(r => !r.IsHeader));
@@ -127,7 +147,7 @@ public partial class BigPictureWindow
         };
 
         // pictures: where screenshots usually are first; games: where programs are installed last
-        var places = _browseShotsFor is not null || _browseForSaveFolder
+        var places = _browseShotsFor is not null || _browseFolder is not null
             ? ScreenshotService.UsualPlaces().Concat(common).ToArray()
             : common.Concat(
               [
@@ -170,9 +190,9 @@ public partial class BigPictureWindow
             rows.Add(new FilterRow(count == 1 ? $"Add the 1 picked {what}" : $"Add the {count} picked {what}s", Activate: AddPicked));
         }
 
-        var foldersOnly = _browseForSaveFolder;
-        if (foldersOnly)
-            rows.Add(new FilterRow("Save screenshots here", Activate: () => ChooseSaveFolder(path)));
+        var foldersOnly = _browseFolder is not null;
+        if (_browseFolder is { } choice)
+            rows.Add(new FilterRow(choice.ChooseHere, Activate: () => ChooseFolder(path)));
         else if (!pictures)
             rows.Add(new FilterRow("Add this folder as a game  (GameDeck finds its program)", Activate: () => AddFolderAsGame(path)));
 
@@ -238,7 +258,7 @@ public partial class BigPictureWindow
         }
 
         if (folders.Count == 0 && programs.Count == 0)
-            rows.Add(new FilterRow(foldersOnly ? "No folders inside. Choose \"Save screenshots here\" to use this one."
+            rows.Add(new FilterRow(_browseFolder is { } empty ? $"No folders inside. Choose \"{empty.ChooseHere}\" to use this one."
                 : pictures ? "Nothing to pick here: no folders and no pictures."
                 : "Nothing to pick here: no folders and no programs."));
 
@@ -321,6 +341,7 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveBrowse(-1); break;
             case PadButton.Down: MoveBrowse(1); break;
+            case PadButton.LeftTrigger or PadButton.RightTrigger: PageThrough(() => _browseIndex, MoveBrowse, TriggerDirection(button)); break;
             case PadButton.Confirm: ActivateBrowseRow(); break;
             case PadButton.X when _browsePicked.Count > 0: AddPicked(); break;
             case PadButton.Back:

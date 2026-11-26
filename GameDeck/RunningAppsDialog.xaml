@@ -20,7 +20,7 @@
                                 <Setter TargetName="bd" Property="Background" Value="{DynamicResource RaisedBg}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#8037FE"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -60,7 +60,7 @@
             <Button Content="Cancel" IsCancel="True" Style="{StaticResource DialogButton}"
                     Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}"/>
             <Button Content="Add" IsDefault="True" Click="AddButton_Click" Style="{StaticResource DialogButton}"
-                    Background="#8037FE" Foreground="White"/>
+                    Background="{DynamicResource Accent}" Foreground="White"/>
         </StackPanel>
     </Grid>
 </Window>

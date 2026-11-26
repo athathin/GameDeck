@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using SDL2;
 
 namespace GameDeck.Services;
@@ -32,6 +33,24 @@ public enum ControllerKind
     PlayStation,
     Nintendo,
     Generic
+}
+
+/// <summary>How full a controller's battery is.</summary>
+public enum ControllerBattery
+{
+    Unknown,
+    Empty,
+    Low,
+    Medium,
+    Full,
+    Charging,
+    Wired   // on a cable without a battery (or SDL only knows that it is plugged in)
+}
+
+/// <summary>A controller's battery: its level, and the percentage when it is known (an Xbox controller over Bluetooth).</summary>
+public readonly record struct BatteryState(ControllerBattery Level, int? Percent = null)
+{
+    public static readonly BatteryState None = new(ControllerBattery.Unknown);
 }
 
 /// <summary>
@@ -75,6 +94,79 @@ public sealed class GamepadService : IDisposable
 
     /// <summary>Raised when a controller is plugged in, removed, or another one is used.</summary>
     public event Action? ControllerChanged;
+
+    /// <summary>
+    /// What the controller used last says about its battery while it is on a cable: an Xbox controller "Charging" or "Wired"
+    /// (Windows.Gaming.Input), another one "Wired" or a level (SDL). The level of an Xbox controller over Bluetooth comes from
+    /// Windows' Bluetooth settings instead (<see cref="BluetoothBattery"/>): Windows.Gaming.Input's percentage for it is wrong
+    /// (it said 10% for a full one). SDL can answer "empty" when it can't read a battery (an Xbox controller through XInput),
+    /// so only the levels it really read count. Unknown when there is no controller or it doesn't say.
+    /// </summary>
+    public BatteryState ActiveBattery
+    {
+        get
+        {
+            if (!_started || _activePad is null) return BatteryState.None;
+
+            if (_activePad.Kind == ControllerKind.Xbox)
+                return WindowsBattery() ?? BatteryState.None;
+
+            try
+            {
+                return SDL.SDL_JoystickCurrentPowerLevel(SDL.SDL_GameControllerGetJoystick(_activePad.Handle)) switch
+                {
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_LOW => new(ControllerBattery.Low),
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_MEDIUM => new(ControllerBattery.Medium),
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_FULL => new(ControllerBattery.Full),
+                    SDL.SDL_JoystickPowerLevel.SDL_JOYSTICK_POWER_WIRED => new(ControllerBattery.Wired),
+                    _ => BatteryState.None   // (EMPTY included: see above)
+                };
+            }
+            catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+            {
+                return BatteryState.None;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The battery Windows.Gaming.Input reports for a gamepad (the first one that has a report: usually the only one), or null.
+    /// The list fills in a moment after it is first asked for, so the first answer can be null.
+    /// </summary>
+    private static BatteryState? WindowsBattery()
+    {
+        try
+        {
+            foreach (var gamepad in Windows.Gaming.Input.Gamepad.Gamepads)
+            {
+                if (gamepad.TryGetBatteryReport() is { } report && FromReport(report) is { } state)
+                    return state;
+            }
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException or TypeLoadException or PlatformNotSupportedException)
+        {
+            // Windows.Gaming.Input isn't available here: nothing to say about the cable
+        }
+
+        return null;
+    }
+
+    /// <summary>Only what is certain from a Windows.Gaming.Input report: on a cable (charging, or without a battery).</summary>
+    private static BatteryState? FromReport(Windows.Devices.Power.BatteryReport report) => report.Status switch
+    {
+        Windows.System.Power.BatteryStatus.NotPresent => new(ControllerBattery.Wired),
+        Windows.System.Power.BatteryStatus.Charging => new(ControllerBattery.Charging),
+        _ => null   // (its level is wrong over Bluetooth: Windows' Bluetooth settings say it instead)
+    };
+
+    /// <summary>The level a percentage counts as (it decides the warning color of a low battery).</summary>
+    internal static ControllerBattery LevelOf(int percent) => percent switch
+    {
+        >= 70 => ControllerBattery.Full,
+        >= 35 => ControllerBattery.Medium,
+        >= 10 => ControllerBattery.Low,
+        _ => ControllerBattery.Empty
+    };
 
     /// <summary>The buttons held at the last <see cref="Poll"/> (on every controller together), for the Home-button shortcuts.</summary>
     public IReadOnlySet<PadButton> Held => _down;
