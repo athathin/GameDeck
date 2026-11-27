@@ -42,6 +42,7 @@ public partial class MainWindow
         StatsPanel.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
         MediaPanel.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
         FilterBar.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
+        RefreshStatsButton.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
 
         if (media)
         {

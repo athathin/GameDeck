@@ -177,6 +177,11 @@
                                  Style="{StaticResource TabButton}" Checked="ViewTab_Checked"/>
                 </StackPanel>
 
+                <!-- the Stats tab's refresh: an icon like Settings and Big Picture, where the filter icon is on the other tabs -->
+                <Button x:Name="RefreshStatsButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" VerticalAlignment="Top"
+                        Content="&#xE72C;" Click="RefreshStatsButton_Click" Visibility="Collapsed"
+                        ToolTip="Reload the stats (for example after a game session ended)"/>
+
                 <StackPanel x:Name="FilterBar" DockPanel.Dock="Right" Orientation="Horizontal">
                     <!-- tile size: a slider that snaps to the scales in SettingsService.TileScales -->
                     <Slider x:Name="TileSlider" Style="{StaticResource SlimSlider}" Width="90" Margin="0,8,16,0" VerticalAlignment="Top"
@@ -624,13 +629,9 @@
 
                 <!-- the right column (or, when narrow, everything under the charts) -->
                 <StackPanel x:Name="StatsSidePanel" Grid.Row="1">
-                    <!-- the refresh button sits at the right, level with the first heading -->
                     <Grid x:Name="StatsSideHeader" Margin="0,28,0,10">
                         <TextBlock Text="MOST PLAYED" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
                                    Margin="2,0,0,0" VerticalAlignment="Bottom"/>
-                        <Button Content="⟳  Refresh" Style="{StaticResource PillButton}" Padding="14,7"
-                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Click="RefreshStatsButton_Click"
-                                ToolTip="Reload the stats (for example after a game session ended)"/>
                     </Grid>
                     <TextBlock x:Name="NoStatsText" Foreground="{DynamicResource TextMuted}" FontSize="15" TextWrapping="Wrap"
                                Text="Nothing played yet. Games you launch from GameDeck are timed and show up here."/>
