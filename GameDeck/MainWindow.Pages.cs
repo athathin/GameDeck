@@ -104,20 +104,22 @@ public partial class MainWindow
     /// <summary>The page's distance from the window's left edge: the window's margin (24) plus the page's own (8).</summary>
     private const double StatsEdge = 32;
 
+    /// <summary>The gap between the right column and the scroll bar (set by the user).</summary>
+    private const double StatsScrollBarGap = 12;
+
     /// <summary>
     /// Like a game's page: when wide, play over time (boxes, this week, this year, charts) on the left and the lists (most played,
     /// sessions, launchers, space on disk) on the right, filling the window: the gap between the columns is as wide as the space
-    /// at the window's left edge, and the right column reaches as close to the right edge (its scroll bar counts as edge).
-    /// Otherwise one column.
+    /// at the window's left edge, and the right column stops 12 px before the scroll bar (both columns give up the room equally,
+    /// so they stay the same width). Otherwise one column.
     /// </summary>
     private void UpdateStatsLayout()
     {
         var space = StatsPanel.ViewportWidth > 0 ? StatsPanel.ViewportWidth : StatsPanel.ActualWidth;
         var wide = space >= StatsWideWidth;
 
-        // the window's 24 px margin and the scroll bar already lie right of the page: only the rest of the 32 px is added
-        var scrollBar = StatsPanel.ViewportWidth > 0 ? Math.Max(0, StatsPanel.ActualWidth - StatsPanel.ViewportWidth) : 0;
-        var right = Math.Max(0, StatsEdge - 24 - scrollBar);
+        // (the viewport ends where the scroll bar begins, so this margin is the gap to the scroll bar)
+        var right = StatsScrollBarGap;
 
         StatsRoot.MaxWidth = wide ? double.PositiveInfinity : 760;
         StatsRoot.HorizontalAlignment = wide ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
