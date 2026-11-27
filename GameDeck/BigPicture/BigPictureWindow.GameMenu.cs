@@ -193,6 +193,7 @@ public partial class BigPictureWindow
         if (_diskCard is not { Lines.Count: > 0 }) return;
 
         DiskCard.BringIntoView();   // (the card A acts on comes on screen, behind the list)
+        _freeSpaceAll = false;      // (the biggest few first, like the card)
         _menuPages.Clear();
         _menuPages.Push(_freeSpacePage = new MenuPage("Free up space: uninstall a game", FreeSpaceRows));
 
@@ -200,8 +201,14 @@ public partial class BigPictureWindow
         RenderGameMenu();
     }
 
-    private List<FilterRow> FreeSpaceRows() =>
-        (_diskCard?.Lines ?? []).Select(line =>
+    /// <summary>"Free up space" lists every game with a known size ("Show all N games" was chosen), not just the biggest few.</summary>
+    private bool _freeSpaceAll;
+
+    private List<FilterRow> FreeSpaceRows()
+    {
+        if (_diskCard is not { } card) return [];
+
+        var rows = (_freeSpaceAll ? card.All : card.Lines).Select(line =>
         {
             var started = _uninstallStarted.Contains(line.Game.LaunchTarget);
             return new FilterRow(started ? line.Text + "  ·  uninstall started" : line.Text, Activate: () =>
@@ -212,6 +219,17 @@ public partial class BigPictureWindow
                 RenderGameMenu();
             });
         }).ToList();
+
+        // the last row: the rest of the games, in this same list (the selection stays where it is: on the first of them)
+        if (card.HasMore && !_freeSpaceAll)
+            rows.Add(new FilterRow($"Show all {card.All.Count} games  ›", Activate: () =>
+            {
+                _freeSpaceAll = true;
+                RenderGameMenu();
+            }));
+
+        return rows;
+    }
 
     /// <summary>The library changed while "Free up space" is open: its list follows (a game uninstalled leaves it).</summary>
     private void RefreshFreeSpace()

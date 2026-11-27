@@ -705,8 +705,11 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Foreground="{DynamicResource TextHint}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
-                                           Text="Sort the library by &quot;Largest first&quot; to see them all. A game you uninstall leaves the library by itself."/>
+                                <!-- every game with a known size instead of the biggest few, and back (ShowDiskLines) -->
+                                <Button x:Name="DiskShowAllButton" Style="{StaticResource PillButton}" Margin="0,6,0,0" Padding="14,6"
+                                        HorizontalAlignment="Left" Click="DiskShowAllButton_Click"/>
+                                <TextBlock Foreground="{DynamicResource TextHint}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                                           Text="A game you uninstall leaves the library by itself."/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

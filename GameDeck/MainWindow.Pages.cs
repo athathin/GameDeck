@@ -53,13 +53,13 @@ public partial class MainWindow
         YearCompare.Text = yearly.Compare;
         YearLines.ItemsSource = yearly.Lines;
 
-        var disk = DiskUsage.Summary(_library.Games.Where(g => !g.IsHidden), DateTime.UtcNow);
-        DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
-        if (disk is not null)
+        _diskCard = DiskUsage.Summary(_library.Games.Where(g => !g.IsHidden), DateTime.UtcNow);
+        DiskPanel.Visibility = _diskCard is null ? Visibility.Collapsed : Visibility.Visible;
+        if (_diskCard is not null)
         {
-            DiskHeadline.Text = disk.Headline;
-            DiskCompare.Text = disk.Compare;
-            DiskLines.ItemsSource = disk.Lines;
+            DiskHeadline.Text = _diskCard.Headline;
+            DiskCompare.Text = _diskCard.Compare;
+            ShowDiskLines();
         }
 
         DaysChart.ItemsSource = _sessions.LastDays(7);
@@ -91,6 +91,27 @@ public partial class MainWindow
 
         LauncherLines.ItemsSource = launchers;
         LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private DiskUsage.Card? _diskCard;
+
+    /// <summary>The Space on disk card shows every game with a known size ("Show all"), not just the biggest few.</summary>
+    private bool _diskShowAll;
+
+    /// <summary>The card's games: the biggest few, or all of them, and its "Show all N games" / "Show fewer" button.</summary>
+    private void ShowDiskLines()
+    {
+        if (_diskCard is not { } card) return;
+
+        DiskLines.ItemsSource = _diskShowAll ? card.All : card.Lines;
+        DiskShowAllButton.Visibility = card.HasMore ? Visibility.Visible : Visibility.Collapsed;
+        DiskShowAllButton.Content = _diskShowAll ? "Show fewer" : $"Show all {card.All.Count} games";
+    }
+
+    private void DiskShowAllButton_Click(object sender, RoutedEventArgs e)
+    {
+        _diskShowAll = !_diskShowAll;
+        ShowDiskLines();
     }
 
     /// <summary>

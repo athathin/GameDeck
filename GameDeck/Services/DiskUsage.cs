@@ -165,8 +165,15 @@ public static class DiskUsage
     /// <summary>One of the biggest games on the "Space on disk" card: the game (its Uninstall button) and its line.</summary>
     public record Line(Game Game, string Text);
 
-    /// <summary>The "Space on disk" card: a headline, a line about the games not played lately, and the biggest games.</summary>
-    public record Card(string Headline, string Compare, IReadOnlyList<Line> Lines);
+    /// <summary>
+    /// The "Space on disk" card: a headline, a line about the games not played lately, the biggest games (<see cref="Lines"/>,
+    /// the first few) and every game whose size is known, biggest first (<see cref="All"/>, for "Show all").
+    /// </summary>
+    public record Card(string Headline, string Compare, IReadOnlyList<Line> Lines, IReadOnlyList<Line> All)
+    {
+        /// <summary>True when "Show all" would show more than the first few.</summary>
+        public bool HasMore => All.Count > Lines.Count;
+    }
 
     /// <summary>
     /// The Stats tab's "Space on disk" card: the space all the games take, how much of it belongs to games not played for half a
@@ -191,11 +198,11 @@ public static class DiskUsage
             ? "Every game here was played in the last 6 months"
             : $"{Format(idle.Sum(g => g.SizeBytes!.Value))} is {(idle.Count == 1 ? "1 game" : $"{idle.Count} games")} not played in the last 6 months";
 
-        var lines = sized.Take(count)
+        var lines = sized
             .Select(g => new Line(g, $"{g.DisplayName}:  {Format(g.SizeBytes!.Value)}  ·  {LastPlayed(g, nowUtc)}"))
             .ToList();
 
-        return new Card(headline, compare, lines);
+        return new Card(headline, compare, lines.Take(count).ToList(), lines);
     }
 
     /// <summary>"played today", "played 3 weeks ago", "never played".</summary>
