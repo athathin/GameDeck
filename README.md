@@ -10,8 +10,8 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
   soundtracks that Steam installs separately are kept apart from the games.
 - Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
 - Search, and filter by launcher, category, status, genre, or smart filters: Never played, Played under 1 hour, Recently added.
-- Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, the
-  space your games take) and Media (every game's screenshots in one place).
+- Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, how
+  many games each of your launchers has, the space your games take) and Media (every game's screenshots in one place).
 - Each game's page: playtime, achievements, size on disk, a calendar of when you played it, and **where you left off** (GameDeck
   asks when you close a game).
 - Playtime is counted for the games you start from GameDeck, and the hours Steam, GOG Galaxy and itch.io counted are included.
@@ -41,7 +41,8 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 - Dark and light themes (or follow Windows), seven accent colors, three sizes for Big Picture.
 - A duplicate finder, backups you can export and import, and an optional daily backup to a folder you choose (OneDrive, a USB
   drive...).
-- It can start with Windows and wait in the system tray until you need it.
+- Settings in a window of their own, laid out like Big Picture's.
+- It can start with Windows and wait in the system tray until you need it; the tray icon's menu has your last games and Settings.
 
 What changed in each version is in the [changelog](CHANGELOG.md).
 
@@ -58,14 +59,14 @@ There is nothing to install: put the file wherever you like (a folder you can wr
 and run it. Windows may show a SmartScreen warning the first time because the app isn't signed; choose
 **More info > Run anyway**.
 
-To remove GameDeck, use **Settings > Uninstall GameDeck** inside the app.
+To remove GameDeck, use **Settings > System > Uninstall GameDeck** inside the app.
 
 ## Updates
 
 Each time GameDeck starts it checks this page for a newer release. If there is one it downloads it, installs it and
-starts again as the new version, the way Steam updates itself. You can turn this off in **Settings**.
+starts again as the new version, the way Steam updates itself. You can turn this off in **Settings > System**.
 
-Settings also has a **Check for updates** button. An update is only made final once the new version has run for a short
+That section also has a **Check for updates** button. An update is only made final once the new version has run for a short
 while: a version that doesn't start is replaced by the previous one, and isn't offered again.
 
 ## Your data

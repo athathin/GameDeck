@@ -3,6 +3,23 @@
 What changed in each version of GameDeck. GameDeck installs new versions by itself when it starts (see the
 [README](README.md#updates)); the newest version is always on the [releases page](https://github.com/athathin/GameDeck/releases/latest).
 
+## 1.5.0 (27 Nov 2026)
+
+New:
+- **Settings in their own window**, laid out like Big Picture's: sections on the left, cards with on / off switches on the right.
+- **Stats** in two columns on wide screens, and a **Launchers** card: how many games each launcher on your PC has (only the
+  launchers you have installed).
+- The tray menu has **Settings** instead of Open (a click on the icon already opens GameDeck).
+
+Changed and fixed:
+- Playtime is now counted for games with anti-cheat (like Where Winds Meet) and for Minecraft: Java Edition.
+- Steam games whose folder was deleted no longer show up, and soundtracks get their size.
+- Space on disk counts DLC apart from games; the game count leaves DLC out.
+- Covers of another shape are centered instead of cut on one side.
+- Thin scrollbars in your accent color; menus show the tick on the right; evenly spaced tray menu.
+- Long game names fit in "Where did you leave off?".
+- Two-column pages keep the right layout after resizing the window.
+
 ## 1.4.0 (26 Nov 2026)
 
 New:
