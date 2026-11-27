@@ -37,7 +37,10 @@ public sealed class TrayIcon : IDisposable
             ShowImageMargin = false,
             ShowCheckMargin = false,
             DropShadowEnabled = false,   // a shadow would show square corners behind the rounded menu
-            Padding = new Forms.Padding((int)(4 * scale))
+
+            // the gap between the highlight boxes and the menu's edge: 5 px, like GameDeck's own menus (their 1 px border
+            // and 4 px padding)
+            Padding = new Forms.Padding((int)Math.Round(MenuEdge * scale))
         };
 
         menu.Items.Add(MenuItem("Settings", settings, scale));
@@ -169,6 +172,9 @@ public sealed class TrayIcon : IDisposable
 
     /// <summary>Space left of the text (a plain item), in pixels at 100% display scale.</summary>
     private const int TextLeft = 14;
+
+    /// <summary>Gap between the highlight boxes and the menu's edge, at 100% display scale (as in GameDeck's own menus).</summary>
+    private const int MenuEdge = 5;
 
     /// <summary>Room for the tick on the right of a chosen entry, and the gap before it, in pixels at 100% display scale.</summary>
     private const int TickRoom = 28;
@@ -323,8 +329,12 @@ public sealed class TrayIcon : IDisposable
         /// </summary>
         private static Drawing.Rectangle Row(Forms.ToolStripItem item)
         {
-            var visibleWidth = item.Owner is { } menu ? menu.Width - 2 * item.Bounds.Left : item.Width;
-            return new Drawing.Rectangle(0, 0, Math.Max(1, Math.Min(item.Width, visibleWidth)), item.Height);
+            if (item.Owner is not { } menu)
+                return new Drawing.Rectangle(0, 0, item.Width, item.Height);
+
+            // measured from the menu's edges (in the item's own coordinates): exactly the menu's padding on both sides
+            var edge = menu.Padding.Left;
+            return new Drawing.Rectangle(edge - item.Bounds.Left, 0, Math.Max(1, menu.Width - 2 * edge), item.Height);
         }
 
         protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e)
@@ -370,7 +380,7 @@ public sealed class TrayIcon : IDisposable
             if (e.Item is Forms.ToolStripMenuItem { Checked: true })
             {
                 e.Graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
-                var x = row.Width - (int)(14 * scale) - 12 * scale;
+                var x = row.Right - (int)(14 * scale) - 12 * scale;
                 var y = (row.Height - 10 * scale) / 2;
                 using var pen = new Drawing.Pen(Tick, 2 * scale)
                 {
@@ -384,7 +394,7 @@ public sealed class TrayIcon : IDisposable
                 right = (int)(TickRoom * scale);
             }
 
-            var textArea = new Drawing.Rectangle(textLeft, 0, Math.Max(1, row.Width - textLeft - right), row.Height);
+            var textArea = new Drawing.Rectangle(textLeft, 0, Math.Max(1, row.Right - textLeft - right), row.Height);
             Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, textArea, color,
                 Forms.TextFormatFlags.Left | Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine |
                 Forms.TextFormatFlags.NoPrefix | Forms.TextFormatFlags.EndEllipsis);
@@ -392,9 +402,11 @@ public sealed class TrayIcon : IDisposable
 
         protected override void OnRenderSeparator(Forms.ToolStripSeparatorRenderEventArgs e)
         {
+            // 8 px in from each side of the highlight boxes, like the dividers in GameDeck's own menus
             using var pen = new Drawing.Pen(Border);
+            var row = Row(e.Item);
             var y = e.Item.Height / 2;
-            e.Graphics.DrawLine(pen, (int)(8 * scale), y, Row(e.Item).Width - (int)(8 * scale), y);
+            e.Graphics.DrawLine(pen, row.Left + (int)(8 * scale), y, row.Right - (int)(8 * scale), y);
         }
     }
 

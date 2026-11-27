@@ -373,9 +373,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <!-- from one side of the menu to the other (the -4 takes back the menu's own 4 px padding), with the
-                             same space above and below -->
-                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="-4,4" SnapsToDevicePixels="True"/>
+                        <!-- like the tray menu's dividers: 8 px in from each side of the highlight boxes (13 px from the
+                             menu's edge), the same space above and below -->
+                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="8,4" SnapsToDevicePixels="True"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
