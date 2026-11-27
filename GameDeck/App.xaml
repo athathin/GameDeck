@@ -441,7 +441,7 @@
             </Setter>
         </Style>
 
-        <!-- ================= slim slider (tile size) ================= -->
+        <!-- ================= slim slider (the library's tile size) ================= -->
 
         <Style x:Key="SliderThumb" TargetType="Thumb">
             <Setter Property="Template">
@@ -481,12 +481,6 @@
                                 </Track.IncreaseRepeatButton>
                             </Track>
                         </Grid>
-                        <ControlTemplate.Triggers>
-                            <!-- switched off (the volume while the sounds are off): faded, like a disabled button -->
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -506,7 +500,7 @@
             </Setter>
         </Style>
 
-        <!-- a slider on a settings card (the sounds' volume). SlimSlider's track has the card's own color, so it would vanish:
+        <!-- a slider on a settings card (the sounds' volume). SlimSlider's track (the library's tile size) has the cards' color, so it would vanish:
              this one has a lighter track, filled with the accent color up to the knob, like Big Picture's bars -->
         <Style x:Key="SettingSlider" TargetType="Slider">
             <Setter Property="Height" Value="22"/>

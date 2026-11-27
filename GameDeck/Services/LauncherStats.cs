@@ -14,8 +14,11 @@ public record LauncherCount(string Name, string Count);
 /// </summary>
 public static class LauncherStats
 {
-    /// <summary>The launchers GameDeck scans (their Source names) and how Windows lists each one among installed programs.</summary>
-    private static readonly (string Source, Func<string, bool> IsListed)[] Known =
+    /// <summary>
+    /// The launchers Windows lists among installed programs (their Source names, and how they are listed there). Riot and the
+    /// Xbox app aren't in that list: InstalledLaunchers finds them by their own file and package.
+    /// </summary>
+    private static readonly (string Source, Func<string, bool> IsListed)[] Listed =
     [
         ("Steam", n => n.Equals("Steam", StringComparison.OrdinalIgnoreCase)),
         ("Epic", n => n.Equals("Epic Games Launcher", StringComparison.OrdinalIgnoreCase)),
@@ -25,9 +28,7 @@ public static class LauncherStats
         ("EA", n => n.Equals("EA app", StringComparison.OrdinalIgnoreCase)),
         ("Rockstar", n => n.Equals("Rockstar Games Launcher", StringComparison.OrdinalIgnoreCase)),
         ("itch.io", n => n.Equals("itch", StringComparison.OrdinalIgnoreCase)),
-        ("Amazon Games", n => n.Equals("Amazon Games", StringComparison.OrdinalIgnoreCase)),
-        ("Riot", _ => false),   // (not in the list: found by its own file, see InstalledLaunchers)
-        ("Xbox", _ => false)    // (a Store app: found by its package)
+        ("Amazon Games", n => n.Equals("Amazon Games", StringComparison.OrdinalIgnoreCase))
     ];
 
     private const string ManualSource = "Manual";   // games added by hand: shown as "Other"
@@ -61,7 +62,7 @@ public static class LauncherStats
         var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var name in InstalledProgramNames())
-            foreach (var (source, isListed) in Known)
+            foreach (var (source, isListed) in Listed)
                 if (isListed(name))
                     found.Add(source);
 

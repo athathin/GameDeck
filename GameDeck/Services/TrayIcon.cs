@@ -32,7 +32,7 @@ public sealed class TrayIcon : IDisposable
 
         var menu = new Forms.ContextMenuStrip
         {
-            Renderer = new DarkMenuRenderer(scale),
+            Renderer = new MenuRenderer(scale),
             Font = new Drawing.Font("Segoe UI", 10f),
             ShowImageMargin = false,
             ShowCheckMargin = false,
@@ -105,8 +105,8 @@ public sealed class TrayIcon : IDisposable
             }
 
             // the colors of GameDeck's theme right now (it may have changed since the menu was made)
-            menu.BackColor = DarkMenuRenderer.Background;
-            menu.ForeColor = DarkMenuRenderer.Text;
+            menu.BackColor = MenuRenderer.Background;
+            menu.ForeColor = MenuRenderer.Text;
 
             FitWidth(menu, scale);
         };
@@ -313,7 +313,7 @@ public sealed class TrayIcon : IDisposable
     /// Draws the tray menu in the same rounded style and colors as the menus inside GameDeck (its theme's colors: the menu's
     /// background, the highlight under the mouse, the text, and the accent tick on the right of the chosen entry).
     /// </summary>
-    private sealed class DarkMenuRenderer(float scale) : Forms.ToolStripProfessionalRenderer(new DarkColors())
+    private sealed class MenuRenderer(float scale) : Forms.ToolStripProfessionalRenderer(new MenuColors())
     {
         public static Drawing.Color Background => Of(ThemeService.PanelBg.Color);
         public static Drawing.Color Border => Of(ThemeService.RaisedBg.Color);
@@ -416,16 +416,16 @@ public sealed class TrayIcon : IDisposable
         }
     }
 
-    private sealed class DarkColors : Forms.ProfessionalColorTable
+    private sealed class MenuColors : Forms.ProfessionalColorTable
     {
-        public override Drawing.Color ToolStripDropDownBackground => DarkMenuRenderer.Background;
-        public override Drawing.Color MenuBorder => DarkMenuRenderer.Border;
-        public override Drawing.Color MenuItemBorder => DarkMenuRenderer.Highlight;
-        public override Drawing.Color MenuItemSelected => DarkMenuRenderer.Highlight;
-        public override Drawing.Color ImageMarginGradientBegin => DarkMenuRenderer.Background;
-        public override Drawing.Color ImageMarginGradientMiddle => DarkMenuRenderer.Background;
-        public override Drawing.Color ImageMarginGradientEnd => DarkMenuRenderer.Background;
-        public override Drawing.Color SeparatorDark => DarkMenuRenderer.Border;
-        public override Drawing.Color SeparatorLight => DarkMenuRenderer.Border;
+        public override Drawing.Color ToolStripDropDownBackground => MenuRenderer.Background;
+        public override Drawing.Color MenuBorder => MenuRenderer.Border;
+        public override Drawing.Color MenuItemBorder => MenuRenderer.Highlight;
+        public override Drawing.Color MenuItemSelected => MenuRenderer.Highlight;
+        public override Drawing.Color ImageMarginGradientBegin => MenuRenderer.Background;
+        public override Drawing.Color ImageMarginGradientMiddle => MenuRenderer.Background;
+        public override Drawing.Color ImageMarginGradientEnd => MenuRenderer.Background;
+        public override Drawing.Color SeparatorDark => MenuRenderer.Border;
+        public override Drawing.Color SeparatorLight => MenuRenderer.Border;
     }
 }
