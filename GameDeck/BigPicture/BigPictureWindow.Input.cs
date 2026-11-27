@@ -16,13 +16,15 @@ public partial class BigPictureWindow
         if (Mouse.OverrideCursor is null)
             HideCursor();   // a button or a key was used: no pointer needed
 
-        NavSounds.Play(button switch
-        {
-            PadButton.Confirm or PadButton.Start or PadButton.Y => NavSound.Select,
-            PadButton.RightTrigger when _overlay == Overlay.None && IsGamesTab => NavSound.Select,   // (a random game; elsewhere it scrolls)
-            PadButton.Back => NavSound.Back,
-            _ => NavSound.Move
-        });
+        // (scrolling with the right stick is silent: it repeats 20 times a second)
+        if (button is not (PadButton.ScrollUp or PadButton.ScrollDown))
+            NavSounds.Play(button switch
+            {
+                PadButton.Confirm or PadButton.Start or PadButton.Y => NavSound.Select,
+                PadButton.RightTrigger when _overlay == Overlay.None && IsGamesTab => NavSound.Select,   // (a random game; elsewhere it scrolls)
+                PadButton.Back => NavSound.Back,
+                _ => NavSound.Move
+            });
 
         // an open menu / keyboard / panel takes all the input
         if (_overlay != Overlay.None)
@@ -59,6 +61,9 @@ public partial class BigPictureWindow
             case PadButton.Home: OpenPower(); break;
             case PadButton.LeftTrigger or PadButton.RightTrigger when _tab == StatsTab:
                 ScrollPage(StatsScroll, TriggerDirection(button));   // a page of the stats
+                break;
+            case PadButton.ScrollUp or PadButton.ScrollDown when _tab == StatsTab:
+                ScrollSmoothly(StatsScroll, button);   // the right stick: the stats glide up / down
                 break;
             case PadButton.RightTrigger when IsGamesTab: PickRandom(); break;   // (LT does nothing on the row of games)
             case PadButton.LeftShoulder: SwitchTab(-1); break;
@@ -106,8 +111,9 @@ public partial class BigPictureWindow
                 }
                 break;
 
-            // the triggers scroll a page at a time, whichever button is selected
+            // the triggers scroll a page at a time, whichever button is selected; the right stick glides
             case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(DetailsView.Scroller, TriggerDirection(button)); break;
+            case PadButton.ScrollUp or PadButton.ScrollDown: ScrollSmoothly(DetailsView.Scroller, button); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
             case PadButton.Back: CloseOverlay(); break;
         }
@@ -391,6 +397,11 @@ public partial class BigPictureWindow
 
     private void ScrollStats(int direction) =>
         StatsScroll.ScrollToVerticalOffset(Math.Max(0, StatsScroll.VerticalOffset + direction * 240));
+
+    /// <summary>One small step of the right stick's scrolling (it repeats 20 times a second while the stick is held: ~800 px/s).</summary>
+    private static void ScrollSmoothly(ScrollViewer scroller, PadButton button) =>
+        scroller.ScrollToVerticalOffset(Math.Clamp(scroller.VerticalOffset + (button == PadButton.ScrollUp ? -40 : 40), 0,
+                                                   scroller.ScrollableHeight));
 
     private void LaunchSelected()
     {

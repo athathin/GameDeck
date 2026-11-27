@@ -22,7 +22,9 @@ public enum PadButton
     Select,         // View / Share (Create) / −
     Start,          // Menu / Options / +
     Home,           // Xbox button / PS button / Home
-    LeftStick       // pressing the left stick in (LS / L3)
+    LeftStick,      // pressing the left stick in (LS / L3)
+    ScrollUp,       // the right stick pushed up: scrolls a long page (Stats, a game's page)
+    ScrollDown      // the right stick pushed down
 }
 
 /// <summary>Which family the controller being used belongs to (decides the button names shown on screen).</summary>
@@ -63,6 +65,7 @@ public sealed class GamepadService : IDisposable
 {
     private static readonly TimeSpan RepeatDelay = TimeSpan.FromMilliseconds(420);
     private static readonly TimeSpan RepeatInterval = TimeSpan.FromMilliseconds(110);
+    private static readonly TimeSpan ScrollInterval = TimeSpan.FromMilliseconds(50);   // the right stick: 20 small scroll steps a second
     private const short StickThreshold = 16000;   // out of 32767: ignores a stick that doesn't rest exactly in the middle
 
     private sealed class Pad
@@ -282,6 +285,11 @@ public sealed class GamepadService : IDisposable
                     _lastRepeat[button] = now;      // held: repeat
                     pressed.Add(button);
                 }
+                else if (button is PadButton.ScrollUp or PadButton.ScrollDown && now - _lastRepeat[button] >= ScrollInterval)
+                {
+                    _lastRepeat[button] = now;      // the right stick held: scrolls on and on, without the directions' first pause
+                    pressed.Add(button);
+                }
             }
 
             if (_heldSince.Count > 0)   // (nothing is allocated while no button is held: this runs 60 times a second)
@@ -457,6 +465,10 @@ public sealed class GamepadService : IDisposable
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK)) down.Add(PadButton.Select);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_GUIDE)) down.Add(PadButton.Home);
         if (Held(SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSTICK)) down.Add(PadButton.LeftStick);
+        var rightY = Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_RIGHTY);
+        if (rightY < -StickThreshold) down.Add(PadButton.ScrollUp);
+        if (rightY > StickThreshold) down.Add(PadButton.ScrollDown);
+
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERLEFT) > StickThreshold) down.Add(PadButton.LeftTrigger);
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > StickThreshold) down.Add(PadButton.RightTrigger);
     }

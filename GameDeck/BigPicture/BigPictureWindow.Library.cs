@@ -280,7 +280,7 @@ public partial class BigPictureWindow
         NoPlaytimeText.Visibility = played.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var most = played.FirstOrDefault()?.PlaytimeSeconds ?? 1;
-        foreach (var game in played.Take(5))
+        foreach (var game in played.Take(10))   // (10, like the desktop Stats tab)
         {
             var fraction = Math.Clamp((double)game.PlaytimeSeconds / most, 0.02, 1);
 
