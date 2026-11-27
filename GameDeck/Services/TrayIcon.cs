@@ -33,8 +33,6 @@ public sealed class TrayIcon : IDisposable
         var menu = new Forms.ContextMenuStrip
         {
             Renderer = new DarkMenuRenderer(scale),
-            BackColor = DarkMenuRenderer.Background,
-            ForeColor = DarkMenuRenderer.Text,
             Font = new Drawing.Font("Segoe UI", 10f),
             ShowImageMargin = false,
             ShowCheckMargin = false,
@@ -78,7 +76,8 @@ public sealed class TrayIcon : IDisposable
                 foreach (var choice in Enum.GetValues<AfterGame>())
                 {
                     var chosen = choice;
-                    var item = MenuItem((choice == now.Choice ? "✓  " : "     ") + choice.Label(), () => setAfterGame(chosen), scale);
+                    var item = MenuItem(choice.Label(), () => setAfterGame(chosen), scale);
+                    item.Checked = choice == now.Choice;   // drawn as an accent tick on the right, like GameDeck's own menus
                     menu.Items.Insert(index++, item);
                     _recentItems.Add(item);
                 }
@@ -101,6 +100,10 @@ public sealed class TrayIcon : IDisposable
                 menu.Items.Insert(index, separator);
                 _recentItems.Add(separator);
             }
+
+            // the colors of GameDeck's theme right now (it may have changed since the menu was made)
+            menu.BackColor = DarkMenuRenderer.Background;
+            menu.ForeColor = DarkMenuRenderer.Text;
 
             FitWidth(menu, scale);
         };
@@ -167,6 +170,9 @@ public sealed class TrayIcon : IDisposable
     /// <summary>Space left of the text (a plain item), in pixels at 100% display scale.</summary>
     private const int TextLeft = 14;
 
+    /// <summary>Room for the tick on the right of a chosen entry, and the gap before it, in pixels at 100% display scale.</summary>
+    private const int TickRoom = 28;
+
     /// <summary>Space left of the text on a recent-game item: the icon and the gap after it fit in there.</summary>
     private const int RecentTextLeft = TextLeft + RecentIconSize + 10;
 
@@ -193,7 +199,8 @@ public sealed class TrayIcon : IDisposable
         {
             var left = (int)((item.Tag is Drawing.Bitmap ? RecentTextLeft : TextLeft) * scale);
             var text = Forms.TextRenderer.MeasureText(item.Text, menu.Font, Drawing.Size.Empty, flags).Width;
-            widest = Math.Max(widest, left + text + (int)(18 * scale));
+            var tick = item.Checked ? (int)(TickRoom * scale) : 0;   // the tick on the right of the chosen entry
+            widest = Math.Max(widest, left + text + tick + (int)(18 * scale));
         }
 
         var width = Math.Min(widest, (int)(MaxMenuWidth * scale)) + menu.Padding.Horizontal;
@@ -290,13 +297,23 @@ public sealed class TrayIcon : IDisposable
         }
     }
 
-    /// <summary>Draws the tray menu in the same dark, rounded style as the menus inside GameDeck.</summary>
+    /// <summary>
+    /// Draws the tray menu in the same rounded style and colors as the menus inside GameDeck (its theme's colors: the menu's
+    /// background, the highlight under the mouse, the text, and the accent tick on the right of the chosen entry).
+    /// </summary>
     private sealed class DarkMenuRenderer(float scale) : Forms.ToolStripProfessionalRenderer(new DarkColors())
     {
-        public static readonly Drawing.Color Background = Drawing.Color.FromArgb(0x1E, 0x22, 0x2B);
-        public static readonly Drawing.Color Border = Drawing.Color.FromArgb(0x2A, 0x2F, 0x3A);
-        public static readonly Drawing.Color Highlight = Drawing.Color.FromArgb(0x2A, 0x2F, 0x3A);
-        public static readonly Drawing.Color Text = Drawing.Color.FromArgb(0xC5, 0xCB, 0xD6);
+        public static Drawing.Color Background => Of(ThemeService.PanelBg.Color);
+        public static Drawing.Color Border => Of(ThemeService.RaisedBg.Color);
+        public static Drawing.Color Highlight => Of(ThemeService.RaisedBg.Color);
+        public static Drawing.Color Text => Of(ThemeService.TextSecondary.Color);
+        private static Drawing.Color SelectedText => Of(ThemeService.TextPrimary.Color);
+        private static Drawing.Color Tick => Of(ThemeService.AccentColor);
+
+        private static Drawing.Color Of(System.Windows.Media.Color c) => Drawing.Color.FromArgb(c.A, c.R, c.G, c.B);
+
+        /// <summary>No built-in check box: the chosen entry gets a tick on the right instead (in OnRenderItemText).</summary>
+        protected override void OnRenderItemCheck(Forms.ToolStripItemImageRenderEventArgs e) { }
 
         /// <summary>
         /// The visible area of an item. Windows makes the items wider than the menu itself (they were measured with
@@ -339,7 +356,7 @@ public sealed class TrayIcon : IDisposable
         {
             // drawn by hand, in the middle of the row from top to bottom (the built-in text position drifts towards the top)
             var row = Row(e.Item);
-            var color = e.Item.Selected ? Drawing.Color.White : Text;
+            var color = e.Item.Selected && e.Item.Enabled ? SelectedText : Text;
 
             var textLeft = (int)(TextLeft * scale);
             if (e.Item.Tag is Drawing.Bitmap icon)
@@ -348,7 +365,26 @@ public sealed class TrayIcon : IDisposable
                 textLeft = (int)(RecentTextLeft * scale);
             }
 
-            var textArea = new Drawing.Rectangle(textLeft, 0, Math.Max(1, row.Width - textLeft - (int)(10 * scale)), row.Height);
+            // the chosen entry: an accent tick on the right (the same shape as in GameDeck's menus: M1,5 L4.5,8.5 L11,1.5)
+            var right = (int)(10 * scale);
+            if (e.Item is Forms.ToolStripMenuItem { Checked: true })
+            {
+                e.Graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
+                var x = row.Width - (int)(14 * scale) - 12 * scale;
+                var y = (row.Height - 10 * scale) / 2;
+                using var pen = new Drawing.Pen(Tick, 2 * scale)
+                {
+                    StartCap = Drawing2D.LineCap.Round, EndCap = Drawing2D.LineCap.Round, LineJoin = Drawing2D.LineJoin.Round
+                };
+                e.Graphics.DrawLines(pen, new[]
+                {
+                    new Drawing.PointF(x + 1 * scale, y + 5 * scale), new Drawing.PointF(x + 4.5f * scale, y + 8.5f * scale),
+                    new Drawing.PointF(x + 11 * scale, y + 1.5f * scale)
+                });
+                right = (int)(TickRoom * scale);
+            }
+
+            var textArea = new Drawing.Rectangle(textLeft, 0, Math.Max(1, row.Width - textLeft - right), row.Height);
             Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, textArea, color,
                 Forms.TextFormatFlags.Left | Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine |
                 Forms.TextFormatFlags.NoPrefix | Forms.TextFormatFlags.EndEllipsis);

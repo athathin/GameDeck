@@ -373,12 +373,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <!-- from one side of the menu to the other (the -4 takes back the menu's own 4 px padding) -->
-                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="-4,4"/>
+                        <!-- from one side of the menu to the other (the -4 takes back the menu's own 4 px padding), with the
+                             same space above and below -->
+                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="-4,4" SnapsToDevicePixels="True"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Inside a menu WPF doesn't use the style above but the one stored under this key (otherwise its own white line
+             shows, shorter and too close to the entry above): the same divider -->
+        <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator" BasedOn="{StaticResource {x:Type Separator}}"/>
 
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
