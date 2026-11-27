@@ -205,20 +205,38 @@ public partial class BigPictureWindow
 
     // ---------- the Stats tab ----------
 
-    /// <summary>Reloads the play sessions (a game may have ended since) and redraws the numbers and charts.</summary>
-    private void RefreshStats()
+    /// <summary>
+    /// Reloads the play sessions (a game may have ended since) and redraws the numbers and charts. <paramref name="launchers"/>
+    /// (the Refresh button, X) also reads the installed launchers again, for one installed since.
+    /// </summary>
+    private void RefreshStats(bool launchers = false)
     {
         try { _sessions.Load(); }
         catch (System.IO.IOException) { }   // the file is being written right now: the numbers already shown stay
 
         var offset = StatsScroll.VerticalOffset;
-        BuildStats();
+        BuildStats(launchers);
         StatsScroll.ScrollToVerticalOffset(offset);
     }
 
-    private void RefreshStatsButton_Click(object sender, MouseButtonEventArgs e) => RefreshStats();
+    private void RefreshStatsButton_Click(object sender, MouseButtonEventArgs e) => RefreshStats(launchers: true);
 
-    private void BuildStats()
+    /// <summary>The Space on disk card as last drawn: its biggest games are the "Free up space" list.</summary>
+    private DiskUsage.Card? _diskCard;
+
+    /// <summary>The Launchers card (as on the desktop Stats tab). Until the installed launchers are known, those that have games.</summary>
+    private void ShowLaunchers(bool refresh = false)
+    {
+        var launchers = LauncherStats.LinesNow(_library, () =>
+        {
+            if (!_closing && _tab == StatsTab) ShowLaunchers();
+        }, refresh);
+
+        LauncherLines.ItemsSource = launchers;
+        LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void BuildStats(bool refreshLaunchers = false)
     {
         var visible = _library.Where(g => !g.IsHidden).ToList();   // (hidden games stay out of the stats, as before)
         var played = visible.Where(g => g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
@@ -245,7 +263,7 @@ public partial class BigPictureWindow
         YearCompare.Text = yearly.Compare;
         YearLines.ItemsSource = yearly.Lines;
 
-        var disk = DiskUsage.Summary(visible, DateTime.UtcNow);
+        var disk = _diskCard = DiskUsage.Summary(visible, DateTime.UtcNow);
         DiskPanel.Visibility = disk is null ? Visibility.Collapsed : Visibility.Visible;
         if (disk is not null)
         {
@@ -298,9 +316,12 @@ public partial class BigPictureWindow
         }
 
         // sessions of hidden games are left out, so their names don't show up here
-        var recent = _sessions.Recent(8, excludeKeys: _hiddenKeys);
+        var recent = _sessions.Recent(10, excludeKeys: _hiddenKeys);   // (10, like the desktop Stats tab)
         SessionsList.ItemsSource = recent;
         NoSessionsText.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        ShowLaunchers(refreshLaunchers);
+        QueueHintRefresh();   // "A Free up space" only while the Space on disk card has games
     }
 
     // ---------- covers (same approach as the main window's tiles) ----------

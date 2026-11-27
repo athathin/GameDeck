@@ -691,15 +691,22 @@
                             <StackPanel>
                                 <TextBlock x:Name="DiskHeadline" Foreground="{DynamicResource TextPrimary}" FontSize="22" FontWeight="SemiBold"/>
                                 <TextBlock x:Name="DiskCompare" Foreground="{DynamicResource TextSecondary}" FontSize="15" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <!-- the biggest games (DiskUsage.Line), each with an Uninstall button on the right -->
                                 <ItemsControl x:Name="DiskLines" Margin="0,12,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" Foreground="{DynamicResource TextMuted}" FontSize="15" TextTrimming="CharacterEllipsis" Margin="0,0,0,4"/>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Button DockPanel.Dock="Right" Content="Uninstall" Style="{StaticResource PillButton}" Padding="12,4"
+                                                        Margin="12,0,0,0" FontSize="12" VerticalAlignment="Center" Click="DiskUninstall_Click"
+                                                        ToolTip="Uninstall this game (its launcher or uninstaller takes over)"/>
+                                                <TextBlock Text="{Binding Text}" Foreground="{DynamicResource TextMuted}" FontSize="15"
+                                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            </DockPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                                 <TextBlock Foreground="{DynamicResource TextHint}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"
-                                           Text="Sort the library by &quot;Largest first&quot; to see them all. Right-click a game and choose Uninstall to free its space."/>
+                                           Text="Sort the library by &quot;Largest first&quot; to see them all. A game you uninstall leaves the library by itself."/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -16,6 +16,9 @@ public record WeekSummary(string Headline, string Compare, IReadOnlyList<string>
 /// </summary>
 public record GameHistory(int Sessions, long AverageSeconds, long LongestSeconds, int DaysPlayed, IReadOnlyList<(DateOnly Day, long Seconds)> Days);
 
+/// <summary>The weekly recap notice: a headline, the week's playtime and days, and a line about the most played game.</summary>
+public record WeekRecap(string Headline, string Text, string Detail);
+
 /// <summary>One bar of a stats chart.</summary>
 public record ChartBar(string Label, string Value, double Height, double Opacity, string ToolTip);
 
@@ -226,6 +229,45 @@ public class SessionLog
     }
 
     /// <summary>
+    /// The recap of the week starting <paramref name="monday"/> (Monday to Sunday): its playtime, on how many days, the most
+    /// played game and how it compares with the week before. Null when less than a minute was played that week. The games in
+    /// <paramref name="excludeKeys"/> (hidden ones) are left out entirely.
+    /// </summary>
+    public WeekRecap? RecapOf(DateOnly monday, IReadOnlySet<string>? excludeKeys = null)
+    {
+        var mine = _sessions.Where(s => excludeKeys is null || !excludeKeys.Contains(s.Key)).ToList();
+        var perDay = PerDay(mine);
+
+        long WeekSeconds(DateOnly start) => Enumerable.Range(0, 7).Sum(d => perDay.GetValueOrDefault(start.AddDays(d)));
+
+        var seconds = WeekSeconds(monday);
+        if (seconds < 60) return null;
+
+        var days = Enumerable.Range(0, 7).Count(d => perDay.GetValueOrDefault(monday.AddDays(d)) > 0);
+        var text = $"{Game.FormatPlaytime(seconds)} on {(days == 1 ? "1 day" : $"{days} days")}";
+
+        var details = new List<string>();
+
+        var week = mine.Where(s => DateOnly.FromDateTime(s.StartUtc.ToLocalTime()) is var day && day >= monday && day < monday.AddDays(7))
+            .ToList();
+        if (week.Count > 0)
+        {
+            var top = week.GroupBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(g => (Name: g.OrderByDescending(s => s.StartUtc).First().Name, Seconds: g.Sum(s => s.Seconds)))
+                .MaxBy(g => g.Seconds);
+            details.Add($"Most played: {top.Name} ({Game.FormatPlaytime(top.Seconds)}).");
+        }
+
+        var before = WeekSeconds(monday.AddDays(-7));
+        if (before > 0 && Math.Abs(seconds - before) >= 60)
+            details.Add(seconds > before
+                ? $"{Game.FormatPlaytime(seconds - before)} more than the week before."
+                : $"{Game.FormatPlaytime(before - seconds)} less than the week before.");
+
+        return new WeekRecap($"Your week in games ({monday:d MMM} – {monday.AddDays(6):d MMM})", text, string.Join(" ", details));
+    }
+
+    /// <summary>
     /// "Your year in games": the hours this calendar year, the days played, the most played games, the longest session, the
     /// busiest month, the favorite day of the week and the games played for the first time. Hidden games are left out of the facts.
     /// </summary>
@@ -356,7 +398,7 @@ public class SessionLog
 
     // ---------- helpers ----------
 
-    private static DateOnly MondayOf(DateOnly day) => day.AddDays(-(((int)day.DayOfWeek + 6) % 7));
+    internal static DateOnly MondayOf(DateOnly day) => day.AddDays(-(((int)day.DayOfWeek + 6) % 7));
 
     private static string FormatWhen(DateTime local)
     {

@@ -45,6 +45,8 @@ public partial class BigPictureWindow
                 () => SettingsService.ShowLaunchToast, on => SettingsService.ShowLaunchToast = on),
             Toggle("Ask where I left off when a game closes", "After 10 minutes or more. Shown on the game's page and in Continue playing",
                 () => SettingsService.AskWhereLeftOff, on => SettingsService.AskWhereLeftOff = on),
+            Toggle("Show a weekly recap", "Once a week, a notice with the week before: how long, on how many days, your most played game",
+                () => SettingsService.WeeklyRecap, on => SettingsService.WeeklyRecap = on),
             new("Remind me to take a break", "A notice after every so long in one session of a game started from GameDeck",
                 Value: () => SettingsService.BreakReminderMinutes switch
                 {

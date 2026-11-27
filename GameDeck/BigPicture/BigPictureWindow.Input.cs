@@ -49,9 +49,10 @@ public partial class BigPictureWindow
             case PadButton.Right: Move(1); break;
             case PadButton.Up: UpOrDown(-1); break;      // up to the icons at the top; scrolls the Stats tab
             case PadButton.Down: UpOrDown(1); break;
+            case PadButton.Confirm when _tab == StatsTab: OpenFreeSpace(); break;   // the biggest games, to uninstall one
             case PadButton.Confirm: OpenDetails(); break;   // like desktop mode: the game's page first, Play from there
             case PadButton.Back: AskToExit(); break;   // not instantly: it could be a stray press
-            case PadButton.X: if (_tab == StatsTab) RefreshStats(); else ToggleFavorite(); break;
+            case PadButton.X: if (_tab == StatsTab) RefreshStats(launchers: true); else ToggleFavorite(); break;
             case PadButton.Y: OpenSearch(); break;
             case PadButton.Select: OpenFilters(); break;
             case PadButton.Start: OpenGameMenu(); break;   // the right-click menu of the desktop library

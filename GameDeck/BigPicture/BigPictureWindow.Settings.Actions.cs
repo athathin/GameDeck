@@ -81,6 +81,16 @@ public partial class BigPictureWindow
             RenderSettings();   // (an import can change the settings shown)
     }
 
+    /// <summary>The main window's library changed (an automatic scan found games new or gone): show it, and the stats with it.</summary>
+    public void LibraryChanged()
+    {
+        if (_closing) return;
+
+        ReloadLibrary();
+        if (_tab == StatsTab)
+            RefreshStats();
+    }
+
     /// <summary>Takes the library as the main window has it now and redraws the screen behind the panel, keeping the selection.</summary>
     private void ReloadLibrary()
     {

@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private readonly GlobalHotkey _hotkey = new();
     private readonly LowBatteryWarning _lowBattery = new();
     private readonly BreakReminder _breaks;
+    private readonly WeeklyRecapNotice? _recap;   // (null only while the constructor runs: a game can't end before it's made)
     private QuickLaunchWindow? _quickLaunch;
 
     public ObservableCollection<Game> Games { get; } = new();
@@ -82,6 +83,14 @@ public partial class MainWindow : Window
 
         // and measure what was skipped while it ran (sizes are only read between games)
         _tracker.Closed += (_, _) => MeasureSizes();
+
+        // a game is over: the library may have changed meanwhile (an update, a game installed), and a weekly recap that
+        // waited for the game can show now
+        _tracker.Ended += ended =>
+        {
+            _ = ScanQuietlyAsync();
+            _recap?.Check();
+        };
 
         // GameDeck was closed (or crashed) while a routine had switched the power plan: put it back
         _ = Task.Run(LaunchRoutineService.RestorePendingPowerPlan);
@@ -132,6 +141,16 @@ public partial class MainWindow : Window
                 await ScanAsync();
         };
 
+        // Every start: a quiet scan once start-up is over (also when GameDeck starts in the tray), so games installed or
+        // uninstalled since last time show up / go without "Scan for games". Then again each time GameDeck comes back to the
+        // front (at most once a minute): a game just installed or uninstalled in its launcher.
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3));
+            await ScanQuietlyAsync(spaced: true);   // (skipped when coming to the front just did one)
+        }));
+        Activated += (_, _) => _ = ScanQuietlyAsync(spaced: true);
+
         AddHandler(MouseLeftButtonUpEvent, new MouseButtonEventHandler((_, _) => _pressedGame = null), handledEventsToo: true);
 
         Closing += MainWindow_Closing;
@@ -150,6 +169,12 @@ public partial class MainWindow : Window
         // "you've been playing for 2 hours" (Settings: off by default)
         _breaks = new BreakReminder(() => _tracker.RunningGame is { } game && _tracker.RunningSinceUtc is { } since ? (game, since) : null);
         _breaks.Start();
+
+        // "your week in games": once a week, the week before (Settings: on by default), once start-up is over
+        _recap = new WeeklyRecapNotice(_sessions,
+            () => _library.Games.Where(g => g.IsHidden).Select(g => g.LaunchTarget).ToHashSet(StringComparer.OrdinalIgnoreCase),
+            () => _tracker.IsTracking);
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(_recap.Start));
 
         // Windows shutting down / signing out must never be blocked by the "minimize or close?" pop-up
         Application.Current.SessionEnding += (_, _) => _exiting = true;
@@ -201,6 +226,7 @@ public partial class MainWindow : Window
         _hotkey.Dispose();
         _lowBattery.Dispose();
         _breaks.Dispose();
+        _recap?.Dispose();
         _updateTimer.Stop();
         StopFolderBackups();
         _wake?.Dispose();

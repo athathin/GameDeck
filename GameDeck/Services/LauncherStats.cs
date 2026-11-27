@@ -56,6 +56,33 @@ public static class LauncherStats
         return sources.Select(s => new LauncherCount(s.Name, s.Count == 1 ? "1 game" : $"{s.Count} games")).ToList();
     }
 
+    private static Task<HashSet<string>>? _installed;
+
+    /// <summary>
+    /// The launchers installed on this PC, read once in the background and shared by the desktop and Big Picture Stats tabs.
+    /// <paramref name="refresh"/> (their Refresh) reads them again, for a launcher installed since.
+    /// </summary>
+    public static Task<HashSet<string>> InstalledLaunchersAsync(bool refresh = false)
+    {
+        if (refresh || _installed is null || _installed.IsFaulted)
+            _installed = Task.Run(InstalledLaunchers);
+        return _installed;
+    }
+
+    /// <summary>
+    /// The Launchers card's lines right now: with the installed launchers once they are known, otherwise only the launchers
+    /// that have games (and then <paramref name="whenKnown"/> runs, on the UI thread, once they are known: draw the card again).
+    /// </summary>
+    public static List<LauncherCount> LinesNow(IEnumerable<Game> library, Action whenKnown, bool refresh = false)
+    {
+        var task = InstalledLaunchersAsync(refresh);
+        if (task.IsCompletedSuccessfully)
+            return Lines(library, task.Result);
+
+        task.ContinueWith(t => { if (t.IsCompletedSuccessfully) whenKnown(); }, TaskScheduler.FromCurrentSynchronizationContext());
+        return Lines(library, new HashSet<string>());
+    }
+
     /// <summary>The launchers installed on this PC (their Source names). Reads the registry and a few files: call off the UI thread.</summary>
     public static HashSet<string> InstalledLaunchers()
     {

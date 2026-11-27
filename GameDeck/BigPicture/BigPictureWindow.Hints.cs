@@ -56,7 +56,11 @@ public partial class BigPictureWindow
             items.Add((RoundButton(l.X, onController), "NEXT SHELF"));
 
         if (_tab == StatsTab && !_topFocus)
+        {
             items.Add((RoundButton(l.X, onController), "REFRESH"));
+            if (_diskCard is { Lines.Count: > 0 })
+                items.Add((RoundButton(l.Confirm, onController), "FREE UP SPACE"));   // the biggest games, to uninstall
+        }
 
         // LT / RT page through the Stats and Media tabs when they are longer than the screen (known once laid out)
         if (_tab is StatsTab or MediaTab)

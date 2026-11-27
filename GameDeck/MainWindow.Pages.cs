@@ -69,9 +69,8 @@ public partial class MainWindow
         RecentSessionsList.ItemsSource = recent;
         NoSessionsText.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        ShowLaunchers();
-        if (_installedLaunchers is null)
-            _ = FindInstalledLaunchersAsync();
+        ShowLaunchers(refresh: _refreshLaunchers);
+        _refreshLaunchers = false;
 
         // playtime from before sessions were recorded counts in the totals but can't appear in the charts
         UndatedNote.Visibility = total - _sessions.LoggedSeconds > 60 ? Visibility.Visible : Visibility.Collapsed;
@@ -79,40 +78,34 @@ public partial class MainWindow
         UpdateStatsLayout();
     }
 
-    /// <summary>The launchers installed on this PC: read once (Refresh reads them again, for one installed since), null until then.</summary>
-    private HashSet<string>? _installedLaunchers;
-    private bool _findingLaunchers;
+    /// <summary>Set by the Refresh button: the installed launchers are read again (one may have been installed since).</summary>
+    private bool _refreshLaunchers;
 
-    /// <summary>The Launchers card. Until the installed launchers are known, it lists those that have games.</summary>
-    private void ShowLaunchers()
+    /// <summary>The Launchers card. Until the installed launchers are known (read in the background), it lists those that have games.</summary>
+    private void ShowLaunchers(bool refresh = false)
     {
-        var launchers = LauncherStats.Lines(_library.Games, _installedLaunchers ?? []);
+        var launchers = LauncherStats.LinesNow(_library.Games, () =>
+        {
+            if (StatsPanel.Visibility == Visibility.Visible) ShowLaunchers();
+        }, refresh);
+
         LauncherLines.ItemsSource = launchers;
         LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    /// <summary>Reads Windows' list of installed programs in the background (not on the screen's thread), then fills in the card.</summary>
-    private async Task FindInstalledLaunchersAsync()
+    /// <summary>
+    /// "Uninstall" on a line of the Space on disk card: the same as the game's right-click Uninstall (its launcher or uninstaller
+    /// takes over). The automatic scan takes the game out of the library once it's gone and GameDeck is back in front.
+    /// </summary>
+    private void DiskUninstall_Click(object sender, RoutedEventArgs e)
     {
-        if (_findingLaunchers) return;
-        _findingLaunchers = true;
-
-        try
-        {
-            _installedLaunchers = await Task.Run(LauncherStats.InstalledLaunchers);
-        }
-        finally
-        {
-            _findingLaunchers = false;
-        }
-
-        if (StatsPanel.Visibility == Visibility.Visible)
-            ShowLaunchers();
+        if (sender is FrameworkElement { DataContext: DiskUsage.Line line })
+            ProviderActions.Uninstall(line.Game);
     }
 
     private void RefreshStatsButton_Click(object sender, RoutedEventArgs e)
     {
-        _installedLaunchers = null;
+        _refreshLaunchers = true;
         ShowStats();
     }
 
@@ -167,22 +160,73 @@ public partial class MainWindow
 
     // ---------- buttons ----------
 
+    /// <summary>One scan at a time: the "Scan for games" button waits for an automatic scan, an automatic one skips its turn.</summary>
+    private readonly SemaphoreSlim _scanLock = new(1, 1);
+
+    /// <summary>When the last automatic scan ran (they're spaced out: see <see cref="ScanQuietlyAsync"/>).</summary>
+    private DateTime _lastQuietScanUtc;
+
+    /// <summary>The "Scan for games" button: scans every launcher and shows the library it found.</summary>
     private async Task ScanAsync()
     {
         SettingsPanel?.SetScanning(true);
         StatusText.Text = "Scanning...";
 
-        CoverService.ClearMisses();              // retry covers that weren't found before
-        await Task.Run(_library.Scan);           // background thread keeps the window responsive
+        await _scanLock.WaitAsync();
+        try
+        {
+            CoverService.ClearMisses();              // retry covers that weren't found before
+            await Task.Run(_library.Scan);           // background thread keeps the window responsive
+        }
+        finally
+        {
+            _scanLock.Release();
+        }
 
+        LibraryChanged();
+        SettingsPanel?.SetScanning(false);
+        SettingsPanel?.SetGamesStatus($"Scan finished: {_library.Games.Count(g => !g.IsAddOn)} games in your library.");
+    }
+
+    /// <summary>
+    /// The automatic scan: when GameDeck starts, after a game closes, and when GameDeck comes back to the front (a game
+    /// installed or uninstalled in its launcher meanwhile), at most once a minute. The library only changes when the scan
+    /// found something new or something gone, so nothing on screen reloads for nothing.
+    /// </summary>
+    private async Task ScanQuietlyAsync(bool spaced = false)
+    {
+        if (spaced && DateTime.UtcNow - _lastQuietScanUtc < TimeSpan.FromMinutes(1)) return;
+        if (_library.Games.Count == 0 || !await _scanLock.WaitAsync(0)) return;   // (first run, or a scan is running)
+
+        _lastQuietScanUtc = DateTime.UtcNow;
+        bool changed;
+        try
+        {
+            changed = await Task.Run(_library.ScanForChanges);
+        }
+        catch
+        {
+            return;   // (a launcher's files being written right now: the next scan sees them)
+        }
+        finally
+        {
+            _scanLock.Release();
+        }
+
+        if (changed)
+            LibraryChanged();
+    }
+
+    /// <summary>After a scan found a different library: show it, here and in Big Picture, and read what the new games need.</summary>
+    private void LibraryChanged()
+    {
         Refresh();
         _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
         _ = LoadAchievementsAsync();                // (and their achievements)
         _ = LoadSteamAppsAsync();                   // (and which are DLC or soundtracks)
         FetchGenres();                           // (and their genres)
         MeasureSizes();                          // (and their size on disk)
-        SettingsPanel?.SetScanning(false);
-        SettingsPanel?.SetGamesStatus($"Scan finished: {_library.Games.Count(g => !g.IsAddOn)} games in your library.");
+        _bigPicture?.LibraryChanged();
     }
 
     // The settings actions below run from the desktop settings page and from Big Picture's settings panel. Each takes the

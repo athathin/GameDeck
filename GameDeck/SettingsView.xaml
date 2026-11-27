@@ -102,6 +102,15 @@
                             </StackPanel>
                         </CheckBox>
 
+                        <CheckBox x:Name="WeeklyRecapCheckBox" Style="{StaticResource SettingSwitch}"
+                                  Checked="WeeklyRecapCheckBox_Changed" Unchecked="WeeklyRecapCheckBox_Changed">
+                            <StackPanel>
+                                <TextBlock Text="Show a weekly recap" Style="{StaticResource SettingTitle}"/>
+                                <TextBlock Text="Once a week, a notice with the week before: how long you played, on how many days, and your most played game. Only games started from GameDeck."
+                                           Style="{StaticResource SettingNote}"/>
+                            </StackPanel>
+                        </CheckBox>
+
                         <Border Style="{StaticResource SettingCard}">
                             <StackPanel>
                                 <TextBlock Text="Remind me to take a break" Style="{StaticResource SettingTitle}"/>

@@ -22,8 +22,8 @@ public static class ProviderActions
         {
             MessageDialog.Show(null,
                 "Epic doesn't offer a way to uninstall from outside its launcher.\n" +
-                "Open the Epic Games Launcher, uninstall the game from your library, " +
-                "then press \"Scan for games\".", "Uninstall");
+                "Open the Epic Games Launcher and uninstall the game from your library there. " +
+                "GameDeck notices it when you come back to it.", "Uninstall");
             return;
         }
 
@@ -32,7 +32,7 @@ public static class ProviderActions
         {
             MessageDialog.Show(null,
                 "Xbox games are uninstalled from Windows' Installed apps list (or the Xbox app), which will open now.\n" +
-                "Afterwards press \"Scan for games\".", "Uninstall");
+                "GameDeck notices it when you come back to it.", "Uninstall");
             Run("ms-settings:appsfeatures");
             return;
         }
@@ -47,9 +47,8 @@ public static class ProviderActions
         // Anything else (manually added games, or a library saved before this feature existed)
         MessageDialog.Show(null,
             $"GameDeck doesn't know how to uninstall \"{game.Name}\" directly.\n" +
-            "Windows' Installed apps list will open: find the game there and uninstall it, " +
-            "then press \"Scan for games\".\n\n" +
-            "(If this game came from a scan, pressing \"Scan for games\" first may fix this.)", "Uninstall");
+            "Windows' Installed apps list will open: find the game there and uninstall it. " +
+            "GameDeck notices it when you come back to it (games you added yourself stay until you remove them).", "Uninstall");
         Run("ms-settings:appsfeatures");
     }
 

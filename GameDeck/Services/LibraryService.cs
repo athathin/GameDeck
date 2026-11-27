@@ -71,6 +71,36 @@ public class LibraryService
     /// <summary>Runs every scanner. Manually added games are always kept. Call from a background thread.</summary>
     public void Scan()
     {
+        Games = ScanAll();
+        Save();
+    }
+
+    /// <summary>
+    /// Like <see cref="Scan"/>, but the library is only replaced (and saved) when the scan found a game that is new or gone,
+    /// or one whose name or folder changed: otherwise the games already shown stay as they are. True when it changed.
+    /// Call from a background thread.
+    /// </summary>
+    public bool ScanForChanges()
+    {
+        var found = ScanAll();
+        if (SameGames(Games, found)) return false;
+
+        Games = found;
+        Save();
+        return true;
+    }
+
+    /// <summary>True when both lists hold the same games (launch link, name, source, folder, uninstaller), in any order.</summary>
+    internal static bool SameGames(IReadOnlyList<Game> a, IReadOnlyList<Game> b)
+    {
+        static string Key(Game g) => string.Join("\u001F", g.LaunchTarget.ToUpperInvariant(), g.Name, g.Source,
+            g.InstallDir?.ToUpperInvariant() ?? "", g.UninstallCommand ?? "");
+
+        return a.Count == b.Count && a.Select(Key).Order(StringComparer.Ordinal).SequenceEqual(b.Select(Key).Order(StringComparer.Ordinal));
+    }
+
+    private List<Game> ScanAll()
+    {
         var manual = Games.Where(g => g.Source == "Manual").ToList();
         var scanned = new List<Game>();
 
@@ -80,14 +110,12 @@ public class LibraryService
             catch { /* one broken scanner shouldn't stop the others */ }
         }
 
-        Games = manual
+        return manual
             .Concat(scanned)
             .GroupBy(g => g.LaunchTarget, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
-
-        Save();
     }
 
     public void AddManual(Game game)

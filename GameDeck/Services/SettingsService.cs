@@ -44,6 +44,10 @@ public static class SettingsService
 
         public bool LowBatteryWarning { get; set; } = true;
 
+        public bool WeeklyRecap { get; set; } = true;
+
+        public DateOnly? LastRecapWeek { get; set; }
+
         public int ScreenSaverMinutes { get; set; } = 10;
 
         public int BreakReminderMinutes { get; set; }
@@ -230,6 +234,28 @@ public static class SettingsService
         set
         {
             Current.ScreenSaverMinutes = value;
+            Save();
+        }
+    }
+
+    /// <summary>Once a week, a notice with the week before: how long, on how many days, the most played game (WeeklyRecap).</summary>
+    public static bool WeeklyRecap
+    {
+        get => Current.WeeklyRecap;
+        set
+        {
+            Current.WeeklyRecap = value;
+            Save();
+        }
+    }
+
+    /// <summary>The Monday of the last week whose recap was shown (or skipped), so each week is shown once.</summary>
+    public static DateOnly? LastRecapWeek
+    {
+        get => Current.LastRecapWeek;
+        set
+        {
+            Current.LastRecapWeek = value;
             Save();
         }
     }

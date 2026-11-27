@@ -162,11 +162,17 @@ public static class DiskUsage
         }
     }
 
+    /// <summary>One of the biggest games on the "Space on disk" card: the game (its Uninstall button) and its line.</summary>
+    public record Line(Game Game, string Text);
+
+    /// <summary>The "Space on disk" card: a headline, a line about the games not played lately, and the biggest games.</summary>
+    public record Card(string Headline, string Compare, IReadOnlyList<Line> Lines);
+
     /// <summary>
     /// The Stats tab's "Space on disk" card: the space all the games take, how much of it belongs to games not played for half a
     /// year (or never), and the biggest games with when each was played last. Null when no size is known yet.
     /// </summary>
-    public static WeekSummary? Summary(IEnumerable<Game> games, DateTime nowUtc, int count = 8)
+    public static Card? Summary(IEnumerable<Game> games, DateTime nowUtc, int count = 8)
     {
         // DLC and soundtracks that Steam installs as apps of their own: their space counts, but not as games
         var all = games.Where(g => g.SizeBytes is > 0).ToList();
@@ -186,10 +192,10 @@ public static class DiskUsage
             : $"{Format(idle.Sum(g => g.SizeBytes!.Value))} is {(idle.Count == 1 ? "1 game" : $"{idle.Count} games")} not played in the last 6 months";
 
         var lines = sized.Take(count)
-            .Select(g => $"{g.DisplayName}:  {Format(g.SizeBytes!.Value)}  ·  {LastPlayed(g, nowUtc)}")
+            .Select(g => new Line(g, $"{g.DisplayName}:  {Format(g.SizeBytes!.Value)}  ·  {LastPlayed(g, nowUtc)}"))
             .ToList();
 
-        return new WeekSummary(headline, compare, lines);
+        return new Card(headline, compare, lines);
     }
 
     /// <summary>"played today", "played 3 weeks ago", "never played".</summary>

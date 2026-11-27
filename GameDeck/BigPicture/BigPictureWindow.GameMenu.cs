@@ -176,6 +176,27 @@ public partial class BigPictureWindow
         return rows;
     }
 
+    // ---------- "Free up space" (the Stats tab's A button, or a click on its Space on disk card) ----------
+
+    /// <summary>
+    /// The biggest games of the Space on disk card in the game menu's panel: choosing one uninstalls it, the same as the game
+    /// menu's Uninstall (its launcher or uninstaller takes over; the automatic scan takes it out of the library once it's gone).
+    /// </summary>
+    private void OpenFreeSpace()
+    {
+        if (_diskCard is not { Lines.Count: > 0 } card) return;
+
+        _menuPages.Clear();
+        _menuPages.Push(new MenuPage("Free up space: uninstall a game", () =>
+            card.Lines.Select(line => new FilterRow(line.Text, Activate: () => GameAction(() => _gameActions.Uninstall(line.Game))))
+                .ToList()));
+
+        ShowOverlay(Overlay.GameMenu);
+        RenderGameMenu();
+    }
+
+    private void DiskPanel_Click(object sender, MouseButtonEventArgs e) => OpenFreeSpace();
+
     private void OpenSubmenu(string title, Func<List<FilterRow>> build)
     {
         _menuPages.Push(new MenuPage(title, build));

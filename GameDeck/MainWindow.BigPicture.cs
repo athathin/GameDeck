@@ -219,6 +219,9 @@ public partial class MainWindow
         if (IsVisible && WindowState != WindowState.Minimized)
             ScreenPlacement.OpenOnScreenOf(_bigPicture, this);
 
+        // back in front (after installing or uninstalling a game in its launcher): a quiet scan, at most once a minute
+        _bigPicture.Activated += (_, _) => _ = ScanQuietlyAsync(spaced: true);
+
         _wake?.Suspend();   // Big Picture reads the controllers itself now
         // (and each time it comes back to the front: the background listener, which reads it meanwhile, lets go first)
         _bigPicture.TakingController += () => _wake?.Suspend();
