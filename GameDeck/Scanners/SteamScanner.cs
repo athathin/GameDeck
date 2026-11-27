@@ -49,20 +49,35 @@ public partial class SteamScanner : IGameScanner
                     name.StartsWith("Proton"))
                     continue;
 
+                string? installDir = null;
+                if (ReadValue(text, "installdir") is { Length: > 0 } dirName)
+                {
+                    // games live in steamapps\common, soundtracks in steamapps\music
+                    installDir = FindInstallDir(steamApps, dirName);
+
+                    // Steam keeps the manifest of a game whose folder was deleted (it still calls it installed): that game
+                    // can't be played and takes no space, so it isn't listed
+                    if (installDir is null) continue;
+                }
+
                 games.Add(new Game
                 {
                     Name = name,
                     Source = "Steam",
                     LaunchTarget = $"steam://rungameid/{appId}",
-                    InstallDir = ReadValue(text, "installdir") is { } dirName
-                        ? Path.Combine(steamApps, "common", dirName)
-                        : null
+                    InstallDir = installDir
                 });
             }
         }
 
         return games;
     }
+
+    /// <summary>The app's folder: steamapps\common\{dir} (games) or steamapps\music\{dir} (soundtracks), or null when neither exists.</summary>
+    internal static string? FindInstallDir(string steamApps, string dirName) =>
+        new[] { "common", "music" }
+            .Select(kind => Path.Combine(steamApps, kind, dirName))
+            .FirstOrDefault(Directory.Exists);
 
     private static string? ReadValue(string text, string key)
     {

@@ -100,21 +100,30 @@ public partial class MainWindow
     }
 
     private const double StatsWideWidth = 1240;
-    private const double StatsWideMaxWidth = 1640;
+
+    /// <summary>The page's distance from the window's left edge: the window's margin (24) plus the page's own (8).</summary>
+    private const double StatsEdge = 32;
 
     /// <summary>
     /// Like a game's page: when wide, play over time (boxes, this week, this year, charts) on the left and the lists (most played,
-    /// sessions, launchers, space on disk) on the right. Otherwise one column.
+    /// sessions, launchers, space on disk) on the right, filling the window: the gap between the columns is as wide as the space
+    /// at the window's left edge, and the right column reaches as close to the right edge (its scroll bar counts as edge).
+    /// Otherwise one column.
     /// </summary>
     private void UpdateStatsLayout()
     {
         var space = StatsPanel.ViewportWidth > 0 ? StatsPanel.ViewportWidth : StatsPanel.ActualWidth;
         var wide = space >= StatsWideWidth;
 
-        StatsRoot.MaxWidth = wide ? StatsWideMaxWidth : 760;
-        StatsRoot.Width = wide ? Math.Min(space - 16, StatsWideMaxWidth) : double.NaN;
+        // the window's 24 px margin and the scroll bar already lie right of the page: only the rest of the 32 px is added
+        var scrollBar = StatsPanel.ViewportWidth > 0 ? Math.Max(0, StatsPanel.ActualWidth - StatsPanel.ViewportWidth) : 0;
+        var right = Math.Max(0, StatsEdge - 24 - scrollBar);
 
-        StatsGapColumn.Width = new GridLength(wide ? 48 : 0);
+        StatsRoot.MaxWidth = wide ? double.PositiveInfinity : 760;
+        StatsRoot.HorizontalAlignment = wide ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+        StatsRoot.Margin = new Thickness(8, 4, wide ? right : 8, 0);
+
+        StatsGapColumn.Width = new GridLength(wide ? StatsEdge : 0);
         StatsSideColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
 
         Grid.SetColumn(StatsSidePanel, wide ? 2 : 0);
