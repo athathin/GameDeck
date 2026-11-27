@@ -188,7 +188,7 @@ public partial class MainWindow
                     Text = "Can't be shown", Foreground = ThemeService.TextMuted, FontSize = 12,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 }
-                : new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
+                : new Image { Source = thumbnail, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
         };
 
         var cell = new StackPanel

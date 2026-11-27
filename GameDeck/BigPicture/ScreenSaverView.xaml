@@ -8,7 +8,7 @@
         <Canvas x:Name="Area" ClipToBounds="True">
             <StackPanel x:Name="Item">
                 <views:RoundedClipBorder CornerRadius="10" Width="300" Height="400">
-                    <Image x:Name="Cover" Stretch="UniformToFill"/>
+                    <Image x:Name="Cover" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </views:RoundedClipBorder>
                 <TextBlock x:Name="Clock" Foreground="#80FFFFFF" FontSize="34" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,18,0,0"/>

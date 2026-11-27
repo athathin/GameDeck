@@ -65,15 +65,58 @@ public partial class MainWindow
         DaysChart.ItemsSource = _sessions.LastDays(7);
         WeeksChart.ItemsSource = _sessions.LastWeeks(8);
 
-        var recent = _sessions.Recent(15);
+        var recent = _sessions.Recent(10);
         RecentSessionsList.ItemsSource = recent;
         NoSessionsText.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // (a quick registry read, done once; Refresh looks again, for a launcher installed since)
+        _installedLaunchers ??= LauncherStats.InstalledLaunchers();
+        var launchers = LauncherStats.Lines(_library.Games, _installedLaunchers);
+        LauncherLines.ItemsSource = launchers;
+        LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+
         // playtime from before sessions were recorded counts in the totals but can't appear in the charts
         UndatedNote.Visibility = total - _sessions.LoggedSeconds > 60 ? Visibility.Visible : Visibility.Collapsed;
+
+        UpdateStatsLayout();
     }
 
-    private void RefreshStatsButton_Click(object sender, RoutedEventArgs e) => ShowStats();
+    private HashSet<string>? _installedLaunchers;
+
+    private void RefreshStatsButton_Click(object sender, RoutedEventArgs e)
+    {
+        _installedLaunchers = null;
+        ShowStats();
+    }
+
+    private void StatsPanel_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged)
+            UpdateStatsLayout();
+    }
+
+    private const double StatsWideWidth = 1240;
+    private const double StatsWideMaxWidth = 1640;
+
+    /// <summary>
+    /// Like a game's page: when wide, play over time (boxes, this week, this year, charts) on the left and the lists (most played,
+    /// sessions, launchers, space on disk) on the right. Otherwise one column.
+    /// </summary>
+    private void UpdateStatsLayout()
+    {
+        var space = StatsPanel.ViewportWidth > 0 ? StatsPanel.ViewportWidth : StatsPanel.ActualWidth;
+        var wide = space >= StatsWideWidth;
+
+        StatsRoot.MaxWidth = wide ? StatsWideMaxWidth : 760;
+        StatsRoot.Width = wide ? Math.Min(space - 16, StatsWideMaxWidth) : double.NaN;
+
+        StatsGapColumn.Width = new GridLength(wide ? 48 : 0);
+        StatsSideColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+
+        Grid.SetColumn(StatsSidePanel, wide ? 2 : 0);
+        Grid.SetRow(StatsSidePanel, wide ? 0 : 1);
+        StatsSideHeader.Margin = new Thickness(0, wide ? 0 : 28, 0, 10);   // (level with the boxes when it's a column of its own)
+    }
 
     private static string FormatHours(long seconds) =>
         seconds <= 0 ? "0 min" : seconds < 3600 ? $"{seconds / 60} min" : $"{seconds / 3600.0:0.#} h";

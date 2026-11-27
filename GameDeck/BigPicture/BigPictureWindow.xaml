@@ -185,7 +185,8 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Background="{Binding Game.PlaceholderBrush}">
-                                        <Image Source="{Binding Game.Cover}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        <Image Source="{Binding Game.Cover}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
                                         <TextBlock Text="{Binding Game.DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="SemiBold"
@@ -223,7 +224,9 @@
                                                    TextWrapping="Wrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"
                                                    VerticalAlignment="Center" Margin="16"/>
                                     </Border>
+                                    <!-- centred: a cover of another shape is cut evenly on both sides -->
                                     <Image Source="{Binding Cover}" Stretch="UniformToFill"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
                                            RenderOptions.BitmapScalingMode="HighQuality"/>
 
                                     <!-- status badge -->

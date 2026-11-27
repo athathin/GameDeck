@@ -240,7 +240,7 @@ public partial class GameDetailsView : UserControl
                 Width = 176, Height = 99, CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 0, 10, 10),
                 Cursor = System.Windows.Input.Cursors.Hand, Background = (Brush)FindResource("PanelBg"),
                 ToolTip = Path.GetFileName(Shots[i]),
-                Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
+                Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
             };
             border.MouseLeftButtonUp += (_, _) => ScreenshotRequested?.Invoke(this, (Shots, index));
             border.ContextMenu = ShotMenu(Shots, index);

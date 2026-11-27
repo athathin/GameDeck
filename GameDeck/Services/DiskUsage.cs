@@ -168,11 +168,17 @@ public static class DiskUsage
     /// </summary>
     public static WeekSummary? Summary(IEnumerable<Game> games, DateTime nowUtc, int count = 8)
     {
-        var sized = games.Where(g => g.SizeBytes is > 0).OrderByDescending(g => g.SizeBytes).ToList();
-        if (sized.Count == 0) return null;
+        // DLC and soundtracks that Steam installs as apps of their own: their space counts, but not as games
+        var all = games.Where(g => g.SizeBytes is > 0).ToList();
+        var addOns = all.Where(g => g.IsAddOn).ToList();
+        var sized = all.Where(g => !g.IsAddOn).OrderByDescending(g => g.SizeBytes).ToList();
+        if (all.Count == 0) return null;
 
-        var total = sized.Sum(g => g.SizeBytes!.Value);
-        var headline = $"{Format(total)} for {(sized.Count == 1 ? "1 game" : $"{sized.Count} games")}";
+        var total = all.Sum(g => g.SizeBytes!.Value);
+        var what = sized.Count == 1 ? "1 game" : $"{sized.Count} games";
+        if (addOns.Count > 0)
+            what += addOns.Count == 1 ? " and 1 DLC" : $" and {addOns.Count} DLC";
+        var headline = $"{Format(total)} for {what}";
 
         var idle = sized.Where(g => g.LastPlayed is not { } played || nowUtc - played > TimeSpan.FromDays(182)).ToList();
         var compare = idle.Count == 0

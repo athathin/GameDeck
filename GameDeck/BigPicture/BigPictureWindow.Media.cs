@@ -172,7 +172,7 @@ public partial class BigPictureWindow
                         Text = "Can't be shown", Foreground = Muted, FontSize = 15,
                         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                     }
-                    : new Image { Source = thumbnail, Stretch = Stretch.UniformToFill }
+                    : new Image { Source = thumbnail, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
             }
         };
 

@@ -68,6 +68,7 @@
                                    TextWrapping="Wrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"
                                    VerticalAlignment="Center" Margin="14"/>
                         <Image Source="{Binding Cover}" Stretch="UniformToFill"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
                                RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Grid>
                 </Border>
