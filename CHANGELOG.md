@@ -3,6 +3,20 @@
 What changed in each version of GameDeck. GameDeck installs new versions by itself when it starts (see the
 [README](README.md#updates)); the newest version is always on the [releases page](https://github.com/athathin/GameDeck/releases/latest).
 
+## 1.5.1 (28 Nov 2026)
+
+New:
+- **Games are found by themselves**: GameDeck looks for games installed or uninstalled when it starts, after a game
+  closes and when you come back to it. "Scan for games" is still there.
+- **Space on disk**: uninstall a game straight from the card, and **Show all** to list every game, not just the biggest.
+  In Big Picture, the card opens a "Free up space" list.
+- **Weekly recap**: once a week, a notice with how much you played the week before (Settings › General to turn it off).
+
+Changed and fixed:
+- Big Picture's Stats tab is laid out like the desktop one, with the Launchers card.
+- The right stick scrolls the Stats tab and a game's page in Big Picture.
+- The Stats tab's right column keeps a little space from the scroll bar.
+
 ## 1.5.0 (27 Nov 2026)
 
 New:

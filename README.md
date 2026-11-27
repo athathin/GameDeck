@@ -6,12 +6,13 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 ## What it does
 
 **One library**
-- Finds the games of every launcher above by itself, with their cover art. Add any other game by picking its program. DLC and
-  soundtracks that Steam installs separately are kept apart from the games.
+- Finds the games of every launcher above by itself, with their cover art, and notices games you install or uninstall. Add
+  any other game by picking its program. DLC and soundtracks that Steam installs separately are kept apart from the games.
 - Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
 - Search, and filter by launcher, category, status, genre, or smart filters: Never played, Played under 1 hour, Recently added.
 - Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, how
-  many games each of your launchers has, the space your games take) and Media (every game's screenshots in one place).
+  many games each of your launchers has, the space your games take, with an Uninstall button for each) and Media (every
+  game's screenshots in one place). A weekly recap of the week before, if you like.
 - Each game's page: playtime, achievements, size on disk, a calendar of when you played it, and **where you left off** (GameDeck
   asks when you close a game).
 - Playtime is counted for the games you start from GameDeck, and the hours Steam, GOG Galaxy and itch.io counted are included.
