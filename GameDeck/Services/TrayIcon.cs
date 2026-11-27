@@ -162,7 +162,7 @@ public sealed class TrayIcon : IDisposable
     {
         var item = new Forms.ToolStripMenuItem(text)
         {
-            Padding = new Forms.Padding((int)(TextLeft * scale), (int)(8 * scale), (int)(24 * scale), (int)(8 * scale)),
+            Padding = new Forms.Padding((int)(TextLeft * scale), (int)(RowPadding * scale), (int)(24 * scale), (int)(RowPadding * scale)),
             TextAlign = Drawing.ContentAlignment.MiddleLeft,
             AutoSize = true
         };
@@ -172,6 +172,12 @@ public sealed class TrayIcon : IDisposable
 
     /// <summary>Space left of the text (a plain item), in pixels at 100% display scale.</summary>
     private const int TextLeft = 14;
+
+    /// <summary>
+    /// Space above and below the text of every entry (games, Settings, Big Picture mode, Exit...), at 100% display scale: the
+    /// same for all, so the rows are evenly spaced. (The games' 24 px icons are drawn by hand and fit in that height.)
+    /// </summary>
+    private const int RowPadding = 7;
 
     /// <summary>Gap between the highlight boxes and the menu's edge, at 100% display scale (as in GameDeck's own menus).</summary>
     private const int MenuEdge = 5;
@@ -186,7 +192,7 @@ public sealed class TrayIcon : IDisposable
     {
         var item = new Forms.ToolStripMenuItem(game.Name)
         {
-            Padding = new Forms.Padding((int)(RecentTextLeft * scale), (int)(6 * scale), (int)(24 * scale), (int)(6 * scale)),
+            Padding = new Forms.Padding((int)(RecentTextLeft * scale), (int)(RowPadding * scale), (int)(24 * scale), (int)(RowPadding * scale)),
             TextAlign = Drawing.ContentAlignment.MiddleLeft,
             AutoSize = true,
             Tag = MakeGameIcon(game, (int)(RecentIconSize * scale))   // drawn by the renderer, freed in RemoveRecentItems
