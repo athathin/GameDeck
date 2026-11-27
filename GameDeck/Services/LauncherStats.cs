@@ -62,7 +62,7 @@ public static class LauncherStats
     /// The launchers installed on this PC, read once in the background and shared by the desktop and Big Picture Stats tabs.
     /// <paramref name="refresh"/> (their Refresh) reads them again, for a launcher installed since.
     /// </summary>
-    public static Task<HashSet<string>> InstalledLaunchersAsync(bool refresh = false)
+    private static Task<HashSet<string>> InstalledLaunchersAsync(bool refresh = false)
     {
         if (refresh || _installed is null || _installed.IsFaulted)
             _installed = Task.Run(InstalledLaunchers);

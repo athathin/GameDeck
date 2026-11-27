@@ -86,7 +86,7 @@ public partial class MainWindow : Window
 
         // a game is over: the library may have changed meanwhile (an update, a game installed), and a weekly recap that
         // waited for the game can show now
-        _tracker.Ended += ended =>
+        _tracker.Ended += game =>   // (named: a lone "_" parameter would take the "_ =" discards below)
         {
             _ = ScanQuietlyAsync();
             _recap?.Check();
