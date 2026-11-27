@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 using System.Text;
 using GameDeck.Models;
 
@@ -8,7 +11,8 @@ namespace GameDeck.Services;
 /// <summary>
 /// Counts how long a game runs. After a launch it looks for the game's process for a short while
 /// (every 3 seconds, at most 5 minutes). Once found, it simply waits for Windows to say the process
-/// has ended, so there is no polling while you play.
+/// has ended, so there is no polling while you play. Games behind anti-cheat hide where they run from and refuse that wait:
+/// they are recognised by their programs' names (or, on Steam, by Steam's own "running" flag) and checked every 10 seconds.
 /// </summary>
 public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
 {
@@ -63,32 +67,47 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
 
         try
         {
-            // 1) wait for the game's process to appear (launchers can take a while to start it)
+            var target = await Task.Run(() => new Target(game, folder));
+
+            // 1) wait for the game's process to appear (launchers can take a while to start it). For a Steam game whose
+            //    program can't be recognised (anti-cheat hides where it runs from), Steam's own "running" flag counts too.
             Process? process = null;
+            var steamRunning = false;
             var deadline = DateTime.UtcNow.AddMinutes(5);
-            while (process is null && DateTime.UtcNow < deadline)
+            while (process is null && !steamRunning && DateTime.UtcNow < deadline)
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                process = await Task.Run(() => FindGameProcess(folder, 0));
+                process = await Task.Run(() => FindGameProcess(target, 0));
+                steamRunning = process is null && target.SteamSaysRunning();
             }
 
-            if (process is null) return; // never started (or couldn't be recognised): nothing to count
+            if (process is null && !steamRunning) return; // never started (or couldn't be recognised): nothing to count
 
             wasRunning = true;
             var start = DateTime.UtcNow;
             var end = start;
             _active[key] = (game, start);
 
-            // 2) wait until it closes: no polling, Windows tells us when it ends
-            while (process is not null)
+            // 2) wait until it closes: Windows tells us when it ends (or, when it won't, we look every few seconds)
+            while (process is not null || steamRunning)
             {
-                await process.WaitForExitAsync();
+                if (process is not null)
+                {
+                    await WaitForExitAsync(process);
+                    process.Dispose();
+                }
+                else
+                {
+                    while (await Task.Run(target.SteamSaysRunning))
+                        await Task.Delay(TimeSpan.FromSeconds(10));
+                }
+
                 end = DateTime.UtcNow;
-                process.Dispose();
 
                 // some games hand over to a second program (launcher -> game), so look once more
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                process = await Task.Run(() => FindGameProcess(folder, 100L * 1024 * 1024));
+                process = await Task.Run(() => FindGameProcess(target, 100L * 1024 * 1024));
+                steamRunning = process is null && target.SteamSaysRunning();
             }
 
             length = end - start;
@@ -114,10 +133,116 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
         }
     }
 
-    /// <summary>The biggest (by memory) running program that lives inside the game's folder.</summary>
-    private static Process? FindGameProcess(string folder, long minWorkingSetBytes)
+    /// <summary>
+    /// Waits until the program ends. Anti-cheat often refuses the handle Windows needs to tell us; then we check every
+    /// 10 seconds whether it still exists (that only needs the list of running programs).
+    /// </summary>
+    private static async Task WaitForExitAsync(Process process)
     {
-        var prefix = folder.TrimEnd('\\') + "\\";
+        try
+        {
+            await process.WaitForExitAsync();
+            return;
+        }
+        catch (Exception e) when (e is Win32Exception or InvalidOperationException or NotSupportedException)
+        {
+        }
+
+        var id = process.Id;
+        var name = process.ProcessName;
+        while (await Task.Run(() => IsRunning(id, name)))
+            await Task.Delay(TimeSpan.FromSeconds(10));
+    }
+
+    private static bool IsRunning(int id, string name)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(id);
+            return process.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false; // gone
+        }
+    }
+
+    /// <summary>What a launched game looks like while it runs: its folders, its programs' names and its Steam app id.</summary>
+    private sealed class Target
+    {
+        /// <summary>The Minecraft Launcher (Xbox) runs the Java game from its own app-data folder, not from its install folder.</summary>
+        private const string MinecraftLauncherPackage = "Microsoft.4297127D64EC6_8wekyb3d8bbwe";
+
+        public List<string> Prefixes { get; } = [];
+        public HashSet<string> ExeNames { get; } = new(StringComparer.OrdinalIgnoreCase);
+        private readonly string? _steamAppId;
+
+        public Target(Game game, string folder)
+        {
+            var folders = new List<string> { folder };
+            if (game.LaunchTarget.Contains(MinecraftLauncherPackage, StringComparison.OrdinalIgnoreCase))
+                folders.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                         "Packages", MinecraftLauncherPackage, "LocalCache", "Local", "runtime"));
+
+            foreach (var f in folders)
+            {
+                Prefixes.Add(f.TrimEnd('\\') + "\\");
+                try
+                {
+                    var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
+                    foreach (var exe in Directory.EnumerateFiles(f, "*.exe", options))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(exe);
+                        if (IsGameExeName(name))
+                            ExeNames.Add(name);
+                    }
+                }
+                catch
+                {
+                    // folder missing or unreadable: only the path check works for it
+                }
+            }
+
+            _steamAppId = game.SteamAppId;
+        }
+
+        /// <summary>True when the program's path is in the game's folders, or (path hidden) its name is one of the game's programs.</summary>
+        public bool Owns(Process process, string? path) =>
+            path is not null
+                ? Prefixes.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+                : ExeNames.Contains(process.ProcessName);
+
+        /// <summary>Steam's own flag (HKCU\Software\Valve\Steam\Apps\{id}\Running), trusted only while Steam itself is running.</summary>
+        public bool SteamSaysRunning()
+        {
+            if (_steamAppId is null) return false;
+
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey($@"Software\Valve\Steam\Apps\{_steamAppId}");
+                if (key?.GetValue("Running") is not int running || running == 0) return false;
+
+                var steam = Process.GetProcessesByName("steam");
+                foreach (var p in steam) p.Dispose();
+                return steam.Length > 0; // a flag left behind by a Steam crash doesn't count
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>Helper programs that ship with many games (crash reporters, uninstallers, installers) can't tell games apart by name.</summary>
+    internal static bool IsGameExeName(string name) =>
+        !(name.Contains("crash", StringComparison.OrdinalIgnoreCase) ||
+          name.StartsWith("unins", StringComparison.OrdinalIgnoreCase) ||
+          name.Contains("setup", StringComparison.OrdinalIgnoreCase) ||
+          name.Contains("redist", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The biggest (by memory) running program that belongs to the game (see <see cref="Target.Owns"/>).</summary>
+    private static Process? FindGameProcess(Target target, long minWorkingSetBytes)
+    {
         Process? best = null;
 
         foreach (var process in Process.GetProcesses())
@@ -125,8 +250,7 @@ public class PlaytimeTracker(UserDataService userData, SessionLog sessions)
             try
             {
                 var path = GetImagePath(process.Id);
-                if (path is not null &&
-                    path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                if (target.Owns(process, path) &&
                     process.WorkingSet64 >= minWorkingSetBytes &&
                     (best is null || process.WorkingSet64 > best.WorkingSet64))
                 {
