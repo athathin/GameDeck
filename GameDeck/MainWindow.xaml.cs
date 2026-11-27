@@ -247,7 +247,8 @@ public partial class MainWindow : Window
     /// <summary>Puts the icon in the tray without showing the window (used when Windows starts GameDeck at sign-in).</summary>
     public void StartInTray()
     {
-        _tray ??= new TrayIcon(open: ShowFromTray, bigPicture: OpenBigPicture, exit: ExitApp, recentGames: RecentGamesForTray,
+        _tray ??= new TrayIcon(open: ShowFromTray, settings: OpenSettingsFromTray, bigPicture: OpenBigPicture, exit: ExitApp,
+                               recentGames: RecentGamesForTray,
                                afterGame: AfterGameForTray, setAfterGame: choice => _afterGame = choice);
         _tray.Show();
         ReleaseMemory();
@@ -307,6 +308,13 @@ public partial class MainWindow : Window
 
         if (_view == "Media")
             ShowMedia();                // (its thumbnails too)
+    }
+
+    /// <summary>The tray menu's "Settings": the settings window belongs to the main window, so that comes back too, behind it.</summary>
+    private void OpenSettingsFromTray()
+    {
+        ShowFromTray();
+        OpenSettings();
     }
 
     /// <summary>Closes GameDeck right now, from an error window: the playtime so far is saved and nothing is asked.</summary>

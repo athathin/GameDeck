@@ -13,7 +13,7 @@ public sealed record TrayGame(string Name, string? CoverFile, Action Play);
 
 /// <summary>
 /// The GameDeck icon in the system tray: click to open the window; right-click for the games played last
-/// (click one to play it), Open, Big Picture mode and Exit.
+/// (click one to play it), Settings, Big Picture mode and Exit. (No "Open" entry: a click on the icon does that.)
 /// </summary>
 public sealed class TrayIcon : IDisposable
 {
@@ -25,7 +25,7 @@ public sealed class TrayIcon : IDisposable
 
     /// <param name="afterGame">While a game from GameDeck runs: its name and what happens when it closes (null = no game running).</param>
     /// <param name="setAfterGame">One of the "when it closes" lines was clicked.</param>
-    public TrayIcon(Action open, Action bigPicture, Action exit, Func<IReadOnlyList<TrayGame>> recentGames,
+    public TrayIcon(Action open, Action settings, Action bigPicture, Action exit, Func<IReadOnlyList<TrayGame>> recentGames,
                     Func<(string Game, AfterGame Choice)?>? afterGame = null, Action<AfterGame>? setAfterGame = null)
     {
         var scale = DpiScale();
@@ -42,7 +42,7 @@ public sealed class TrayIcon : IDisposable
             Padding = new Forms.Padding((int)(4 * scale))
         };
 
-        menu.Items.Add(MenuItem("Open " + AppInfo.DisplayName, open, scale));
+        menu.Items.Add(MenuItem("Settings", settings, scale));
         menu.Items.Add(MenuItem("Big Picture mode", bigPicture, scale));
         menu.Items.Add(new Forms.ToolStripSeparator { Margin = new Forms.Padding(0, (int)(3 * scale), 0, (int)(3 * scale)) });
         menu.Items.Add(MenuItem("Exit", exit, scale));
@@ -300,12 +300,14 @@ public sealed class TrayIcon : IDisposable
 
         /// <summary>
         /// The visible area of an item. Windows makes the items wider than the menu itself (they were measured with
-        /// their padding, the menu was not), so the width is limited to what the menu actually shows.
+        /// their padding, the menu was not), so the width is limited to what the menu shows: the same gap on the right
+        /// as on the left, so the highlight sits in the middle. (The menu's DisplayRectangle is a few pixels too wide on
+        /// the right, which left the highlight off-center.)
         /// </summary>
         private static Drawing.Rectangle Row(Forms.ToolStripItem item)
         {
-            var visibleWidth = item.Owner?.DisplayRectangle.Width ?? item.Width;
-            return new Drawing.Rectangle(0, 0, Math.Min(item.Width, visibleWidth), item.Height);
+            var visibleWidth = item.Owner is { } menu ? menu.Width - 2 * item.Bounds.Left : item.Width;
+            return new Drawing.Rectangle(0, 0, Math.Max(1, Math.Min(item.Width, visibleWidth)), item.Height);
         }
 
         protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e)
