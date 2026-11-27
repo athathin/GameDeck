@@ -148,6 +148,7 @@ public partial class SettingsView : UserControl
         if (_updating) return;
 
         SettingsService.NavSounds = NavSoundsCheckBox.IsChecked == true;   // Big Picture checks this each time a sound would play
+        ShowSoundVolume();
     }
 
     private void ControllerShortcutsCheckBox_Changed(object sender, RoutedEventArgs e)
@@ -164,11 +165,19 @@ public partial class SettingsView : UserControl
         SettingsService.LowBatteryWarning = LowBatteryCheckBox.IsChecked == true;   // (checked on its own each minute)
     }
 
-    /// <summary>Puts the volume slider on the saved volume and names it in the slider's tooltip ("Volume: 75%").</summary>
+    /// <summary>
+    /// Puts the volume slider on the saved volume and names it ("Volume: 75%") in its tooltip and the line under "Volume", which
+    /// also says why the slider is faded while the sounds are off.
+    /// </summary>
     private void ShowSoundVolume()
     {
         SoundVolumeSlider.Value = SettingsService.StepIndex(SettingsService.SoundVolumes, SettingsService.SoundVolume);
-        SoundVolumeSlider.ToolTip = $"Volume: {SettingsService.SoundVolume * 100:0}%";
+
+        var percent = $"{SettingsService.SoundVolume * 100:0}%";
+        SoundVolumeSlider.ToolTip = $"Volume: {percent}";
+        VolumeNote.Text = NavSoundsCheckBox.IsChecked == true
+            ? $"{percent}. Each change plays a sample."
+            : $"{percent}. Turn on the sounds above to change it.";
     }
 
     private void SoundVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

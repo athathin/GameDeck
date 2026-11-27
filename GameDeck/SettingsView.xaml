@@ -270,14 +270,14 @@
                         <Border Style="{StaticResource SettingCard}">
                             <DockPanel>
                                 <!-- the sounds' volume: a slider that snaps to SettingsService.SoundVolumes, like the tile size slider -->
-                                <Slider x:Name="SoundVolumeSlider" DockPanel.Dock="Right" Style="{StaticResource SlimSlider}" Width="220"
+                                <Slider x:Name="SoundVolumeSlider" DockPanel.Dock="Right" Style="{StaticResource SettingSlider}" Width="220"
                                         VerticalAlignment="Center" Margin="20,0,0,0"
                                         IsEnabled="{Binding IsChecked, ElementName=NavSoundsCheckBox}"
                                         Minimum="0" Maximum="3" TickFrequency="1" IsSnapToTickEnabled="True"
                                         SmallChange="1" LargeChange="1" ValueChanged="SoundVolumeSlider_ValueChanged"/>
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="Volume" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Each change plays a sample." Style="{StaticResource SettingNote}"/>
+                                    <TextBlock x:Name="VolumeNote" Text="Each change plays a sample." Style="{StaticResource SettingNote}"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>
