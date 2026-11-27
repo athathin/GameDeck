@@ -192,6 +192,7 @@ public partial class BigPictureWindow
     {
         if (_diskCard is not { Lines.Count: > 0 }) return;
 
+        DiskCard.BringIntoView();   // (the card A acts on comes on screen, behind the list)
         _menuPages.Clear();
         _menuPages.Push(_freeSpacePage = new MenuPage("Free up space: uninstall a game", FreeSpaceRows));
 
@@ -224,6 +225,13 @@ public partial class BigPictureWindow
     }
 
     private void DiskPanel_Click(object sender, MouseButtonEventArgs e) => OpenFreeSpace();
+
+    /// <summary>
+    /// The Space on disk card is ringed in the accent color, like a selected tile, while A opens "Free up space": on the Stats
+    /// tab, with games on the card, and the stick not on the icons at the top.
+    /// </summary>
+    private void UpdateDiskRing() =>
+        DiskCard.BorderBrush = _tab == StatsTab && !_topFocus && _diskCard is { Lines.Count: > 0 } ? Accent : System.Windows.Media.Brushes.Transparent;
 
     private void OpenSubmenu(string title, Func<List<FilterRow>> build)
     {

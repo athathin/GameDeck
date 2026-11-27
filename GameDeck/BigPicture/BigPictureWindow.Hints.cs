@@ -62,6 +62,8 @@ public partial class BigPictureWindow
                 items.Add((RoundButton(l.Confirm, onController), "FREE UP SPACE"));   // the biggest games, to uninstall
         }
 
+        UpdateDiskRing();   // (the hints change whenever what A does changes: the ring follows)
+
         // LT / RT page through the Stats and Media tabs when they are longer than the screen (known once laid out)
         if (_tab is StatsTab or MediaTab)
         {
