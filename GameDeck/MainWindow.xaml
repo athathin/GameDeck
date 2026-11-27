@@ -629,10 +629,9 @@
 
                 <!-- the right column (or, when narrow, everything under the charts) -->
                 <StackPanel x:Name="StatsSidePanel" Grid.Row="1">
-                    <Grid x:Name="StatsSideHeader" Margin="0,28,0,10">
-                        <TextBlock Text="MOST PLAYED" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
-                                   Margin="2,0,0,0" VerticalAlignment="Bottom"/>
-                    </Grid>
+                    <!-- (its top margin: UpdateStatsLayout) -->
+                    <TextBlock x:Name="StatsSideHeader" Text="MOST PLAYED" Foreground="{DynamicResource TextMuted}" FontSize="12"
+                               FontWeight="SemiBold" Margin="2,28,0,10"/>
                     <TextBlock x:Name="NoStatsText" Foreground="{DynamicResource TextMuted}" FontSize="15" TextWrapping="Wrap"
                                Text="Nothing played yet. Games you launch from GameDeck are timed and show up here."/>
 

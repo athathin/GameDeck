@@ -31,7 +31,6 @@ public static class ThemeService
         ("PanelBg", "#1E222B", "#FFFFFF"),        // cards and panels
         ("RaisedBg", "#2A2F3A", "#E4E8EF"),       // buttons, keys, borders
         ("HoverBg", "#3A4050", "#D3D9E3"),        // the same, under the mouse
-        ("ScrollbarHover", "#4C566A", "#B7BFCC"),
         ("TextPrimary", "#FFFFFF", "#151922"),    // main text
         ("TextSecondary", "#C5CBD6", "#3A4352"),
         ("TextMuted", "#8A91A0", "#667085"),

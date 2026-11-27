@@ -69,11 +69,9 @@ public partial class MainWindow
         RecentSessionsList.ItemsSource = recent;
         NoSessionsText.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
-        // (a quick registry read, done once; Refresh looks again, for a launcher installed since)
-        _installedLaunchers ??= LauncherStats.InstalledLaunchers();
-        var launchers = LauncherStats.Lines(_library.Games, _installedLaunchers);
-        LauncherLines.ItemsSource = launchers;
-        LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        ShowLaunchers();
+        if (_installedLaunchers is null)
+            _ = FindInstalledLaunchersAsync();
 
         // playtime from before sessions were recorded counts in the totals but can't appear in the charts
         UndatedNote.Visibility = total - _sessions.LoggedSeconds > 60 ? Visibility.Visible : Visibility.Collapsed;
@@ -81,7 +79,36 @@ public partial class MainWindow
         UpdateStatsLayout();
     }
 
+    /// <summary>The launchers installed on this PC: read once (Refresh reads them again, for one installed since), null until then.</summary>
     private HashSet<string>? _installedLaunchers;
+    private bool _findingLaunchers;
+
+    /// <summary>The Launchers card. Until the installed launchers are known, it lists those that have games.</summary>
+    private void ShowLaunchers()
+    {
+        var launchers = LauncherStats.Lines(_library.Games, _installedLaunchers ?? []);
+        LauncherLines.ItemsSource = launchers;
+        LaunchersPanel.Visibility = launchers.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Reads Windows' list of installed programs in the background (not on the screen's thread), then fills in the card.</summary>
+    private async Task FindInstalledLaunchersAsync()
+    {
+        if (_findingLaunchers) return;
+        _findingLaunchers = true;
+
+        try
+        {
+            _installedLaunchers = await Task.Run(LauncherStats.InstalledLaunchers);
+        }
+        finally
+        {
+            _findingLaunchers = false;
+        }
+
+        if (StatsPanel.Visibility == Visibility.Visible)
+            ShowLaunchers();
+    }
 
     private void RefreshStatsButton_Click(object sender, RoutedEventArgs e)
     {
@@ -130,7 +157,7 @@ public partial class MainWindow
 
         Grid.SetColumn(StatsSidePanel, wide ? 2 : 0);
         Grid.SetRow(StatsSidePanel, wide ? 0 : 1);
-        StatsSideHeader.Margin = new Thickness(0, wide ? 0 : 28, 0, 10);   // (level with the boxes when it's a column of its own)
+        StatsSideHeader.Margin = new Thickness(2, wide ? 0 : 28, 0, 10);   // (level with the boxes when it's a column of its own)
     }
 
     private static string FormatHours(long seconds) =>
