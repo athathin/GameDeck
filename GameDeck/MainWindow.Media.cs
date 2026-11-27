@@ -78,10 +78,18 @@ public partial class MainWindow
         await AddMediaPageAsync(version);
     }
 
+    private DateTime _mediaMenuClosedUtc;
+
     /// <summary>The game filter: a menu of every game that has pictures, with how many.</summary>
     private void MediaGameButton_Click(object sender, RoutedEventArgs e)
     {
+        // A second click on the button closes the menu. The menu already closes when the mouse goes down outside it, and the
+        // click that follows would open it again: a click right after it closed does nothing.
+        if (DateTime.UtcNow - _mediaMenuClosedUtc < TimeSpan.FromMilliseconds(300))
+            return;
+
         var menu = new ContextMenu { PlacementTarget = MediaGameButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        menu.Closed += (_, _) => _mediaMenuClosedUtc = DateTime.UtcNow;
 
         void Add(string? key, string text) => menu.Items.Add(MenuEntry(text, _mediaFilter == key, () =>
         {

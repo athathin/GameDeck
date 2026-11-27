@@ -267,24 +267,30 @@
 
         <!-- ================= slim, rounded scrollbars (used by every scrollbar in the app) ================= -->
 
-        <!-- the draggable bar: muted blue-grey, lighter on hover, accent blue while dragging -->
+        <!-- the draggable bar: a thin line (3 px) in the accent color, a little stronger under the mouse and while dragging.
+             The transparent cell around it is the part you can grab: the whole width of the scrollbar, not just the line. -->
         <Style x:Key="ScrollThumb" TargetType="Thumb">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="bar" Background="{DynamicResource HoverBg}" CornerRadius="3"/>
+                        <Grid Background="Transparent">
+                            <!-- (the thumb's Padding, set by the scrollbar, makes the line thin while the cell stays wide) -->
+                            <Border x:Name="bar" Background="{DynamicResource Accent}" CornerRadius="1.5" Opacity="0.75"
+                                    Margin="{TemplateBinding Padding}"/>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bar" Property="Background" Value="{DynamicResource ScrollbarHover}"/>
+                                <Setter TargetName="bar" Property="Opacity" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="bar" Property="Background" Value="{DynamicResource Accent}"/>
+                                <Setter TargetName="bar" Property="Opacity" Value="1"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
 
         <!-- the empty track on either side of the bar: invisible, but clicking it still pages up / down -->
         <Style x:Key="ScrollTrackButton" TargetType="RepeatButton">
@@ -306,7 +312,8 @@
                         <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource ScrollTrackButton}"/>
                     </Track.DecreaseRepeatButton>
                     <Track.Thumb>
-                        <Thumb Style="{StaticResource ScrollThumb}" Margin="2,0" MinHeight="32"/>
+                        <!-- a 3 px line (half the old 6 px bar) in the middle of the 10 px scrollbar -->
+                        <Thumb Style="{StaticResource ScrollThumb}" Padding="3.5,0" MinHeight="32"/>
                     </Track.Thumb>
                     <Track.IncreaseRepeatButton>
                         <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource ScrollTrackButton}"/>
@@ -322,7 +329,7 @@
                         <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource ScrollTrackButton}"/>
                     </Track.DecreaseRepeatButton>
                     <Track.Thumb>
-                        <Thumb Style="{StaticResource ScrollThumb}" Margin="0,2" MinWidth="32"/>
+                        <Thumb Style="{StaticResource ScrollThumb}" Padding="0,3.5" MinWidth="32"/>
                     </Track.Thumb>
                     <Track.IncreaseRepeatButton>
                         <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource ScrollTrackButton}"/>
@@ -366,7 +373,8 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="8,4"/>
+                        <!-- from one side of the menu to the other (the -4 takes back the menu's own 4 px padding) -->
+                        <Border Height="1" Background="{DynamicResource RaisedBg}" Margin="-4,4"/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -381,18 +389,19 @@
                         <Grid>
                             <Border x:Name="bd" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}"
                                     SnapsToDevicePixels="True">
+                                <!-- the text first, then (on the right) the tick of the chosen entry and a submenu's arrow -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="22"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Path x:Name="tick" Data="M1,5 L4.5,8.5 L11,1.5" Visibility="Collapsed"
-                                          Stroke="{DynamicResource Accent}" StrokeThickness="2" HorizontalAlignment="Left"
-                                          VerticalAlignment="Center" Margin="4,0,0,0"
+                                    <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center" Margin="4,0,24,0"/>
+                                    <Path x:Name="tick" Grid.Column="1" Data="M1,5 L4.5,8.5 L11,1.5" Visibility="Collapsed"
+                                          Stroke="{DynamicResource Accent}" StrokeThickness="2"
+                                          VerticalAlignment="Center" Margin="0,0,4,0"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
-                                    <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
-                                                      VerticalAlignment="Center" Margin="0,0,24,0"/>
                                     <Path x:Name="arrow" Grid.Column="2" Data="M0,0 L4,4 L0,8" Visibility="Collapsed"
                                           Stroke="{DynamicResource TextMuted}" StrokeThickness="1.5" VerticalAlignment="Center"
                                           Margin="0,0,4,0"/>
