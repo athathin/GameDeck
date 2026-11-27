@@ -88,9 +88,14 @@ public partial class GameDetailsView : UserControl
         set => PageRoot.HorizontalAlignment = value ? HorizontalAlignment.Center : HorizontalAlignment.Left;
     }
 
-    private void PageScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+    /// <summary>
+    /// The visible width changed (window resized, scroll bar shown or hidden). Not SizeChanged: when that fires, ViewportWidth
+    /// still holds the old width, so the page kept the layout of the window's previous size. (Only this scroller's own changes:
+    /// the event also bubbles up from lists inside the page.)
+    /// </summary>
+    private void PageScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (e.WidthChanged)
+        if (ReferenceEquals(e.OriginalSource, PageScroll) && e.ViewportWidthChange != 0)
             UpdateLayoutMode();
     }
 

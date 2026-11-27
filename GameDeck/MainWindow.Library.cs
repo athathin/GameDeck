@@ -60,7 +60,7 @@ public partial class MainWindow
             UpdateContinue(false);
             ShowStats();
             EmptyText.Visibility = Visibility.Collapsed;
-            StatusText.Text = $"{_library.Games.Count} games";
+            StatusText.Text = $"{_library.Games.Count(g => !g.IsAddOn)} games";   // (like "games in library": DLC isn't a game)
             return;
         }
 

@@ -35,7 +35,7 @@
     </UserControl.Resources>
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                  SizeChanged="PageScroll_SizeChanged">
+                  ScrollChanged="PageScroll_ScrollChanged">
         <StackPanel x:Name="PageRoot" Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
 
             <!-- back button -->

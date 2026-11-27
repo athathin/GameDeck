@@ -500,7 +500,7 @@
             </ScrollViewer>
 
             <!-- the Stats tab -->
-            <ScrollViewer x:Name="StatsPanel" Grid.Row="3" Visibility="Collapsed" SizeChanged="StatsPanel_SizeChanged"
+            <ScrollViewer x:Name="StatsPanel" Grid.Row="3" Visibility="Collapsed" ScrollChanged="StatsPanel_ScrollChanged"
                           VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <!-- like a game's page: when the window is wide, play over time on the left and the lists on the right
                      (UpdateStatsLayout); otherwise one column, the right one under the left one -->

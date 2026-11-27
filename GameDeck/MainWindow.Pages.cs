@@ -89,9 +89,13 @@ public partial class MainWindow
         ShowStats();
     }
 
-    private void StatsPanel_SizeChanged(object sender, SizeChangedEventArgs e)
+    /// <summary>
+    /// The visible width changed (window resized, scroll bar shown or hidden). Not SizeChanged: when that fires, ViewportWidth
+    /// still holds the old width, so maximizing kept the small layout and restoring kept the big one.
+    /// </summary>
+    private void StatsPanel_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (e.WidthChanged)
+        if (ReferenceEquals(e.OriginalSource, StatsPanel) && e.ViewportWidthChange != 0)
             UpdateStatsLayout();
     }
 
