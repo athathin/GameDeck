@@ -380,9 +380,7 @@
 
                     <!-- ===== right: most played, recent sessions, launchers, space on disk (last: the rest is about playtime) ===== -->
                     <StackPanel Grid.Column="2">
-                        <!-- (the refresh icon, 44 px high, sits at the top right: this heading is level with its middle, the list
-                             starts below it) -->
-                        <TextBlock Text="MOST PLAYED" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,12,0,25"/>
+                        <TextBlock Text="MOST PLAYED" Foreground="{DynamicResource TextMuted}" FontSize="14" FontWeight="SemiBold" Margin="2,0,0,12"/>
                         <TextBlock x:Name="NoPlaytimeText" Foreground="{DynamicResource TextMuted}" FontSize="17"
                                    Text="Nothing played yet. Games you start from GameDeck are timed and show up here."/>
                         <StackPanel x:Name="TopList"/>
@@ -436,12 +434,7 @@
                     </Grid>
                 </ScrollViewer>
 
-                <!-- the Stats tab: reload the numbers (X on the controller) -->
-                <Border x:Name="RefreshStatsButton" Style="{StaticResource IconButton}" ToolTip="Refresh stats"
-                        Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,28,10,0"
-                        MouseLeftButtonUp="RefreshStatsButton_Click">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" Foreground="{DynamicResource TextPrimary}" FontSize="18"/>
-                </Border>
+                <!-- (the Stats tab is reloaded with X: the REFRESH hint at the bottom) -->
 
                 <!-- the Media tab: every game's screenshots in a grid, moved through with the stick (BigPictureWindow.Media.cs) -->
                 <ScrollViewer x:Name="MediaScroll" Visibility="Collapsed" Margin="0,28,0,0"

@@ -28,7 +28,6 @@ public partial class BigPictureWindow
         Carousel.Visibility = stats || media ? Visibility.Collapsed : Visibility.Visible;
         StatsScroll.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
         MediaScroll.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
-        RefreshStatsButton.Visibility = stats ? Visibility.Visible : Visibility.Collapsed;
 
         if (!media)
             ClearMedia();   // left the Media tab: let go of its pictures
@@ -207,7 +206,7 @@ public partial class BigPictureWindow
 
     /// <summary>
     /// Reloads the play sessions (a game may have ended since) and redraws the numbers and charts. <paramref name="launchers"/>
-    /// (the Refresh button, X) also reads the installed launchers again, for one installed since.
+    /// (X, "Refresh") also reads the installed launchers again, for one installed since.
     /// </summary>
     private void RefreshStats(bool launchers = false)
     {
@@ -218,8 +217,6 @@ public partial class BigPictureWindow
         BuildStats(launchers);
         StatsScroll.ScrollToVerticalOffset(offset);
     }
-
-    private void RefreshStatsButton_Click(object sender, MouseButtonEventArgs e) => RefreshStats(launchers: true);
 
     /// <summary>The Space on disk card as last drawn: its biggest games are the "Free up space" list.</summary>
     private DiskUsage.Card? _diskCard;

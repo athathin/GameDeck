@@ -88,7 +88,10 @@ public partial class BigPictureWindow
 
         ReloadLibrary();
         if (_tab == StatsTab)
+        {
             RefreshStats();
+            RefreshFreeSpace();   // (a game just uninstalled from that list leaves it)
+        }
     }
 
     /// <summary>Takes the library as the main window has it now and redraws the screen behind the panel, keeping the selection.</summary>

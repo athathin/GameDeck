@@ -178,21 +178,49 @@ public partial class BigPictureWindow
 
     // ---------- "Free up space" (the Stats tab's A button, or a click on its Space on disk card) ----------
 
+    /// <summary>The games whose uninstall was started from "Free up space" (their launch links): marked in the list until they're gone.</summary>
+    private readonly HashSet<string> _uninstallStarted = new(StringComparer.OrdinalIgnoreCase);
+
+    private MenuPage? _freeSpacePage;
+
     /// <summary>
     /// The biggest games of the Space on disk card in the game menu's panel: choosing one uninstalls it, the same as the game
-    /// menu's Uninstall (its launcher or uninstaller takes over; the automatic scan takes it out of the library once it's gone).
+    /// menu's Uninstall (its launcher or uninstaller takes over). The list stays open and marks the game "uninstall started";
+    /// once the automatic scan finds it gone, it leaves the list (<see cref="RefreshFreeSpace"/>).
     /// </summary>
     private void OpenFreeSpace()
     {
-        if (_diskCard is not { Lines.Count: > 0 } card) return;
+        if (_diskCard is not { Lines.Count: > 0 }) return;
 
         _menuPages.Clear();
-        _menuPages.Push(new MenuPage("Free up space: uninstall a game", () =>
-            card.Lines.Select(line => new FilterRow(line.Text, Activate: () => GameAction(() => _gameActions.Uninstall(line.Game))))
-                .ToList()));
+        _menuPages.Push(_freeSpacePage = new MenuPage("Free up space: uninstall a game", FreeSpaceRows));
 
         ShowOverlay(Overlay.GameMenu);
         RenderGameMenu();
+    }
+
+    private List<FilterRow> FreeSpaceRows() =>
+        (_diskCard?.Lines ?? []).Select(line =>
+        {
+            var started = _uninstallStarted.Contains(line.Game.LaunchTarget);
+            return new FilterRow(started ? line.Text + "  ·  uninstall started" : line.Text, Activate: () =>
+            {
+                // (chosen again, e.g. after cancelling the launcher's confirmation: its uninstaller opens again)
+                _uninstallStarted.Add(line.Game.LaunchTarget);
+                _gameActions.Uninstall(line.Game);
+                RenderGameMenu();
+            });
+        }).ToList();
+
+    /// <summary>The library changed while "Free up space" is open: its list follows (a game uninstalled leaves it).</summary>
+    private void RefreshFreeSpace()
+    {
+        if (_overlay != Overlay.GameMenu || _menuPages.Count == 0 || !ReferenceEquals(_menuPages.Peek(), _freeSpacePage)) return;
+
+        if (_diskCard is { Lines.Count: > 0 })
+            RenderGameMenu();
+        else
+            CloseGameMenu();   // nothing left to uninstall
     }
 
     private void DiskPanel_Click(object sender, MouseButtonEventArgs e) => OpenFreeSpace();
