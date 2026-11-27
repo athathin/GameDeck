@@ -140,7 +140,7 @@ public partial class MainWindow
 
     private async Task ScanAsync()
     {
-        SettingsPanel.SetScanning(true);
+        SettingsPanel?.SetScanning(true);
         StatusText.Text = "Scanning...";
 
         CoverService.ClearMisses();              // retry covers that weren't found before
@@ -152,8 +152,8 @@ public partial class MainWindow
         _ = LoadSteamAppsAsync();                   // (and which are DLC or soundtracks)
         FetchGenres();                           // (and their genres)
         MeasureSizes();                          // (and their size on disk)
-        SettingsPanel.SetScanning(false);
-        SettingsPanel.SetGamesStatus($"Scan finished: {_library.Games.Count} games in your library.");
+        SettingsPanel?.SetScanning(false);
+        SettingsPanel?.SetGamesStatus($"Scan finished: {_library.Games.Count(g => !g.IsAddOn)} games in your library.");
     }
 
     // The settings actions below run from the desktop settings page and from Big Picture's settings panel. Each takes the
@@ -181,8 +181,8 @@ public partial class MainWindow
 
     private void SettingsPanel_DuplicatesRequested(object? sender, EventArgs e)
     {
-        if (FindDuplicates(this) is { } status)
-            SettingsPanel.SetGamesStatus(status);
+        if (FindDuplicates(SettingsOwner) is { } status)
+            SettingsPanel?.SetGamesStatus(status);
     }
 
     private async void SettingsPanel_ScanRequested(object? sender, EventArgs e) => await ScanAsync();
@@ -227,8 +227,8 @@ public partial class MainWindow
 
     private void SettingsPanel_AddGamesRequested(object? sender, EventArgs e)
     {
-        if (AddGames(this) is { } status)
-            SettingsPanel.SetGamesStatus(status);
+        if (AddGames(SettingsOwner) is { } status)
+            SettingsPanel?.SetGamesStatus(status);
     }
 
     private void PickRandomGame()
@@ -290,11 +290,12 @@ public partial class MainWindow
 
     private async void SettingsPanel_CheckUpdatesRequested(object? sender, EventArgs e)
     {
-        SettingsPanel.SetUpdateStatus("", busy: true);
+        // (the window may be closed while it checks: then there's nothing to show it in)
+        SettingsPanel?.SetUpdateStatus("", busy: true);
 
-        var result = await CheckForUpdatesAsync(text => SettingsPanel.SetUpdateStatus(text, busy: true));
+        var result = await CheckForUpdatesAsync(text => SettingsPanel?.SetUpdateStatus(text, busy: true));
         if (result is not null)
-            SettingsPanel.SetUpdateStatus(result, busy: false);
+            SettingsPanel?.SetUpdateStatus(result, busy: false);
     }
 
     private void SettingsPanel_OnlineCoversChanged(object? sender, EventArgs e)
@@ -387,16 +388,57 @@ public partial class MainWindow
             Refresh(reapplyUserData: false);
     }
 
-    // ---------- settings screen ----------
+    // ---------- the settings window ----------
 
-    private void SettingsButton_Click(object sender, RoutedEventArgs e)
+    private SettingsWindow? _settingsWindow;
+
+    /// <summary>The settings, while their window is open (null otherwise).</summary>
+    private SettingsView? SettingsPanel => _settingsWindow?.View;
+
+    /// <summary>The window the settings' dialogs (file pickers, duplicates, backup...) belong to: the settings window when open.</summary>
+    private Window SettingsOwner => (Window?)_settingsWindow ?? this;
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettings();
+
+    /// <summary>Opens the settings window (or brings it to the front when it is already open).</summary>
+    private void OpenSettings()
     {
-        NavigateTo(new Page(PageKind.Settings));
+        if (_settingsWindow is { } open)
+        {
+            if (open.WindowState == WindowState.Minimized)
+                open.WindowState = WindowState.Normal;
+            open.Activate();
+            return;
+        }
+
+        var window = new SettingsWindow(this);
+        var view = window.View;
+        view.AddGamesRequested += SettingsPanel_AddGamesRequested;
+        view.OnlineCoversChanged += SettingsPanel_OnlineCoversChanged;
+        view.PlaytimeSourcesChanged += SettingsPanel_PlaytimeSourcesChanged;
+        view.QuickLaunchChanged += SettingsPanel_QuickLaunchChanged;
+        view.UninstallRequested += SettingsPanel_UninstallRequested;
+        view.ScanRequested += SettingsPanel_ScanRequested;
+        view.DuplicatesRequested += SettingsPanel_DuplicatesRequested;
+        view.ExportRequested += SettingsPanel_ExportRequested;
+        view.CheckUpdatesRequested += SettingsPanel_CheckUpdatesRequested;
+        view.ImportRequested += SettingsPanel_ImportRequested;
+
+        window.Closed += (_, _) =>
+        {
+            _settingsWindow = null;
+
+            // back to the library, not to whatever window was behind (not when GameDeck itself is closing or hiding)
+            if (IsVisible && !_exiting)
+            {
+                try { Activate(); }
+                catch (InvalidOperationException) { }   // (the main window is closing: nothing to bring back)
+            }
+        };
+
+        _settingsWindow = window;
+        window.Show();
     }
-
-    private void CloseSettings() => GoBack();
-
-    private void SettingsPanel_BackRequested(object? sender, EventArgs e) => CloseSettings();
 
     private void Uninstall(Window owner)
     {
@@ -416,7 +458,7 @@ public partial class MainWindow
         ExitApp();   // the cleanup script finishes the job once GameDeck has closed
     }
 
-    private void SettingsPanel_UninstallRequested(object? sender, EventArgs e) => Uninstall(this);
+    private void SettingsPanel_UninstallRequested(object? sender, EventArgs e) => Uninstall(SettingsOwner);
 
     private void ExportBackup(Window owner)
     {
@@ -440,7 +482,7 @@ public partial class MainWindow
         }
     }
 
-    private void SettingsPanel_ExportRequested(object? sender, EventArgs e) => ExportBackup(this);
+    private void SettingsPanel_ExportRequested(object? sender, EventArgs e) => ExportBackup(SettingsOwner);
 
     private void ImportBackup(Window owner)
     {
@@ -464,7 +506,7 @@ public partial class MainWindow
         }
     }
 
-    private void SettingsPanel_ImportRequested(object? sender, EventArgs e) => ImportBackup(this);
+    private void SettingsPanel_ImportRequested(object? sender, EventArgs e) => ImportBackup(SettingsOwner);
 
     /// <summary>What Big Picture's settings panel can ask of the main window (the same actions as the desktop settings page).</summary>
     private BigPictureSettingsActions BigPictureActions() => new(
@@ -540,7 +582,7 @@ public partial class MainWindow
 
     // ---------- going back and forward (like a browser: Back button, Esc, the mouse's side buttons) ----------
 
-    private enum PageKind { Library, Details, Settings }
+    private enum PageKind { Library, Details }   // (the settings have a window of their own: SettingsWindow)
 
     private record Page(PageKind Kind, Game? Game = null);
 
@@ -582,7 +624,6 @@ public partial class MainWindow
 
         LibraryView.Visibility = page.Kind == PageKind.Library ? Visibility.Visible : Visibility.Collapsed;
         DetailsPanel.Visibility = page.Kind == PageKind.Details ? Visibility.Visible : Visibility.Collapsed;
-        SettingsPanel.Visibility = page.Kind == PageKind.Settings ? Visibility.Visible : Visibility.Collapsed;
 
         if (page.Kind == PageKind.Details)
         {
@@ -593,10 +634,6 @@ public partial class MainWindow
 
             DetailsPanel.Show(page.Game!, ranked.IndexOf(page.Game!) + 1, ranked.Count, _sessions.Recent(8, page.Game),
                 _sessions.History(page.Game!), SteamAppInfo.AddOnsOf(_library.Games, page.Game!));
-        }
-        else if (page.Kind == PageKind.Settings)
-        {
-            SettingsPanel.Reload();
         }
     }
 

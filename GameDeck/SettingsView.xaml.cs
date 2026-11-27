@@ -7,12 +7,12 @@ using GameDeck.Services;
 namespace GameDeck.Views;
 
 /// <summary>
-/// The settings screen (opened with the gear in the library header). The two checkboxes take effect immediately;
-/// the back button and the backup buttons are handled by the main window.
+/// The settings (shown in their own window, SettingsWindow, opened with the gear in the library header): sections on the left,
+/// their settings on the right, like Big Picture's settings. Every setting takes effect immediately; scanning, the backups,
+/// updates and uninstalling are handled by the main window.
 /// </summary>
 public partial class SettingsView : UserControl
 {
-    public event EventHandler? BackRequested;
     public event EventHandler? AddGamesRequested;
     public event EventHandler? ScanRequested;
     public event EventHandler? DuplicatesRequested;
@@ -468,7 +468,34 @@ public partial class SettingsView : UserControl
 
     private void UninstallButton_Click(object sender, RoutedEventArgs e) => UninstallRequested?.Invoke(this, EventArgs.Empty);
 
-    private void BackButton_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
+    // ---------- the sections (left column) ----------
+
+    /// <summary>A section was chosen on the left: its title and its panel ("Quick launch" → QuicklaunchSection) are shown.</summary>
+    private void SectionNav_Checked(object sender, RoutedEventArgs e)
+    {
+        // (the first one is checked while the XAML is still being read: the panels don't exist yet, General shows by default)
+        if (sender is not RadioButton { Content: string name } || SectionTitle is null) return;
+
+        SectionTitle.Text = name;
+        var chosen = FindName(name.Replace(" ", "") + "Section");
+
+        foreach (var panel in new FrameworkElement[]
+                 {
+                     GeneralSection, LibrarySection, AppearanceSection, ControllerSection, SoundSection, ScreenshotsSection,
+                     QuicklaunchSection, SystemSection
+                 })
+            panel.Visibility = ReferenceEquals(panel, chosen) ? Visibility.Visible : Visibility.Collapsed;
+
+        SectionScroll.ScrollToTop();
+    }
+
+    /// <summary>Opens on a section ("General", "Library"...), like right after a click on it.</summary>
+    public void ShowSection(string name)
+    {
+        foreach (var item in SectionNav.Children.OfType<RadioButton>())
+            if (item.Content as string == name)
+                item.IsChecked = true;
+    }
 
     private void ExportButton_Click(object sender, RoutedEventArgs e) => ExportRequested?.Invoke(this, EventArgs.Empty);
 

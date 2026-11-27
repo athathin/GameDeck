@@ -210,8 +210,8 @@ public partial class MainWindow
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // F11 opens Big Picture mode from anywhere in the window (not while typing a new quick launch shortcut)
-        if (e.Key == Key.F11 && !SettingsPanel.IsCapturingShortcut)
+        // F11 opens Big Picture mode from anywhere in the window
+        if (e.Key == Key.F11)
         {
             OpenBigPicture();
             e.Handled = true;
@@ -231,18 +231,6 @@ public partial class MainWindow
             if (e.Key == Key.Escape)
             {
                 CloseDetails();
-                e.Handled = true;
-            }
-            return;
-        }
-
-        // On the settings screen Esc goes back, nothing else applies
-        if (SettingsPanel.Visibility == Visibility.Visible)
-        {
-            // while a new shortcut is being captured, Esc only cancels that
-            if (e.Key == Key.Escape && !SettingsPanel.IsCapturingShortcut)
-            {
-                CloseSettings();
                 e.Handled = true;
             }
             return;

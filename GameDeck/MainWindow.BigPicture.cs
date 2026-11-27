@@ -189,6 +189,8 @@ public partial class MainWindow
             return;
         }
 
+        _settingsWindow?.Close();   // Big Picture has its own settings; this window would float over the desktop
+
         // all games: the hidden ones stay out of sight here too, until the "Hidden games" filter is turned on
         var games = _library.Games.ToList();
 

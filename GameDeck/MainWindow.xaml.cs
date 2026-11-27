@@ -239,6 +239,7 @@ public partial class MainWindow : Window
 
     private void HideToTray()
     {
+        _settingsWindow?.Close();   // (it would stay on screen without the window it belongs to)
         StartInTray();
         Hide();
     }

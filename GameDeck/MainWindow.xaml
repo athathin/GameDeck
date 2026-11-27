@@ -723,18 +723,6 @@
                                PlayRequested="DetailsPanel_PlayRequested"
                                ScreenshotRequested="DetailsPanel_ScreenshotRequested"/>
 
-        <!-- ======================= the settings screen (the gear) ======================= -->
-        <views:SettingsView x:Name="SettingsPanel" Visibility="Collapsed"
-                            BackRequested="SettingsPanel_BackRequested"
-                            AddGamesRequested="SettingsPanel_AddGamesRequested"
-                            OnlineCoversChanged="SettingsPanel_OnlineCoversChanged"
-                            PlaytimeSourcesChanged="SettingsPanel_PlaytimeSourcesChanged"
-                            QuickLaunchChanged="SettingsPanel_QuickLaunchChanged"
-                            UninstallRequested="SettingsPanel_UninstallRequested"
-                            ScanRequested="SettingsPanel_ScanRequested"
-                            DuplicatesRequested="SettingsPanel_DuplicatesRequested"
-                            ExportRequested="SettingsPanel_ExportRequested"
-                            CheckUpdatesRequested="SettingsPanel_CheckUpdatesRequested"
-                            ImportRequested="SettingsPanel_ImportRequested"/>
+        <!-- (the settings, opened with the gear, have a window of their own: SettingsWindow) -->
     </Grid>
 </Window>
