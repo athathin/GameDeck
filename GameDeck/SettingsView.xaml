@@ -386,6 +386,20 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- a small donation button (PayPal, AppInfo.DonateUrl): opens the page in the browser -->
+                        <Border Style="{StaticResource SettingCard}">
+                            <DockPanel>
+                                <Button x:Name="DonateButton" DockPanel.Dock="Right" Content="♥  Donate" Style="{StaticResource CardButton}"
+                                        Margin="20,0,0,0" VerticalAlignment="Center" Click="DonateButton_Click"
+                                        ToolTip="Opens PayPal in your browser"/>
+                                <StackPanel>
+                                    <TextBlock Text="Support GameDeck" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock x:Name="DonateText" Style="{StaticResource SettingNote}"
+                                               Text="GameDeck is free. If you enjoy it, you can buy its maker a coffee through PayPal."/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
                         <TextBlock Text="Backup" Style="{StaticResource SettingHeading}"/>
                         <Border Style="{StaticResource SettingCard}">
                             <StackPanel>

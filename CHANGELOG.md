@@ -15,9 +15,10 @@ New:
 - A tidier right-click menu, with **Edit** and **Configure** windows.
 - Big Picture: the same game menu, Edit and Configure with the controller, screenshots deleted to the Recycle Bin (it asks
   first), "← Library" on a game's page, and every button clickable with the mouse.
+- **Support GameDeck**: a small Donate button in Settings › System.
 
 Changed and fixed:
-- Big Picture answers the controller faster.
+- Big Picture answers the controller faster; holding LB / RB goes on through the tabs, and the end of a row is silent.
 - Buttons follow your accent color, and everything follows a theme change.
 - Submenus no longer close on the way to them.
 - Double-clicking the title bar no longer opens a game.

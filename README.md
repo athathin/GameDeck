@@ -3,6 +3,8 @@
 One library for the games from all your launchers (Steam, Epic, GOG, Ubisoft, Riot, Xbox, Rockstar, Battle.net, EA, itch.io, Amazon Games and
 games you add yourself), with a desktop mode and a full-screen, controller-friendly **Big Picture** mode.
 
+[![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-0070BA?logo=paypal&logoColor=white)](https://www.paypal.com/paypalme/athathin)
+
 ## What it does
 
 **One library**

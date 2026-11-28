@@ -21,6 +21,23 @@ public static class AppInfo
     public const string IconUri = "pack://application:,,,/Assets/icon.ico";
 #endif
 
+    /// <summary>Where a donation can be made (Settings › System "Support GameDeck", and the README).</summary>
+    public const string DonateUrl = "https://www.paypal.com/paypalme/athathin";
+
+    /// <summary>Opens a web page in the browser; false when none could be opened.</summary>
+    public static bool OpenWebPage(string url)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            return true;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// True while the normal GameDeck is running (the Beta looks for its "one at a time" lock). The Beta then leaves the controller's
     /// Home button to it; when the normal GameDeck is not running, the Beta answers the button itself.
