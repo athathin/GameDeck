@@ -159,8 +159,9 @@ public static class GameInfoService
         if (EpicItemOf(game) is { } item)
             keys.Add("epiclocal:" + item);
 
-        // last, IGDB (only with the user's own Twitch keys in Settings): it knows games no store has, by their name
-        if (IgdbService.Configured && CoverService.Normalize(game.Name) is { Length: > 0 } name)
+        // last, IGDB (only with the user's own Twitch keys in Settings): it knows games no store has, by their name. The name
+        // as it reads ("Clone Hero"), not squashed ("clonehero"): it is what IGDB is searched for, and its search wants words
+        if (IgdbService.Configured && game.Name.Trim() is { Length: > 0 } name && CoverService.Normalize(name).Length > 0)
             keys.Add("igdb:" + name);
 
         return keys;

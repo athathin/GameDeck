@@ -84,17 +84,17 @@ public static class IgdbService
     }
 
     /// <summary>
-    /// The details of a game for GameInfoService (by its normalized name); an empty GameInfo when IGDB has nothing; null when
-    /// it couldn't be asked (offline, refused keys, too many requests).
+    /// The details of a game for GameInfoService (by its name as it reads: IGDB's search needs the words); an empty GameInfo when
+    /// IGDB has nothing; null when it couldn't be asked (offline, refused keys, too many requests).
     /// </summary>
-    internal static async Task<GameInfo?> InfoAsync(string normalizedName)
+    internal static async Task<GameInfo?> InfoAsync(string name)
     {
         if (!Configured) return new GameInfo();
 
         IgdbGame? game;
         try
         {
-            game = await FindAsync(normalizedName);
+            game = await FindAsync(name);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException or InvalidOperationException)
         {

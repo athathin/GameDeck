@@ -98,6 +98,7 @@ public partial class GameDetailsView : UserControl
         BackdropFrame.Opacity = 0;
         BackdropImage.Source = null;
         BackdropGlowImage.Source = null;
+        UpdateBackdropBlend(0);   // (the page opens at its top)
 
         var image = await BackgroundService.LoadAsync(game);
         if (image is null || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
@@ -108,8 +109,25 @@ public partial class GameDetailsView : UserControl
             new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
     }
 
-    /// <summary>How much slower than the page the art at the top scrolls away (the color wash stays where it is).</summary>
-    private const double BackdropParallax = 0.5;
+    // how strong each layer of the background is: the sharp art at the top of the page, the blurred wash there, and the wash
+    // once the page is scrolled down (stronger then: it is all that is left of the art, as in GOG Galaxy)
+    private const double BackdropArtOpacity = 0.26;
+    private const double BackdropGlowTop = 0.18;
+    private const double BackdropGlowScrolled = 0.30;
+
+    /// <summary>How far (pixels) the page scrolls before the sharp art has turned completely into the blurred one.</summary>
+    private const double BackdropBlendDistance = 300;
+
+    /// <summary>
+    /// The background stays put while the page scrolls over it; the further down, the more the sharp art gives way to its
+    /// blurred copy (a cross-fade: the blur itself is drawn once, so scrolling stays smooth).
+    /// </summary>
+    private void UpdateBackdropBlend(double offset)
+    {
+        var blurred = Math.Clamp(offset / BackdropBlendDistance, 0, 1);
+        BackdropArt.Opacity = BackdropArtOpacity * (1 - blurred);
+        BackdropGlow.Opacity = BackdropGlowTop + (BackdropGlowScrolled - BackdropGlowTop) * blurred;
+    }
 
     // ---- about the game: from the Steam store or GOG ----
 
@@ -230,7 +248,7 @@ public partial class GameDetailsView : UserControl
         if (e.ViewportWidthChange != 0)
             UpdateLayoutMode();
 
-        BackdropShift.Y = -e.VerticalOffset * BackdropParallax;
+        UpdateBackdropBlend(e.VerticalOffset);
     }
 
     /// <summary>

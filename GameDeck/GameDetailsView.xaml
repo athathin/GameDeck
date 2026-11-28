@@ -35,13 +35,14 @@
     </UserControl.Resources>
 
     <Grid>
-    <!-- the game's background art (BackgroundService), blended into the page like GOG Galaxy does it: (1) a heavily blurred
-         copy fills the whole page with the game's colors, (2) the art itself sits at the top, fading out downwards and towards
-         the sides, and scrolls away a little slower than the page. ShowBackdrop fades the whole frame in. -->
+    <!-- the game's background art (BackgroundService), blended into the page like GOG Galaxy does it: it stays where it is while
+         the page scrolls over it. (1) a heavily blurred copy fills the whole page with the game's colors, (2) the art itself is
+         sharp at the top, fading out downwards and towards the sides; scrolling down turns the sharp art into the blurred one
+         (UpdateBackdropBlend). ShowBackdrop fades the whole frame in. -->
     <Grid x:Name="BackdropFrame" Opacity="0" IsHitTestVisible="False" ClipToBounds="True">
         <!-- (1) the wash of color; the picture reaches past the edges so the blur's soft rim never shows; cached, so the blur
-             is drawn once, not on every frame -->
-        <Grid Opacity="0.18">
+             is drawn once, not on every frame (its opacity is set in code) -->
+        <Grid x:Name="BackdropGlow" Opacity="0.18">
             <Grid.CacheMode>
                 <BitmapCache/>
             </Grid.CacheMode>
@@ -55,10 +56,7 @@
 
         <!-- (2) the art; the fades are on the frames, not the picture: a "fill" picture is bigger than what shows, so a fade on it
              would end outside the frame and leave a hard edge -->
-        <Grid VerticalAlignment="Top" Height="660" Opacity="0.26">
-            <Grid.RenderTransform>
-                <TranslateTransform x:Name="BackdropShift"/>
-            </Grid.RenderTransform>
+        <Grid x:Name="BackdropArt" VerticalAlignment="Top" Height="760" Opacity="0.26">
             <Grid.OpacityMask>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                     <GradientStop Color="#FF000000" Offset="0"/>
