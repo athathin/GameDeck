@@ -18,11 +18,40 @@ public partial class MainWindow
         return selected.Count > 1 && selected.Contains(clicked) ? selected : [clicked];
     }
 
-    /// <summary>The line at the bottom says how many games are selected (and what to do with them).</summary>
+    private string? _pickedCountText;   // the count as last shown: a change of selection clears the line only while it still says this
+
+    /// <summary>
+    /// The status line says how many games are selected (and what to do with them) while more than one is; once that's over,
+    /// the line is cleared (only if it still shows the count: another message stays).
+    /// </summary>
     private void ShowPickedCount()
     {
         var count = GameList.SelectedItems.OfType<Game>().Count(g => !g.IsRandomTile);
-        StatusText.Text = count > 1 ? $"{count} games selected. Right-click one of them to change them all." : "";
+
+        if (count > 1)
+        {
+            StatusText.Text = _pickedCountText =
+                $"{count} games selected. Right-click one of them to change them all, or click an empty spot to stop.";
+        }
+        else if (_pickedCountText is not null)
+        {
+            if (StatusText.Text == _pickedCountText)
+                StatusText.Text = "";
+            _pickedCountText = null;
+        }
+    }
+
+    /// <summary>The selection changed any way at all (a click, Ctrl / Shift + click, an empty spot, a game leaving the list).</summary>
+    private void GameList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // "Pick a game for me" is no game: never part of several selected ones
+        if (GameList.SelectedItems.Count > 1 && GameList.SelectedItems.OfType<Game>().FirstOrDefault(g => g.IsRandomTile) is { } random)
+        {
+            GameList.SelectedItems.Remove(random);   // (raises this again, which shows the count)
+            return;
+        }
+
+        ShowPickedCount();
     }
 
     /// <summary>Changes every picked game, writing the data file once, then shows the library as it is now.</summary>

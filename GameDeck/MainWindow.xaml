@@ -357,7 +357,7 @@
             <ListBox x:Name="GameList" Grid.Row="3"
                      ItemsSource="{Binding Games}"
                      ItemContainerStyle="{StaticResource TileItem}"
-                     SelectionMode="Extended"
+                     SelectionMode="Extended" SelectionChanged="GameList_SelectionChanged"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      ScrollViewer.VerticalScrollBarVisibility="Visible"

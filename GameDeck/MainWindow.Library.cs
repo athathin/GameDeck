@@ -237,6 +237,15 @@ public partial class MainWindow
             return;
         }
 
+        // Esc on the library: no games selected any more (like a click on an empty spot)
+        if (e.Key == Key.Escape && GameList.SelectedItems.Count > 0 && !SearchBox.IsKeyboardFocusWithin)
+        {
+            GameList.UnselectAll();
+            Keyboard.ClearFocus();
+            e.Handled = true;
+            return;
+        }
+
         // Ctrl+F jumps to the search box
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {

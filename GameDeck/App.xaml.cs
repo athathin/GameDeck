@@ -29,6 +29,8 @@ namespace GameDeck
         {
             base.OnStartup(e);
 
+            MenuAim.Register();   // right-click menus: a submenu stays open while the pointer heads for it
+
             // whatever goes wrong is written to a file, and the user gets a way to report it (see CrashLog)
             DispatcherUnhandledException += OnUiThreadError;
             AppDomain.CurrentDomain.UnhandledException += (_, a) =>
