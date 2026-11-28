@@ -46,8 +46,10 @@ public partial class BigPictureWindow
         if (OperationMethod?.GetValue(operation) is not Delegate method)
             return "?";
 
-        // a DispatcherTimer's tick: the handlers it calls
-        if (method.Target is DispatcherTimer timer &&
+        // a DispatcherTimer's tick: the handlers it calls (WPF passes the timer as the argument of a static lambda)
+        var timerOf = method.Target as DispatcherTimer ??
+                      typeof(DispatcherOperation).GetField("_args", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(operation) as DispatcherTimer;
+        if (timerOf is { } timer &&
             typeof(DispatcherTimer).GetField("Tick", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(timer) is Delegate tick)
             return "timer (" + timer.Interval.TotalMilliseconds + " ms): " +
                    string.Join(", ", tick.GetInvocationList().Select(d => $"{d.Method.DeclaringType?.Name}.{d.Method.Name}"));
