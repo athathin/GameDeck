@@ -43,10 +43,38 @@ public partial class BigPictureWindow
         CloseOverlay();
     }
 
+    /// <summary>The game menu's pages from the main list to the one open now, to come back to after typing or browsing.</summary>
+    private MenuPage[] MenuSnapshot() => _menuPages.Reverse().ToArray();
+
+    /// <summary>Opens the game menu again at the pages of <paramref name="pages"/> (each on the row it was on), drawn anew.</summary>
+    private void ReturnToMenu(MenuPage[] pages)
+    {
+        _menuPages.Clear();
+        foreach (var page in pages)
+            _menuPages.Push(page);
+
+        if (_menuPages.Count == 0)
+        {
+            CloseOverlay();
+            return;
+        }
+
+        ReloadLibrary();   // (a new name, rating or cover shows behind the menu)
+        ShowOverlay(Overlay.GameMenu);
+        RenderGameMenu();
+    }
+
+    private FilterRow? SelectedMenuRow =>
+        _menuPages.Count > 0 && _menuPages.Peek().Index is var i && i >= 0 && i < _menuRows.Count ? _menuRows[i] : null;
+
     private void FillGameMenuHints()
     {
         var l = Labels();
-        var hints = new List<(string, string)> { (l.Confirm, "Choose"), (l.Back, _menuPages.Count > 1 ? "Back" : "Close") };
+        var hints = new List<(string, string)>();
+        if (SelectedMenuRow?.Adjust is not null)
+            hints.Add((ShownKind == ControllerKind.None ? "← →" : "◀ ▶", "Change"));
+        hints.Add((l.Confirm, "Choose"));
+        hints.Add((l.Back, _menuPages.Count > 1 ? "Back" : "Close"));
         AddScrollHint(hints, Scrollable(ScrollOf(GameMenuList)));
         FillHints(GameMenuHints, hints.ToArray());
     }
@@ -77,7 +105,21 @@ public partial class BigPictureWindow
 
             page.Index = index;
             RenderOnHover(RenderGameMenu);
+        }, (index, step) =>
+        {
+            page.Index = index;
+            AdjustMenuRow(step);
         });
+    }
+
+    /// <summary>Left / right (or a click on its ‹ ›) on a row that has a value to change, like the rating.</summary>
+    private void AdjustMenuRow(int step)
+    {
+        if (SelectedMenuRow?.Adjust is not { } adjust) return;
+
+        adjust(step);
+        ReloadLibrary();
+        RenderGameMenu();
     }
 
     private void HandleGameMenu(PadButton button)
@@ -88,6 +130,8 @@ public partial class BigPictureWindow
         {
             case PadButton.Up: MoveMenu(page, -1); break;
             case PadButton.Down: MoveMenu(page, 1); break;
+            case PadButton.Left: AdjustMenuRow(-1); break;
+            case PadButton.Right: AdjustMenuRow(1); break;
             case PadButton.LeftTrigger or PadButton.RightTrigger:
                 PageThrough(() => page.Index, step => MoveMenu(page, step), TriggerDirection(button));
                 break;
@@ -142,38 +186,137 @@ public partial class BigPictureWindow
             RenderGameMenu();   // the ticks changed
     }
 
+    // The same menu as the desktop's right-click menu (MainWindow.GameMenu.cs), with the desktop's Edit and Configure windows
+    // as pages of this menu, so that everything can be done with the controller: text is typed with the on-screen keyboard,
+    // a cover is chosen with the controller's file browser.
+
+    /// <summary>
+    ///   Play · Edit ›
+    ///   Manage installation › (Configure ›, Create desktop shortcut, Uninstall, Remove from library)
+    ///   Add to favorites · Categories › · Rate › · Status › · Hide game
+    /// </summary>
     private List<FilterRow> MainMenuRows(Game game)
     {
         var actions = _gameActions;
 
-        var rows = new List<FilterRow>
-        {
+        return
+        [
+            new(ReferenceEquals(game, NowPlaying) ? "▶   Resume" : "▶   Play", Activate: () =>
+            {
+                CloseGameMenu();
+                Launch(game);
+            }),
+            new("Edit  ›", Activate: () => OpenSubmenu($"Editing \"{game.DisplayName}\"", () => EditRows(game))),
+            new("Manage installation  ›", Activate: () => OpenSubmenu("Manage installation", () => ManageRows(game))),
             new(game.FavoriteMenuText, Activate: () =>
             {
                 ToggleFavorite();   // (in the Favorites tab an un-favorited game leaves the row)
                 CloseGameMenu();
             }),
-            new("Edit game…", Activate: () => GameAction(() => actions.Edit(game, this))),
-            new("Launch options…", Activate: () => GameAction(() => actions.Configure(game, this))),
-            new(game.HasNotes ? "Edit notes…  (type with the on-screen keyboard)" : "Add a note…  (type with the on-screen keyboard)",
-                Activate: () => { CloseGameMenu(); OpenNote(game); }),
-            new(game.HasLeftOff ? "Where I left off: change…" : "Where I left off…",
-                Activate: () => { CloseGameMenu(); OpenNote(game, leftOff: true); }),
-            new("Launch routine  ›", Activate: () => OpenSubmenu("Launch routine", () => RoutineRows(game))),
-            new("Categories  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
-            new("Rate  ›", Activate: () => OpenSubmenu("Rate", () => RateRows(game))),
-            new("Status  ›", Activate: () => OpenSubmenu("Status", () => StatusRows(game))),
-            new(game.HideMenuText, Activate: () => GameAction(() => actions.ToggleHidden(game))),
-            new("Add cover art…", Activate: () => GameAction(() => actions.AddCover(game, this)))
+            new($"Categories  ({game.Tags.Count})  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
+            new(game.HasRating ? $"Rate:  {game.RatingText}  ›" : "Rate  ›", Activate: () => OpenSubmenu("Rate", () => RateRows(game))),
+            new(game.HasStatus ? $"Status:  {game.StatusText}  ›" : "Status  ›", Activate: () => OpenSubmenu("Status", () => StatusRows(game))),
+            new(game.IsHidden ? "Unhide game" : "Hide game", Activate: () => GameAction(() => actions.ToggleHidden(game)))
+        ];
+    }
+
+    private List<FilterRow> ManageRows(Game game)
+    {
+        var actions = _gameActions;
+
+        var rows = new List<FilterRow>
+        {
+            new("Configure  ›", Activate: () => OpenSubmenu($"Configuring \"{game.DisplayName}\"", () => ConfigureRows(game))),
+            new("Create desktop shortcut", Activate: () => GameAction(() => actions.CreateShortcut(game, this))),
+            new("Uninstall", Activate: () => GameAction(() => actions.Uninstall(game)))
         };
 
+        if (game.Source == "Manual")   // scanned games leave the library by themselves once uninstalled
+            rows.Add(new("Remove from library", Activate: () => GameAction(() => actions.RemoveFromLibrary(game, this))));
+
+        return rows;
+    }
+
+    /// <summary>What has nothing in it yet shows this on its row.</summary>
+    private static string OrNone(string? text, int max = 40)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "none";
+
+        var line = text.ReplaceLineEndings(" ").Trim();
+        return line.Length > max ? line[..max] + "…" : line;
+    }
+
+    /// <summary>"Edit": the desktop's Edit window (Info and Media) as rows: each text is typed with the on-screen keyboard.</summary>
+    private List<FilterRow> EditRows(Game game)
+    {
+        var actions = _gameActions;
+
+        var rows = new List<FilterRow>
+        {
+            new("INFO", IsHeader: true),
+            new($"Title:  {game.DisplayName}", Activate: () =>
+                TypeFromMenu("The name shown for this game (empty: its own name)", game.DisplayName, 100,
+                             text => actions.SetName(game, text))),
+            new($"Rating:  {(game.HasRating ? game.RatingText : "not rated")}",
+                Activate: () => OpenSubmenu("Rate", () => RateRows(game)),
+                Adjust: step => actions.SetRating(game, Math.Clamp(game.Rating + step, 0, 5))),
+            new($"Categories  ({game.Tags.Count})  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
+            new($"Where I left off:  {OrNone(game.LeftOff)}", Activate: () =>
+            {
+                var pages = MenuSnapshot();
+                OpenNote(game, leftOff: true, after: () => ReturnToMenu(pages));
+            }),
+            new($"Notes:  {OrNone(game.Notes)}", Activate: () =>
+            {
+                var pages = MenuSnapshot();
+                OpenNote(game, after: () => ReturnToMenu(pages));
+            }),
+            new("Hide from my games list", IsOn: () => game.IsHidden,
+                Activate: () => GameAction(() => actions.ToggleHidden(game), closeMenu: false))
+        };
+
+        if (game.Genres.Count > 0)   // (from the Steam store: shown, not changed)
+            rows.Insert(2, new FilterRow($"Genres:  {string.Join(", ", game.Genres)}"));
+
+        rows.Add(new("MEDIA", IsHeader: true));
+        rows.Add(new(game.HasCustomCover ? "Cover:  your own picture. Choose another…" : "Cover:  found by GameDeck. Choose a picture…",
+            Activate: () => ChooseCover(game)));
         if (game.HasCustomCover)
-            rows.Add(new("Remove cover art", Activate: () => GameAction(() => _ = actions.RemoveCover(game))));
+            rows.Add(new("Use the automatic cover again", Activate: () => GameAction(() => _ = actions.RemoveCover(game), closeMenu: false)));
 
-        rows.Add(new("Create desktop shortcut", Activate: () => GameAction(() => actions.CreateShortcut(game, this))));
+        return rows;
+    }
 
-        rows.Add(new("Uninstall", Activate: () => GameAction(() => actions.Uninstall(game))));
-        rows.Add(new("Remove from library", Activate: () => GameAction(() => actions.RemoveFromLibrary(game, this))));
+    /// <summary>The controller's file browser, choosing a picture as the game's cover; then back to the Edit page.</summary>
+    private void ChooseCover(Game game)
+    {
+        var pages = MenuSnapshot();
+        CloseGameMenu();
+
+        OpenProgramBrowse(new ProgramChoice($"Cover for {game.DisplayName}: choose a picture",
+            file => _gameActions.SetCover(game, file) ? null : "That file couldn't be read as a picture. Try a .jpg, .png or .bmp.",
+            Done: () => ReturnToMenu(pages), Pictures: true));
+    }
+
+    /// <summary>"Configure": how the game is started (the desktop's Configure window as rows).</summary>
+    private List<FilterRow> ConfigureRows(Game game)
+    {
+        var actions = _gameActions;
+        var rows = new List<FilterRow> { new("LAUNCH", IsHeader: true) };
+
+        if (game.SupportsArguments)
+            rows.Add(new($"Launch arguments:  {OrNone(game.LaunchArguments)}", Activate: () =>
+                TypeFromMenu(game.IsDirectExe ? "Arguments passed to the game when it starts" : "Arguments Steam passes to the game",
+                             game.LaunchArguments ?? "", 300, text => actions.SetLaunchOptions(game, text, game.RunAsAdmin), capital: false)));
+        else
+            rows.Add(new($"{game.Source} games are started by their own launcher, which doesn't accept extra arguments."));
+
+        if (game.IsDirectExe)
+            rows.Add(new("Run as administrator", IsOn: () => game.RunAsAdmin,
+                Activate: () => GameAction(() => actions.SetLaunchOptions(game, game.LaunchArguments, !game.RunAsAdmin), closeMenu: false)));
+
+        rows.Add(new($"Launch routine:  {(game.Profile is { IsEmpty: false } ? "on" : "off")}  ›",
+            Activate: () => OpenSubmenu("Launch routine", () => RoutineRows(game))));
 
         return rows;
     }
@@ -262,35 +405,83 @@ public partial class BigPictureWindow
     private static bool InCategory(Game game, string category) =>
         game.Tags.Any(t => t.Equals(category, StringComparison.CurrentCultureIgnoreCase));
 
-    /// <summary>Every category, ticked when the game is in it, then New / Manage (like the desktop menu).</summary>
+    /// <summary>New category… first, then every category (ticked when the game is in it), then Manage (like the desktop menu).</summary>
     private List<FilterRow> CategoryRows(Game game)
     {
         var actions = _gameActions;
         var categories = actions.AllCategories();
 
-        var rows = categories
-            .Select(c => new FilterRow(c, IsOn: () => InCategory(game, c),
-                Activate: () => GameAction(() => actions.ToggleCategory(game, c), closeMenu: false)))
-            .ToList();
+        var rows = new List<FilterRow>
+        {
+            new("New category…", Activate: () =>
+                TypeFromMenu($"Name the new category. {game.DisplayName} will be added to it", "", 30, text =>
+                {
+                    if (!string.IsNullOrWhiteSpace(text))
+                        actions.AddToCategory(game, text.Trim());
+                }))
+        };
 
-        rows.Add(new("New category…", Activate: () => GameAction(() => actions.NewCategory(game, this), closeMenu: false)));
+        rows.AddRange(categories.Select(c => new FilterRow(c, IsOn: () => InCategory(game, c),
+            Activate: () => GameAction(() => actions.ToggleCategory(game, c), closeMenu: false))));
 
         if (categories.Count > 0)   // nothing to manage until a category exists
-            rows.Add(new("Manage categories…", Activate: () => GameAction(() => actions.ManageCategories(this), closeMenu: false)));
+            rows.Add(new("Manage categories  ›", Activate: () => OpenSubmenu("Manage categories", ManageCategoryRows)));
 
         return rows;
     }
 
-    /// <summary>Five stars down to one, then No rating (like the desktop's Rate menu).</summary>
+    /// <summary>Every category with how many games are in it; choosing one offers Rename and Delete.</summary>
+    private List<FilterRow> ManageCategoryRows()
+    {
+        var categories = _gameActions.AllCategories();
+        if (categories.Count == 0)
+            return [new FilterRow("No categories left.")];
+
+        return categories.Select(c =>
+        {
+            var count = _library.Count(g => InCategory(g, c));
+            return new FilterRow($"{c}   ({count} {(count == 1 ? "game" : "games")})  ›",
+                Activate: () => OpenSubmenu(c, () => CategoryActionRows(c)));
+        }).ToList();
+    }
+
+    private List<FilterRow> CategoryActionRows(string category) =>
+    [
+        new("Rename…", Activate: () =>
+        {
+            _menuPages.Pop();   // (back on the list afterwards: this page's name would be the old one)
+            TypeFromMenu($"A new name for {category}", category, 30, text =>
+            {
+                if (!string.IsNullOrWhiteSpace(text) && text.Trim() != category)
+                    _gameActions.RenameCategory(category, text.Trim());
+            });
+        }),
+        new($"Delete {category}  (the games stay, only the category goes)", Activate: () =>
+        {
+            _gameActions.DeleteCategory(category);
+            ReloadLibrary();
+            _menuPages.Pop();
+            RenderGameMenu();
+        })
+    ];
+
+    /// <summary>Five stars down to one, then No rating (like the desktop's Rate menu). Choosing one goes back a page.</summary>
     private List<FilterRow> RateRows(Game game)
     {
+        void Choose(int stars)
+        {
+            _gameActions.SetRating(game, stars);
+            ReloadLibrary();
+            _menuPages.Pop();   // (the page before shows the new rating)
+            RenderGameMenu();
+        }
+
         var rows = Enumerable.Range(1, 5).Reverse()
             .Select(stars => new FilterRow(new string('★', stars), IsOn: () => game.Rating == stars, IsRadio: true,
-                Activate: () => GameAction(() => _gameActions.SetRating(game, stars))))
+                Activate: () => Choose(stars)))
             .ToList();
 
-        rows.Add(new("No rating", IsOn: () => game.Rating == 0, IsRadio: true,
-            Activate: () => GameAction(() => _gameActions.SetRating(game, 0))));
+        rows.Add(new("No rating", IsOn: () => game.Rating == 0, IsRadio: true, Activate: () => Choose(0)));
         return rows;
     }
 

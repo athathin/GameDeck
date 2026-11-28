@@ -15,7 +15,7 @@ public partial class BigPictureWindow
     {
         if (!IsGamesTab) return;   // nothing to search on Stats or Media
 
-        _noteGame = null;
+        _job = null;
         _caret = _query.Length;   // the cursor after what is typed already
         _shift = false;
         _caps = CapsMode.Off;
@@ -26,14 +26,41 @@ public partial class BigPictureWindow
         BuildOverlayHints();
     }
 
-    // the same keyboard types a game's note (Game menu > Notes…): _noteGame is set while that is going on
-    private Game? _noteGame;
-    private string _noteText = "";
-    private bool _noteLeftOff;   // typing "where I left off" instead of the game's notes
+    /// <summary>
+    /// The same keyboard types other text than the search (a game's notes, its title, launch arguments, a category's name):
+    /// what the box asks for, how long it may be, whether each sentence starts with a capital, whether the very first letter
+    /// does, what Done does with the text, and where the screen goes afterwards (Done or Back).
+    /// </summary>
+    private sealed record TextJob(string Prompt, int Max, Action<string> Save, Action After, bool Sentences = false, bool Capital = true);
+
+    private TextJob? _job;        // set while something other than the search is typed
+    private string _jobText = "";
     private const int NoteLimit = 300;
     private const int LeftOffLimit = 200;
 
-    private int NoteMax => _noteLeftOff ? LeftOffLimit : NoteLimit;
+    /// <summary>Opens the keyboard on <paramref name="text"/> for <paramref name="job"/>.</summary>
+    private void OpenTextJob(TextJob job, string text)
+    {
+        _job = job;
+        _jobText = text.Length > job.Max ? text[..job.Max] : text;
+        _caret = _jobText.Length;
+        _shift = false;
+        _caps = CapsMode.Off;
+        AutoCapital();
+        ShowOverlay(Overlay.Search);
+        UpdateQueryUi();
+        UpdateKeyboardSelection();
+        BuildOverlayHints();
+    }
+
+    /// <summary>
+    /// Types something for a row of the game menu, then comes back to that same row (Done saves, Back leaves it as it was).
+    /// </summary>
+    private void TypeFromMenu(string prompt, string text, int max, Action<string> save, bool sentences = false, bool capital = true)
+    {
+        var pages = MenuSnapshot();
+        OpenTextJob(new TextJob(prompt, max, save, () => ReturnToMenu(pages), sentences, capital), text);
+    }
 
     /// <summary>
     /// The game closed after a real session (the main window asks): "where did you leave off?" with the on-screen keyboard.
@@ -49,44 +76,37 @@ public partial class BigPictureWindow
         OpenNote(game, leftOff: true, empty: true);   // (empty, so the question shows: Back keeps the earlier note)
     }
 
-    private void OpenNote(Game game, bool leftOff = false, bool empty = false)
+    /// <summary>
+    /// A game's notes, or where you left off in it. <paramref name="after"/>: where the screen goes once it is done (null = the
+    /// keyboard just closes).
+    /// </summary>
+    private void OpenNote(Game game, bool leftOff = false, bool empty = false, Action? after = null)
     {
-        _noteGame = game;
-        _noteLeftOff = leftOff;
-        _noteText = empty ? "" : (leftOff ? game.LeftOff : game.Notes) ?? "";
-        _caret = _noteText.Length;
-        _shift = false;
-        _caps = CapsMode.Off;
-        AutoCapital();
-        ShowOverlay(Overlay.Search);
-        UpdateQueryUi();
-        UpdateKeyboardSelection();
-        BuildOverlayHints();
-    }
-
-    /// <summary>Done (save the note) or Back (leave it as it was) while typing a note; closes the keyboard either way.</summary>
-    private void FinishNote(bool save)
-    {
-        var game = _noteGame;
-        var text = _noteText;
-        _noteGame = null;
-
-        if (save && game is not null)
-        {
-            if (_noteLeftOff)
+        var job = leftOff
+            ? new TextJob($"Where did you leave off in {game.DisplayName}? Done saves it, Back skips", LeftOffLimit, text =>
             {
                 _gameActions.SetLeftOff(game, text);
                 DetailsView.ShowLeftOff(game);   // (when its page is open behind the keyboard)
                 UpdateContinue();                // the home row's "Left off: …"
-            }
-            else
-            {
-                _gameActions.SetNotes(game, text);
-            }
-        }
+            }, after ?? CloseOverlay, Sentences: true)
+            : new TextJob("Type a note about " + game.DisplayName, NoteLimit, text => _gameActions.SetNotes(game, text),
+                          after ?? CloseOverlay, Sentences: true);
 
-        _noteLeftOff = false;
-        CloseOverlay();
+        OpenTextJob(job, empty ? "" : (leftOff ? game.LeftOff : game.Notes) ?? "");
+    }
+
+    /// <summary>Done (save the text) or Back (leave it as it was) while typing for a job; then the screen goes where the job says.</summary>
+    private void FinishNote(bool save)
+    {
+        if (_job is not { } job) return;
+
+        var text = _jobText;
+        _job = null;
+
+        if (save)
+            job.Save(text);
+
+        job.After();
     }
 
     private void BuildKeyboard()
@@ -157,7 +177,7 @@ public partial class BigPictureWindow
     private static readonly Dictionary<string, string> ShiftedSymbols = new()
     {
         ["1"] = "!", ["2"] = "@", ["3"] = "#", ["4"] = "$", ["5"] = "%", ["6"] = "^", ["7"] = "&", ["8"] = "*", ["9"] = "(", ["0"] = ")",
-        ["'"] = "\"", [","] = "<", ["."] = ">", ["-"] = "_"
+        ["'"] = "\"", [","] = "<", ["."] = ">", ["-"] = "_", ["="] = "+", [";"] = ":", ["/"] = "?", ["\\"] = "|"
     };
 
     private static bool IsLetterKey(string key) => key.Length == 1 && char.IsLetter(key[0]);
@@ -174,11 +194,11 @@ public partial class BigPictureWindow
     /// </summary>
     private void AutoCapital()
     {
-        if (_caps == CapsMode.Locked) return;
+        if (_caps == CapsMode.Locked || _job is { Capital: false }) return;   // (launch arguments: as typed)
 
         var text = EditText[..Caret];   // (what comes before the cursor)
         var sentenceStart = text.Length == 0 ||
-            (_noteGame is not null && (text.EndsWith(". ") || text.EndsWith("! ") || text.EndsWith("? ")));
+            (_job is { Sentences: true } && (text.EndsWith(". ") || text.EndsWith("! ") || text.EndsWith("? ")));
 
         if (sentenceStart)
             _caps = CapsMode.Once;
@@ -310,7 +330,7 @@ public partial class BigPictureWindow
             case PadButton.Select: PressKey("Clear"); break;   // (View / Share / −; Tab on a keyboard)
             case PadButton.LeftTrigger: MoveCaret(-1); break;   // the text cursor (PgUp / PgDn on a keyboard)
             case PadButton.RightTrigger: MoveCaret(1); break;
-            case PadButton.Back: if (_noteGame is not null) FinishNote(save: false); else CloseOverlay(); break;
+            case PadButton.Back: if (_job is not null) FinishNote(save: false); else CloseOverlay(); break;
         }
     }
 
@@ -349,7 +369,7 @@ public partial class BigPictureWindow
             case "Space": TypeText(" "); break;
             case "⌫ Delete": Backspace(); break;
             case "Clear": SetEditText("", 0); break;
-            case "Done": if (_noteGame is not null) FinishNote(save: true); else CloseOverlay(); break;
+            case "Done": if (_job is not null) FinishNote(save: true); else CloseOverlay(); break;
             default:
                 var text = KeyText(key);
                 _shift = false;   // (one key only)
@@ -370,7 +390,7 @@ public partial class BigPictureWindow
 
     private int _caret;   // where the next letter goes: 0 = before the first one, the length = after the last
 
-    private string EditText => _noteGame is not null ? _noteText : _query;
+    private string EditText => _job is not null ? _jobText : _query;
 
     private int Caret => Math.Clamp(_caret, 0, EditText.Length);   // (the search can be changed from elsewhere)
 
@@ -379,8 +399,8 @@ public partial class BigPictureWindow
     {
         _caret = caret;
 
-        if (_noteGame is not null)
-            _noteText = text;
+        if (_job is not null)
+            _jobText = text;
         else
             SetQuery(text);
 
@@ -399,7 +419,7 @@ public partial class BigPictureWindow
     {
         var (before, after) = (EditText[..Caret], EditText[Caret..]);
 
-        if (EditText.Length + text.Length > (_noteGame is not null ? NoteMax : 40)) return;
+        if (EditText.Length + text.Length > (_job?.Max ?? 40)) return;
         if (text == " " && (before.Length == 0 || before.EndsWith(' ') || after.StartsWith(' '))) return;   // no leading or double spaces
 
         // a letter typed uses up a single Caps press: back to lowercase (a letter that didn't fit leaves it on)
@@ -430,13 +450,11 @@ public partial class BigPictureWindow
     {
         ShowTextWithCaret();
 
-        if (_noteGame is not null)
+        if (_job is { } job)
         {
-            QueryHint.Text = _noteLeftOff
-                ? $"Where did you leave off in {_noteGame.DisplayName}? Done saves it, Back skips"
-                : "Type a note about " + _noteGame.DisplayName;
-            QueryHint.Visibility = _noteText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-            ResultCountText.Text = $"{_noteText.Length} / {NoteMax}";
+            QueryHint.Text = job.Prompt;
+            QueryHint.Visibility = _jobText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ResultCountText.Text = $"{_jobText.Length} / {job.Max}";
             return;
         }
 
@@ -470,12 +488,30 @@ public partial class BigPictureWindow
         var l = Labels();
         var color = ThemeService.TextPrimary;
 
-        CaretHints.Children.Clear();
-        CaretHints.Children.Add(ButtonCap(l.LeftTrigger, color));
-        CaretHints.Children.Add(new TextBlock
+        // (each half can be clicked: the cursor one place left / right)
+        var leftCap = ButtonCap(l.LeftTrigger, color);
+        var rightCap = ButtonCap(l.RightTrigger, color);
+        var arrows = new System.Windows.Controls.StackPanel { Orientation = Orientation.Horizontal, Background = Brushes.Transparent };
+        var leftArrow = new TextBlock
         {
-            Text = "←  →", Foreground = Muted, FontSize = 18, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0)
-        });
-        CaretHints.Children.Add(ButtonCap(l.RightTrigger, color));
+            Text = "←", Foreground = Muted, FontSize = 18, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0),
+            Tag = new HintKey(null, PadButton.LeftTrigger), Cursor = System.Windows.Input.Cursors.Hand
+        };
+        var rightArrow = new TextBlock
+        {
+            Text = "→", Foreground = Muted, FontSize = 18, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0),
+            Tag = new HintKey(null, PadButton.RightTrigger), Cursor = System.Windows.Input.Cursors.Hand
+        };
+        leftCap.Tag = leftArrow.Tag;
+        rightCap.Tag = rightArrow.Tag;
+        leftCap.Cursor = rightCap.Cursor = System.Windows.Input.Cursors.Hand;
+        leftCap.Background = rightCap.Background = Brushes.Transparent;   // (clickable inside the circle, not only on its edge)
+        arrows.Children.Add(leftArrow);
+        arrows.Children.Add(rightArrow);
+
+        CaretHints.Children.Clear();
+        CaretHints.Children.Add(leftCap);
+        CaretHints.Children.Add(arrows);
+        CaretHints.Children.Add(rightCap);
     }
 }

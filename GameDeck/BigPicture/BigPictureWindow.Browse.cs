@@ -27,10 +27,11 @@ public partial class BigPictureWindow
     private FolderChoice? _browseFolder;
 
     /// <summary>
-    /// Choosing one program (a launch routine's "Add an app"): the browser's title, what choosing one does (a reason it can't be
-    /// used, or null when it was taken), and where Back goes once it is done.
+    /// Choosing one file: a program (a launch routine's "Add an app") or, with <see cref="Pictures"/>, a picture (a game's cover).
+    /// The browser's title, what choosing one does (a reason it can't be used, or null when it was taken), and where Back goes
+    /// once it is done.
     /// </summary>
-    private sealed record ProgramChoice(string Title, Func<string, string?> Chosen, Action Done);
+    private sealed record ProgramChoice(string Title, Func<string, string?> Chosen, Action Done, bool Pictures = false);
 
     // not null = choosing one program for a launch routine
     private ProgramChoice? _browseProgram;
@@ -188,7 +189,7 @@ public partial class BigPictureWindow
         };
 
         // pictures: where screenshots usually are first; games: where programs are installed last
-        var places = _browseShotsFor is not null || _browseFolder is not null
+        var places = _browseShotsFor is not null || _browseFolder is not null || _browseProgram is { Pictures: true }
             ? ScreenshotService.UsualPlaces().Concat(common).ToArray()
             : common.Concat(
               [
@@ -222,7 +223,7 @@ public partial class BigPictureWindow
         var parent = Directory.GetParent(path)?.FullName;
         rows.Add(new FilterRow(parent is null ? "‹  Places and drives" : "‹  Up", Activate: () => GoTo(parent)));
 
-        var pictures = _browseShotsFor is not null;
+        var pictures = _browseShotsFor is not null || _browseProgram is { Pictures: true };
         var what = pictures ? "picture" : "game";
 
         if (_browsePicked.Count > 0)
@@ -285,7 +286,7 @@ public partial class BigPictureWindow
         if (programs.Count > 0 && _browseProgram is not null)
         {
             // one program, chosen with a single press
-            rows.Add(new FilterRow("PROGRAMS  (choose one)", IsHeader: true));
+            rows.Add(new FilterRow(pictures ? "PICTURES  (choose one)" : "PROGRAMS  (choose one)", IsHeader: true));
             foreach (var program in programs)
             {
                 var file = program;

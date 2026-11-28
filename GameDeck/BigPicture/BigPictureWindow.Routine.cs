@@ -9,17 +9,6 @@ public partial class BigPictureWindow
     // ---------- a game's launch routine, with the controller (Game menu › Launch routine) ----------
     // The same choices as the desktop's Launch routine window, as rows of the game menu. Every change is saved at once.
 
-    /// <summary>Opens the game menu at its Launch routine page (also on the way back from choosing a program).</summary>
-    private void OpenRoutineMenu(Game game, int index = 0)
-    {
-        _menuPages.Clear();
-        _menuPages.Push(new MenuPage(game.DisplayName, () => MainMenuRows(game)));
-        _menuPages.Push(new MenuPage("Launch routine", () => RoutineRows(game)) { Index = index });
-
-        ShowOverlay(Overlay.GameMenu);
-        RenderGameMenu();
-    }
-
     /// <summary>Changes a copy of the game's routine and saves it (an empty one is removed), then shows the rows again.</summary>
     private void ChangeRoutine(Game game, Action<LaunchProfile> change)
     {
@@ -134,7 +123,7 @@ public partial class BigPictureWindow
     /// <summary>The controller's file browser, choosing a program to open (or close) before the game; then back to the routine.</summary>
     private void ChooseRoutineApp(Game game, bool close)
     {
-        var index = _menuPages.Peek().Index;
+        var pages = MenuSnapshot();   // (back to this same row of the routine afterwards)
         CloseGameMenu();
 
         OpenProgramBrowse(new ProgramChoice(
@@ -154,6 +143,6 @@ public partial class BigPictureWindow
                 });
                 return null;
             },
-            Done: () => OpenRoutineMenu(game, index)));
+            Done: () => ReturnToMenu(pages)));
     }
 }

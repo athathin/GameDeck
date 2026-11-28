@@ -21,19 +21,22 @@ public record BigPictureSettingsActions(
     Action PlaytimeSourcesChanged);
 
 /// <summary>What the game menu (the controller's Menu button, the right-click menu of the desktop library) can ask of the main window.</summary>
+/// <remarks>Everything here works without a mouse or keyboard: Big Picture asks for text with its own on-screen keyboard and
+/// for files with its own browser, and passes the result.</remarks>
 public record BigPictureGameActions(
-    Action<Game, Window> Edit,
-    Action<Game, Window> Configure,
+    Action<Game, string> SetName,
+    Action<Game, string?, bool> SetLaunchOptions,
     Action<Game, LaunchProfile?> SaveRoutine,
     Func<IReadOnlyList<string>> AllCategories,
     Action<Game, string> ToggleCategory,
+    Action<Game, string> AddToCategory,
+    Action<string, string> RenameCategory,
+    Action<string> DeleteCategory,
     Action<Game, string?> SetNotes,
-    Action<Game, Window> NewCategory,
-    Action<Window> ManageCategories,
     Action<Game, GameStatus> SetStatus,
     Action<Game, int> SetRating,
     Action<Game> ToggleHidden,
-    Action<Game, Window> AddCover,
+    Func<Game, string, bool> SetCover,
     Func<Game, Task> RemoveCover,
     Action<Game, Window> CreateShortcut,
     Action<Game> Uninstall,
@@ -48,9 +51,11 @@ public record BigPictureGameActions(
 
 /// <summary>
 /// One line of a list panel (the filters, the game menu, the file browser): a heading, a tick box, a radio button or a plain
-/// action. (The settings have their own rows: <see cref="SettingRow"/>.)
+/// action. (The settings have their own rows: <see cref="SettingRow"/>.) With <see cref="Adjust"/>, left / right change its value
+/// (-1 / +1), and it shows ‹ › arrows that the mouse can click.
 /// </summary>
-internal record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false);
+internal record FilterRow(string Text, bool IsHeader = false, Func<bool>? IsOn = null, Action? Activate = null, bool IsRadio = false,
+                          Action<int>? Adjust = null);
 
 /// <summary>One entry of the Power menu. With a ConfirmTitle it asks "are you sure?" first.</summary>
 internal record PowerEntry(string Text, Action Run, string? ConfirmTitle = null, string? ConfirmButton = null);

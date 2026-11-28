@@ -5,7 +5,6 @@ using System.Windows.Media;
 using GameDeck.Models;
 using GameDeck.Services;
 using GameDeck.Views;
-using Microsoft.Win32;
 
 namespace GameDeck;
 
@@ -202,10 +201,16 @@ public partial class MainWindow
     {
         var dialog = new TextPromptDialog("New category",
             $"Name the new category. \"{game.DisplayName}\" will be added to it.", "", "Create") { Owner = owner };
-        if (dialog.ShowDialog() != true) return;
+        if (dialog.ShowDialog() == true)
+            AddToCategory(game, dialog.Value);
+    }
 
+    /// <summary>Puts the game in a category, made for it if there is none of that name yet.</summary>
+    private void AddToCategory(Game game, string typed)
+    {
         // typing the name of an existing category just adds the game to it
-        var name = AllCategories().FirstOrDefault(c => c.Equals(dialog.Value, StringComparison.CurrentCultureIgnoreCase)) ?? dialog.Value;
+        var name = AllCategories().FirstOrDefault(c => c.Equals(typed, StringComparison.CurrentCultureIgnoreCase)) ??
+                   (typed.Length > 30 ? typed[..30] : typed);
 
         if (!HasTag(game, name))
         {
@@ -223,23 +228,27 @@ public partial class MainWindow
             load: () => AllCategories()
                 .Select(c => (c, _library.Games.Count(g => HasTag(g, c))))
                 .ToList(),
-            rename: (oldName, newName) =>
-            {
-                _userData.RenameCategory(oldName, newName);
-                if (_categoryFilters.Remove(oldName))
-                    _categoryFilters.Add(newName);   // keep filtering by it under its new name
-                Refresh();
-            },
-            delete: name =>
-            {
-                _userData.DeleteCategory(name);
-                Refresh();   // a filter on a deleted category resets itself here
-            })
+            rename: RenameCategory,
+            delete: DeleteCategory)
         {
             Owner = owner
         };
 
         dialog.ShowDialog();
+    }
+
+    private void RenameCategory(string oldName, string newName)
+    {
+        _userData.RenameCategory(oldName, newName);
+        if (_categoryFilters.Remove(oldName))
+            _categoryFilters.Add(newName);   // keep filtering by it under its new name
+        Refresh();
+    }
+
+    private void DeleteCategory(string name)
+    {
+        _userData.DeleteCategory(name);
+        Refresh();   // a filter on a deleted category resets itself here
     }
 
     // ---------- rating (right-click > Rate) ----------
@@ -296,21 +305,6 @@ public partial class MainWindow
         Refresh();
     }
 
-    /// <summary>Big Picture's "Add cover art…" (on the desktop the cover is chosen in Edit › Media).</summary>
-    private void AddCover(Game game, Window owner)
-    {
-        var dialog = new OpenFileDialog
-        {
-            Title = $"Choose cover art for {game.DisplayName}",
-            Filter = "Images (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp"
-        };
-
-        if (dialog.ShowDialog() != true) return;
-
-        if (!CoverService.SetCustomCover(game, dialog.FileName))
-            MessageDialog.Show(owner, "That file couldn't be read as an image. Try a .jpg, .png or .bmp.", "Couldn't use that image");
-    }
-
     // ---------- desktop shortcuts ----------
 
     /// <summary>Puts a shortcut on the desktop that starts the game through GameDeck (playtime, launch routine and all).</summary>
@@ -355,13 +349,18 @@ public partial class MainWindow
 
     /// <summary>What the game menu in Big Picture (the controller's Menu button) can ask of the main window.</summary>
     private BigPictureGameActions BigPictureGameMenu() => new(
-        Edit: EditGame,
-        Configure: ConfigureGame,
+        SetName: (game, name) =>
+        {
+            _userData.SetCustomName(game, name);
+            Refresh();   // the new name can change the order
+        },
+        SetLaunchOptions: (game, arguments, admin) => _userData.SetLaunchOptions(game, arguments, admin),
         SaveRoutine: (game, profile) => _userData.SetProfile(game, profile),
         AllCategories: AllCategories,
         ToggleCategory: ToggleCategory,
-        NewCategory: AddToNewCategory,
-        ManageCategories: ManageCategories,
+        AddToCategory: AddToCategory,
+        RenameCategory: RenameCategory,
+        DeleteCategory: DeleteCategory,
         SetStatus: (game, status) =>
         {
             _userData.SetStatus(game, status);
@@ -370,7 +369,7 @@ public partial class MainWindow
         SetRating: SetRating,
         SetNotes: (game, notes) => _userData.SetNotes(game, notes),
         ToggleHidden: ToggleHidden,
-        AddCover: AddCover,
+        SetCover: CoverService.SetCustomCover,
         RemoveCover: game => CoverService.RemoveCustomCoverAsync(game),
         CreateShortcut: CreateShortcut,
         Uninstall: ProviderActions.Uninstall,

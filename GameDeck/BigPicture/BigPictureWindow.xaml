@@ -7,7 +7,7 @@
         Activated="Window_Activated" Deactivated="Window_Deactivated"
         PreviewKeyDown="Window_PreviewKeyDown" PreviewTextInput="Window_PreviewTextInput"
         PreviewMouseWheel="Window_PreviewMouseWheel" PreviewMouseMove="Window_PreviewMouseMove"
-        PreviewMouseDown="Window_PreviewMouseDown">
+        PreviewMouseDown="Window_PreviewMouseDown" PreviewMouseUp="Window_PreviewMouseUp" MouseLeftButtonUp="Window_MouseLeftButtonUp">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>

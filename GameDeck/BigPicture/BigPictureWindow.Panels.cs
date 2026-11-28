@@ -22,7 +22,9 @@ public partial class BigPictureWindow
     }
 
     /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters, the game menu and the file browser share it).</summary>
-    private void RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate, Action<int> hover)
+    /// <param name="adjust">For rows with <see cref="FilterRow.Adjust"/>: the row's index and -1 / +1 (its ‹ › arrows were clicked).</param>
+    private void RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate, Action<int> hover,
+                            Action<int, int>? adjust = null)
     {
         panel.Children.Clear();
         var cells = new List<Border>();
@@ -46,7 +48,34 @@ public partial class BigPictureWindow
             var on = row.IsOn?.Invoke() == true;
 
             var line = new DockPanel();
-            if (row.IsOn is not null && !row.IsRadio)
+            var rowIndex = i;
+            if (row.Adjust is not null && adjust is not null)
+            {
+                // ‹ › on the right: left / right on the controller, a click with the mouse
+                var arrows = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 0, 0, 0) };
+                foreach (var (glyph, step) in new[] { ("", -1), ("", 1) })
+                {
+                    var arrow = new Border
+                    {
+                        Background = Brushes.Transparent, Padding = new Thickness(10, 4, 10, 4), Cursor = Cursors.Hand,
+                        Child = new TextBlock
+                        {
+                            Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 16,
+                            Foreground = selected ? Dark : TextGrey, VerticalAlignment = VerticalAlignment.Center
+                        }
+                    };
+                    arrow.MouseLeftButtonUp += (_, e) =>
+                    {
+                        e.Handled = true;   // (not also a click on the row)
+                        adjust(rowIndex, step);
+                    };
+                    arrows.Children.Add(arrow);
+                }
+
+                DockPanel.SetDock(arrows, Dock.Right);
+                line.Children.Add(arrows);
+            }
+            else if (row.IsOn is not null && !row.IsRadio)
             {
                 // on / off: the same switch as the settings, on the right
                 var toggle = Switch(on);

@@ -11,9 +11,10 @@ public partial class BigPictureWindow
 {
     // ---------- what the buttons do ----------
 
-    private void Handle(PadButton button)
+    /// <param name="fromMouse">A hint was clicked (BigPictureWindow.Mouse.cs): the pointer stays on screen.</param>
+    private void Handle(PadButton button, bool fromMouse = false)
     {
-        if (Mouse.OverrideCursor is null)
+        if (!fromMouse && Mouse.OverrideCursor is null)
             HideCursor();   // a button or a key was used: no pointer needed
 
         // (scrolling with the right stick is silent: it repeats 20 times a second)
@@ -274,7 +275,7 @@ public partial class BigPictureWindow
 
         foreach (var c in e.Text)
         {
-            if (char.IsLetterOrDigit(c) || " '-.,:!@#$%^&*()\"<>_".Contains(c))   // (every symbol the on-screen keys have)
+            if (char.IsLetterOrDigit(c) || " '-.,:!@#$%^&*()\"<>_=+;/?\\|".Contains(c))   // (every symbol the on-screen keys have)
                 TypeText(c.ToString());   // (as typed: the real keyboard has its own Shift and Caps Lock)
         }
 
@@ -407,7 +408,14 @@ public partial class BigPictureWindow
     {
         // the game whose page is open (it may have come from the Media tab, not from a tile)
         var chosen = _overlay == Overlay.Details ? DetailsView.DataContext : Carousel.SelectedItem;
-        if (_closing || chosen is not Game game) return;
+        if (chosen is Game game)
+            Launch(game);
+    }
+
+    /// <summary>Starts the game (or goes back to it when it is running already), closing this screen.</summary>
+    private void Launch(Game game)
+    {
+        if (_closing) return;
 
         // the game is running already: Play means going back to it
         if (ReferenceEquals(game, NowPlaying))

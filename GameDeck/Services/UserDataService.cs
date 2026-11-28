@@ -209,6 +209,16 @@ public class UserDataService
         Apply(game);
     }
 
+    /// <summary>Only the shown name (Big Picture's Edit › Title). Empty or the game's own name = its own name again.</summary>
+    public void SetCustomName(Game game, string? customName)
+    {
+        customName = customName?.Trim();
+        GetEntry(game).CustomName = string.IsNullOrEmpty(customName) || customName == game.Name ? null : customName;
+
+        Save();
+        Apply(game);
+    }
+
     /// <summary>The right-click "Rate" menu: 0 (no rating) to 5 stars.</summary>
     public void SetRating(Game game, int rating)
     {

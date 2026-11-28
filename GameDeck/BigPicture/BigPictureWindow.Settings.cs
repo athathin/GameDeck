@@ -173,7 +173,7 @@ public partial class BigPictureWindow
             });
 
         var line = new DockPanel();
-        if (SettingControl(row, selected) is { } control)
+        if (SettingControl(row, selected, index) is { } control)
         {
             DockPanel.SetDock(control, Dock.Right);
             control.Margin = new Thickness(24, 0, 0, 0);
@@ -202,15 +202,30 @@ public partial class BigPictureWindow
             {
                 _settingsInSection = true;
                 _settingsIndex = index;
-                ActivateSettingsRow();
+
+                if (row.Activate is null && row.Adjust is not null)
+                    AdjustSetting(index, 1);   // a choice or a bar: the next value (its ‹ › arrows go either way)
+                else
+                    ActivateSettingsRow();
             };
         }
 
         return card;
     }
 
+    /// <summary>Changes a "‹ choice ›" or a bar by one step (the mouse on its card or its arrows).</summary>
+    private void AdjustSetting(int index, int step)
+    {
+        if (index < 0 || index >= _settingsRows.Count || _settingsRows[index].Adjust is not { } adjust) return;
+
+        _settingsInSection = true;
+        _settingsIndex = index;
+        adjust(step);
+        RenderSettings();
+    }
+
     /// <summary>What sits on the right of a card: a switch, a "‹ choice ›", a bar, a button or a value. Null: nothing.</summary>
-    private FrameworkElement? SettingControl(SettingRow row, bool selected)
+    private FrameworkElement? SettingControl(SettingRow row, bool selected, int index)
     {
         if (row.IsOn is not null)
             return Switch(row.IsOn());
@@ -262,14 +277,22 @@ public partial class BigPictureWindow
 
         return null;
 
-        static TextBlock Arrow(string glyph, Dock side)
+        TextBlock Arrow(string glyph, Dock side)
         {
             var arrow = new TextBlock
             {
                 Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 14, Foreground = ThemeService.TextSecondary,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(8, 4, 8, 4), Background = Brushes.Transparent,
+                Cursor = Cursors.Hand
             };
             DockPanel.SetDock(arrow, side);
+
+            // a click on the arrow: one step that way (and not also the card's click, which always goes forward)
+            arrow.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                AdjustSetting(index, side == Dock.Left ? -1 : 1);
+            };
             return arrow;
         }
     }

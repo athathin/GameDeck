@@ -45,21 +45,22 @@ public partial class BigPictureWindow
         var l = Labels();
         var onController = ShownKind != ControllerKind.None;
 
-        FillBar(HintsLeft, (HomeIcon(l, onController), "POWER"));
+        FillBar(HintsLeft, (HomeIcon(l, onController), "POWER", PadButton.Home));
 
-        var items = new List<(UIElement Icon, string Text)>();
+        // (each can be clicked: it does what its button does)
+        var items = new List<(UIElement Icon, string Text, PadButton? Button)>();
 
         if (IsGamesTab && !_topFocus && !_stripFocus)
-            items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU"));
+            items.Add((onController ? OptionsIcon() : Chip(l.Start), "GAME MENU", PadButton.Start));
 
         if (_stripFocus && _shelves.Count > 1)
-            items.Add((RoundButton(l.X, onController), "NEXT SHELF"));
+            items.Add((RoundButton(l.X, onController), "NEXT SHELF", PadButton.X));
 
         if (_tab == StatsTab && !_topFocus)
         {
-            items.Add((RoundButton(l.X, onController), "REFRESH"));
+            items.Add((RoundButton(l.X, onController), "REFRESH", PadButton.X));
             if (_diskCard is { Lines.Count: > 0 })
-                items.Add((RoundButton(l.Confirm, onController), "FREE UP SPACE"));   // the biggest games, to uninstall
+                items.Add((RoundButton(l.Confirm, onController), "FREE UP SPACE", PadButton.Confirm));   // the biggest games, to uninstall
         }
 
         UpdateDiskRing();   // (the hints change whenever what A does changes: the ring follows)
@@ -69,22 +70,22 @@ public partial class BigPictureWindow
         {
             QueueHintRefresh();
             if (Scrollable(_tab == StatsTab ? StatsScroll : MediaScroll))
-                items.Add((Chip($"{l.LeftTrigger} / {l.RightTrigger}"), "SCROLL"));
+                items.Add((Chip($"{l.LeftTrigger} / {l.RightTrigger}"), "SCROLL", null));   // (the mouse wheel does this)
         }
 
         if (_tab == MediaTab && !_topFocus)
         {
-            items.Add((Chip(l.Select), "BY GAME"));
-            items.Add((RoundButton(l.Y, onController), "GAME PAGE"));
-            items.Add((RoundButton(l.X, onController), "SHOW IN FOLDER"));
-            items.Add((RoundButton(l.Confirm, onController), "VIEW"));
+            items.Add((Chip(l.Select), "BY GAME", PadButton.Select));
+            items.Add((RoundButton(l.Y, onController), "GAME PAGE", PadButton.Y));
+            items.Add((RoundButton(l.X, onController), "SHOW IN FOLDER", PadButton.X));
+            items.Add((RoundButton(l.Confirm, onController), "VIEW", PadButton.Confirm));
         }
         else if (_tab != StatsTab || _topFocus)
         {
-            items.Add((RoundButton(l.Confirm, onController), "SELECT"));
+            items.Add((RoundButton(l.Confirm, onController), "SELECT", PadButton.Confirm));
         }
 
-        items.Add((RoundButton(l.Back, onController), "BACK"));
+        items.Add((RoundButton(l.Back, onController), "BACK", PadButton.Back));
 
         FillBar(HintsPanel, items.ToArray());
     }
@@ -156,7 +157,11 @@ public partial class BigPictureWindow
         var l = Labels();
         TabsPanel.Children.Clear();
 
-        TabsPanel.Children.Add(Chip(l.Left));
+        // LB / RB beside the tabs can be clicked too (the previous / next tab)
+        var left = Chip(l.Left);
+        left.Tag = new HintKey(null, PadButton.LeftShoulder);
+        left.Cursor = Cursors.Hand;
+        TabsPanel.Children.Add(left);
 
         for (var i = 0; i < TabNames.Length; i++)
         {
@@ -211,6 +216,8 @@ public partial class BigPictureWindow
 
         var right = Chip(l.Right);
         right.Margin = new Thickness(22, 0, 0, 0);
+        right.Tag = new HintKey(null, PadButton.RightShoulder);
+        right.Cursor = Cursors.Hand;
         TabsPanel.Children.Add(right);
     }
 }

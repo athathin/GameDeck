@@ -95,40 +95,79 @@ internal static class BigPictureLook
         VerticalAlignment = VerticalAlignment.Center
     };
 
-    /// <summary>A row of hints in a panel: a chip with the button, then what it does.</summary>
+    /// <summary>
+    /// What a hint stands for, on the element that shows it: a click on it does what the button does (the window looks for this
+    /// tag, see BigPictureWindow.Mouse.cs). <see cref="Label"/> is the button's name as shown ("A", "Esc", "◀"), or
+    /// <see cref="Button"/> the button itself.
+    /// </summary>
+    public sealed record HintKey(string? Label, PadButton? Button = null);
+
+    /// <summary>A hint the mouse can click: its parts side by side, the hand pointer, and a light background under the pointer.</summary>
+    private static Border Clickable(HintKey key, Thickness margin, params UIElement[] parts)
+    {
+        var line = new StackPanel { Orientation = Orientation.Horizontal };
+        foreach (var part in parts)
+            line.Children.Add(part);
+
+        var hint = new Border
+        {
+            Child = line, Tag = key, Background = Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand,
+            CornerRadius = new CornerRadius(14), Padding = new Thickness(4, 2, 4, 2), Margin = margin,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        hint.MouseEnter += (_, _) => hint.Background = KeyBackground;
+        hint.MouseLeave += (_, _) => hint.Background = Brushes.Transparent;
+        return hint;
+    }
+
+    /// <summary>
+    /// A row of hints in a panel: a chip with the button, then what it does. Each can be clicked. A hint for two arrows
+    /// ("◀ ▶", "← →") becomes two chips, one per direction.
+    /// </summary>
     public static void FillHints(Panel panel, params (string Button, string Action)[] hints)
     {
         panel.Children.Clear();
 
         foreach (var (button, action) in hints)
         {
-            panel.Children.Add(Chip(button));
-            panel.Children.Add(new TextBlock
+            var words = new TextBlock
             {
                 Text = action, Foreground = TextGrey, FontSize = 16, VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(10, 0, 30, 0)
-            });
+                Margin = new Thickness(10, 0, 6, 0)
+            };
+
+            if (button.Split(' ') is [var left, var right] && left is "◀" or "←" && right is "▶" or "→")
+            {
+                panel.Children.Add(Clickable(new HintKey(null, PadButton.Left), new Thickness(0), Chip(left)));
+                panel.Children.Add(Clickable(new HintKey(null, PadButton.Right), new Thickness(0, 0, 24, 0), Chip(right), words));
+                continue;
+            }
+
+            panel.Children.Add(Clickable(new HintKey(button), new Thickness(0, 0, 24, 0), Chip(button), words));
         }
     }
 
-    /// <summary>The bar at the bottom of the screen: each button's icon, then what it does in capitals.</summary>
-    public static void FillBar(Panel panel, params (UIElement Icon, string Text)[] items)
+    /// <summary>The bar at the bottom of the screen: each button's icon, then what it does in capitals. Each can be clicked.</summary>
+    public static void FillBar(Panel panel, params (UIElement Icon, string Text, PadButton? Button)[] items)
     {
         panel.Children.Clear();
 
-        foreach (var (icon, text) in items)
+        for (var i = 0; i < items.Length; i++)
         {
-            panel.Children.Add(icon);
-            panel.Children.Add(new TextBlock
+            var (icon, text, button) = items[i];
+            var words = new TextBlock
             {
                 Text = text, Foreground = ThemeService.TextPrimary, FontSize = 16, FontWeight = FontWeights.Bold,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 34, 0)
-            });
-        }
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 6, 0)
+            };
 
-        // no gap after the last one, so the bar lines up with the screen's edge
-        if (panel.Children.Count > 0 && panel.Children[^1] is TextBlock last)
-            last.Margin = new Thickness(12, 0, 0, 0);
+            // no gap after the last one, so the bar lines up with the screen's edge
+            var margin = i == items.Length - 1 ? new Thickness(0) : new Thickness(0, 0, 24, 0);
+
+            panel.Children.Add(button is null
+                ? new StackPanel { Orientation = Orientation.Horizontal, Margin = margin, Children = { icon, words } }
+                : Clickable(new HintKey(null, button), margin, icon, words));
+        }
     }
 
     // ---------- controls of the settings ----------
