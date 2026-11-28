@@ -75,8 +75,9 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- cover (2:3 poster) -->
-                <Border Grid.RowSpan="2" Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
+                <!-- cover (2:3 poster). Only in the first row: spanning both, WPF gave half its height to the second row even
+                     when that row is empty (no history or sessions), so such pages could scroll a little for nothing -->
+                <Border Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
                         Background="{Binding PlaceholderBrush}">
                     <Grid>
                         <Grid.Clip>

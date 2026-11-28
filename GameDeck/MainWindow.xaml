@@ -716,7 +716,8 @@
         </Grid>
 
         <!-- ======================= a game's page (click a tile) ======================= -->
-        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed"
+        <!-- (BackdropBleed: the game's picture reaches out over RootGrid's margin, filling the whole window) -->
+        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed" BackdropBleed="24"
                                BackRequested="DetailsPanel_BackRequested"
                                PlayRequested="DetailsPanel_PlayRequested"
                                ScreenshotRequested="DetailsPanel_ScreenshotRequested"

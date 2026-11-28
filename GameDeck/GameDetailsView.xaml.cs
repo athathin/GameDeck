@@ -45,6 +45,19 @@ public partial class GameDetailsView : UserControl
             ThemeService.Changed += MakeBackdropShade;
         };
         Unloaded += (_, _) => ThemeService.Changed -= MakeBackdropShade;
+
+        // the title bar has the game's color only while its page is on screen
+        IsVisibleChanged += (_, _) => UpdateCaption();
+    }
+
+    /// <summary>
+    /// How far (pixels) the background reaches past the page on every side: the desktop window's margin, so the game's picture
+    /// fills the whole window edge to edge, like GOG Galaxy (0 in Big Picture, which has no margin).
+    /// </summary>
+    public double BackdropBleed
+    {
+        get => -BackdropFrame.Margin.Left;
+        set => BackdropFrame.Margin = new Thickness(-value);
     }
 
     /// <summary>Shows one game. The playtime and last-played text keep updating by themselves (they bind to the game).</summary>
@@ -108,6 +121,8 @@ public partial class GameDetailsView : UserControl
         BackdropFrame.Opacity = 0;
         BackdropImage.Source = BackdropBlurred.Source = BackdropColors.Source = null;
         UpdateBackdropBlend(0);   // (the page opens at its top)
+        _topColor = null;
+        UpdateCaption();          // (the last game's color must not stay on the title bar)
 
         var image = await BackgroundService.LoadAsync(game);
         if (image is not BitmapSource picture || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
@@ -126,16 +141,56 @@ public partial class GameDetailsView : UserControl
         BackdropImage.Source = picture;
         BackdropBlurred.Source = blurred;
         BackdropColors.Source = colors;
+        _topColor = TopColor(blurred);
+        UpdateCaption();
         // (the fade redraws the whole page each step: 20 steps a second instead of 60 look the same here and cost a third)
         var fade = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
         System.Windows.Media.Animation.Timeline.SetDesiredFrameRate(fade, 20);
         BackdropFrame.BeginAnimation(OpacityProperty, fade);
     }
 
-    /// <summary>How far (pixels) the page scrolls before the sharp picture is all blurry, and before that is only colors (less
-    /// on a page that can't scroll that far: see UpdateBackdropBlend).</summary>
-    private const double BackdropBlurDistance = 300;
-    private const double BackdropColorsDistance = 900;
+    // the picture's color along its top edge (null: no picture): the title bar above it gets that color, under the same shade
+    private Color? _topColor;
+
+    /// <summary>How much of the picture shows through the shade at the top of the page (see MakeBackdropShade).</summary>
+    private const double ShadeTop = 0.70;
+
+    /// <summary>The average color of the top tenth of the picture (its blurred version: a few thousand pixels).</summary>
+    private static Color TopColor(BitmapSource blurred)
+    {
+        var width = blurred.PixelWidth;
+        var rows = Math.Max(1, blurred.PixelHeight / 10);
+        var pixels = new int[width * rows];
+        blurred.CopyPixels(new Int32Rect(0, 0, width, rows), pixels, width * 4, 0);
+
+        long r = 0, g = 0, b = 0;
+        foreach (var p in pixels) { b += p & 0xFF; g += (p >> 8) & 0xFF; r += (p >> 16) & 0xFF; }
+        return Color.FromRgb((byte)(r / pixels.Length), (byte)(g / pixels.Length), (byte)(b / pixels.Length));
+    }
+
+    /// <summary>
+    /// The title bar in the game's color while its page is on screen (the picture's top edge as it shows under the shade, so
+    /// the bar and the page meet without a seam), and in the window's own color again otherwise.
+    /// </summary>
+    private void UpdateCaption()
+    {
+        var window = Window.GetWindow(this);
+        if (window is null || window.WindowStyle == WindowStyle.None) return;   // (Big Picture has no title bar)
+
+        if (!IsVisible || _topColor is not { } top)
+        {
+            TitleBarStyler.SetCaptionColor(window, null);
+            return;
+        }
+
+        var page = ThemeService.AppBg.Color;
+        byte Mix(byte p, byte t) => (byte)Math.Round(p * ShadeTop + t * (1 - ShadeTop));
+        TitleBarStyler.SetCaptionColor(window, Color.FromRgb(Mix(page.R, top.R), Mix(page.G, top.G), Mix(page.B, top.B)));
+    }
+
+    /// <summary>How far (pixels) the page scrolls before the sharp picture is all blurry, and before that is only colors.</summary>
+    private const double BackdropBlurDistance = 400;
+    private const double BackdropColorsDistance = 1000;
 
     /// <summary>
     /// The picture stays put while the page scrolls over it: sharp at the top, then blurry, then only its colors (and back
@@ -143,11 +198,10 @@ public partial class GameDetailsView : UserControl
     /// </summary>
     private void UpdateBackdropBlend(double offset)
     {
-        // (a short page reaches the colors at its bottom too: the distances shrink to fit how far it can scroll)
-        var end = Math.Min(BackdropColorsDistance, PageScroll.ScrollableHeight);
-        var blur = Math.Min(BackdropBlurDistance, end / 3);
-        var toBlur = end <= 0 ? 0 : Math.Clamp(offset / blur, 0, 1);
-        var toColors = end <= 0 ? 0 : Math.Clamp((offset - blur) / (end - blur), 0, 1);
+        // (by how far the page has scrolled, whatever its length: a page that scrolls only a little blurs only a little, it
+        // doesn't rush through all of it in a few pixels)
+        var toBlur = Math.Clamp(offset / BackdropBlurDistance, 0, 1);
+        var toColors = Math.Clamp((offset - BackdropBlurDistance) / (BackdropColorsDistance - BackdropBlurDistance), 0, 1);
 
         BackdropImage.Opacity = 1 - toBlur;
         BackdropBlurred.Opacity = 1 - toColors;
@@ -243,7 +297,7 @@ public partial class GameDetailsView : UserControl
         Color With(double alpha) => Color.FromArgb((byte)(alpha * 255), page.R, page.G, page.B);
 
         var down = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
-        down.GradientStops.Add(new GradientStop(With(0.70), 0));
+        down.GradientStops.Add(new GradientStop(With(ShadeTop), 0));
         down.GradientStops.Add(new GradientStop(With(0.76), 0.45));
         down.GradientStops.Add(new GradientStop(With(0.80), 1));
         down.Freeze();
@@ -257,6 +311,7 @@ public partial class GameDetailsView : UserControl
 
         BackdropShadeDown.Fill = down;
         BackdropShadeSides.Fill = sides;
+        UpdateCaption();   // (a theme change: the title bar's mix with the page color changes too)
     }
 
     // ---- about the game: from the Steam store or GOG ----
