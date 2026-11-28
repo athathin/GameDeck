@@ -46,7 +46,7 @@ public partial class GameSettingsDialog : Window
         _game = game;
         Title = $"Edit {game.DisplayName}";
         HeaderTitle.Text = $"Editing \"{game.DisplayName}\"";
-        HeaderSource.Text = SourceName(game);
+        HeaderSource.Text = game.SourceText;
         HeaderImage.Source = CurrentCover(game);
 
         NameBox.Text = game.DisplayName;
@@ -68,9 +68,6 @@ public partial class GameSettingsDialog : Window
         NameBox.Focus();
         NameBox.SelectAll();
     }
-
-    /// <summary>The launcher's name under the title ("Steam"); games added by hand say so.</summary>
-    internal static string SourceName(Game game) => game.Source == "Manual" ? "Added by you" : game.Source;
 
     /// <summary>The cover shown now, or the one already on this PC when the tile hasn't loaded it (null when there is none).</summary>
     internal static ImageSource? CurrentCover(Game game) =>

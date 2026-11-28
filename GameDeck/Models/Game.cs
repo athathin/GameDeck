@@ -91,13 +91,9 @@ public class Game : INotifyPropertyChanged
         get => _isHidden;
         set
         {
-            if (Set(ref _isHidden, value))
-                Notify(nameof(HideMenuText));
+            Set(ref _isHidden, value);
         }
     }
-
-    [JsonIgnore]
-    public string HideMenuText => IsHidden ? "Unhide" : "Hide from library";
 
     /// <summary>Extra command-line arguments for the game (empty = none).</summary>
     [JsonIgnore]

@@ -28,7 +28,7 @@ public partial class ConfigureGameDialog : Window
 
         Title = $"Configure {game.DisplayName}";
         HeaderTitle.Text = $"Configuring \"{game.DisplayName}\"";
-        HeaderSource.Text = GameSettingsDialog.SourceName(game);
+        HeaderSource.Text = game.SourceText;
         HeaderImage.Source = GameSettingsDialog.CurrentCover(game);
 
         ArgsBox.Text = game.LaunchArguments ?? "";

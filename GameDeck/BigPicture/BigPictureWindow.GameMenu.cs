@@ -47,8 +47,11 @@ public partial class BigPictureWindow
     /// <summary>The game menu's pages from the main list to the one open now, to come back to after typing or browsing.</summary>
     private MenuPage[] MenuSnapshot() => _menuPages.Reverse().ToArray();
 
-    /// <summary>Opens the game menu again at the pages of <paramref name="pages"/> (each on the row it was on), drawn anew.</summary>
-    private void ReturnToMenu(MenuPage[] pages)
+    /// <summary>
+    /// Opens the game menu again at the pages of <paramref name="pages"/> (each on the row it was on), drawn anew.
+    /// <paramref name="reload"/>: something the row of games shows changed (a name: the order), so it is drawn again too.
+    /// </summary>
+    private void ReturnToMenu(MenuPage[] pages, bool reload = false)
     {
         _menuPages.Clear();
         foreach (var page in pages)
@@ -60,7 +63,8 @@ public partial class BigPictureWindow
             return;
         }
 
-        ReloadLibrary();   // (a new name, rating or cover shows behind the menu)
+        if (reload)
+            ReloadLibrary();
         ShowOverlay(Overlay.GameMenu);
         RenderGameMenu();
     }
@@ -264,7 +268,7 @@ public partial class BigPictureWindow
             new("Uninstall", Activate: () => GameAction(() => actions.Uninstall(game)))
         };
 
-        if (game.Source == "Manual")   // scanned games leave the library by themselves once uninstalled
+        if (game.Source == ManualSource)   // scanned games leave the library by themselves once uninstalled
             rows.Add(new("Remove from library", Activate: () => GameAction(() => actions.RemoveFromLibrary(game, this))));
 
         return rows;

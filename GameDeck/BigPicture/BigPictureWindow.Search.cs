@@ -59,7 +59,9 @@ public partial class BigPictureWindow
     private void TypeFromMenu(string prompt, string text, int max, Action<string> save, bool sentences = false, bool capital = true)
     {
         var pages = MenuSnapshot();
-        OpenTextJob(new TextJob(prompt, max, save, () => ReturnToMenu(pages), sentences, capital), text);
+        var saved = false;   // (Back: nothing changed, the library behind the menu needn't be drawn again)
+        OpenTextJob(new TextJob(prompt, max, typed => { saved = true; save(typed); }, () => ReturnToMenu(pages, reload: saved),
+                                sentences, capital), text);
     }
 
     /// <summary>

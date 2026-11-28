@@ -292,14 +292,7 @@ public partial class BigPictureWindow : Window
 
     private void Timer_Tick(object? sender, EventArgs e)
     {
-#if BETA
-        LagTick();   // (the Beta logs slow controller input: BigPictureWindow.LagLog.cs)
-        var pollStarted = LagNow;
-#endif
         var pressed = _pad.Poll();
-#if BETA
-        LagPoll(pollStarted);
-#endif
 
         // Home + a button is a shortcut (volume, Alt + Tab...): those buttons aren't presses here. Home's own job (the Power
         // menu) happens when it is let go without a shortcut.
@@ -317,14 +310,8 @@ public partial class BigPictureWindow : Window
             if (_closing) break;   // an earlier button already closed this screen (launch, exit...): the rest are stale
             if (ControllerShortcuts.Swallows(button)) continue;
 
-#if BETA
-            var started = LagNow;
-#endif
             SetPadInUse(true);
             Handle(button);
-#if BETA
-            LagPress(button, started);
-#endif
         }
 
         if (homeTapped && !_closing)

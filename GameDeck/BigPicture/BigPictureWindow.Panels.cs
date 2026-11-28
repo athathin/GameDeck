@@ -21,110 +21,181 @@ public partial class BigPictureWindow
         finally { _renderingOnHover = false; }
     }
 
-    /// <summary>Draws a list of headings, tick boxes, radio buttons and actions (the filters, the game menu and the file browser share it).</summary>
+    /// <summary>
+    /// What a drawn list remembers (in its panel's Tag): what its rows were (to tell whether only the selection moved), their
+    /// cells, the selected one, and what a click does now. The cells ask it at the moment of the click, so cells kept from an
+    /// earlier drawing always do what the newest drawing says.
+    /// </summary>
+    private sealed class DrawnRows
+    {
+        public required string Signature;
+        public required List<FilterRow> Rows;
+        public required List<FrameworkElement> Cells;
+        public int Selected;
+        public required Action<int> Activate;
+        public required Action<int> Hover;
+        public Action<int, int>? Adjust;
+    }
+
+    /// <summary>Everything that changes how the rows look, apart from which one is selected (the theme's colors too).</summary>
+    private static string RowsSignature(List<FilterRow> rows) =>
+        System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(ThemeService.SelectBg) + "\u0001" +
+        string.Join("\u0001", rows.Select(r => $"{r.Text}\u0002{r.IsHeader}{r.IsRadio}{r.IsOn?.Invoke()}{r.Adjust is not null}"));
+
+    /// <summary>
+    /// Draws a list of headings, tick boxes, radio buttons and actions (the filters, the game menu and the file browser share it).
+    /// When only the selection moved (the same rows as last time), only the two rows that change are drawn again: a long list
+    /// (a folder of 300 files) doesn't make every press slow.
+    /// </summary>
     /// <param name="adjust">For rows with <see cref="FilterRow.Adjust"/>: the row's index and -1 / +1 (its ‹ › arrows were clicked).</param>
     private void RenderRows(StackPanel panel, List<FilterRow> rows, int selectedIndex, Action<int> activate, Action<int> hover,
                             Action<int, int>? adjust = null)
     {
+        var signature = RowsSignature(rows);
+
+        if (panel.Tag is DrawnRows drawn && drawn.Signature == signature && (drawn.Adjust is null) == (adjust is null))
+        {
+            drawn.Activate = activate;   // (the newest actions: the cells call them through here)
+            drawn.Hover = hover;
+            drawn.Adjust = adjust;
+            drawn.Rows = rows;
+
+            if (drawn.Selected != selectedIndex)
+            {
+                var before = drawn.Selected;
+                drawn.Selected = selectedIndex;
+                RedrawRow(panel, drawn, before);
+                RedrawRow(panel, drawn, selectedIndex);
+            }
+
+            KeepSelectedInView(drawn);
+            return;
+        }
+
+        var state = new DrawnRows
+        {
+            Signature = signature, Rows = rows, Cells = [], Selected = selectedIndex, Activate = activate, Hover = hover, Adjust = adjust
+        };
+        panel.Tag = state;
         panel.Children.Clear();
-        var cells = new List<Border>();
 
         for (var i = 0; i < rows.Count; i++)
         {
-            var row = rows[i];
-
-            if (row.IsHeader)
-            {
-                panel.Children.Add(new TextBlock
-                {
-                    Text = row.Text, Foreground = Muted, FontSize = 14,
-                    FontWeight = FontWeights.SemiBold, Margin = new Thickness(14, 22, 0, 8)
-                });
-                cells.Add(new Border());   // keeps the indexes lined up with the rows
-                continue;
-            }
-
-            var selected = i == selectedIndex;
-            var on = row.IsOn?.Invoke() == true;
-
-            var line = new DockPanel();
-            var rowIndex = i;
-            if (row.Adjust is not null && adjust is not null)
-            {
-                // ‹ › on the right: left / right on the controller, a click with the mouse
-                var arrows = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 0, 0, 0) };
-                foreach (var (glyph, step) in new[] { ("", -1), ("", 1) })
-                {
-                    var arrow = new Border
-                    {
-                        Background = Brushes.Transparent, Padding = new Thickness(10, 4, 10, 4), Cursor = Cursors.Hand,
-                        Child = new TextBlock
-                        {
-                            Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 16,
-                            Foreground = selected ? Dark : TextGrey, VerticalAlignment = VerticalAlignment.Center
-                        }
-                    };
-                    arrow.MouseLeftButtonUp += (_, e) =>
-                    {
-                        e.Handled = true;   // (not also a click on the row)
-                        adjust(rowIndex, step);
-                    };
-                    arrows.Children.Add(arrow);
-                }
-
-                DockPanel.SetDock(arrows, Dock.Right);
-                line.Children.Add(arrows);
-            }
-            else if (row.IsOn is not null && !row.IsRadio)
-            {
-                // on / off: the same switch as the settings, on the right
-                var toggle = Switch(on);
-                toggle.Margin = new Thickness(16, 0, 0, 0);
-                DockPanel.SetDock(toggle, Dock.Right);
-                line.Children.Add(toggle);
-            }
-            else if (row.IsOn is not null)
-            {
-                // one of several (sort order, status, screen mode): a radio button, drawn with Windows' own icon font
-                line.Children.Add(new TextBlock
-                {
-                    Text = on ? "" : "", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
-                    Foreground = selected ? Dark : on ? Accent : Muted,
-                    Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
-                });
-            }
-
-            line.Children.Add(new TextBlock
-            {
-                Text = row.Text, FontSize = 19, VerticalAlignment = VerticalAlignment.Center,
-                Foreground = selected ? Dark : TextGrey, TextTrimming = TextTrimming.CharacterEllipsis
-            });
-
-            var cell = new Border
-            {
-                Background = selected ? ThemeService.SelectBg : Brushes.Transparent,
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(16, 12, 16, 12),
-                Margin = new Thickness(0, 1, 0, 1),
-                Child = line,
-                Cursor = Cursors.Hand
-            };
-
-            var index = i;
-            cell.MouseEnter += (_, _) =>
-            {
-                if (PointerIsChoosing) hover(index);   // (not rows that scroll under a hidden pointer)
-            };
-            cell.MouseLeftButtonUp += (_, _) => activate(index);
-
-            cells.Add(cell);
+            var cell = RowCell(panel, state, i);
+            state.Cells.Add(cell);
             panel.Children.Add(cell);
         }
 
-        // keep the selected row on screen when the panel is long
-        // (not when the mouse chose the row: scrolling under the pointer would make the next row the one it points at)
-        if (selectedIndex < cells.Count && !_renderingOnHover)
-            cells[selectedIndex].BringIntoView();
+        KeepSelectedInView(state);
+    }
+
+    /// <summary>Draws one row again (its selection changed), in its place.</summary>
+    private void RedrawRow(StackPanel panel, DrawnRows drawn, int index)
+    {
+        if (index < 0 || index >= drawn.Rows.Count || drawn.Rows[index].IsHeader) return;
+
+        var cell = RowCell(panel, drawn, index);
+        drawn.Cells[index] = cell;
+        panel.Children[index] = cell;
+    }
+
+    /// <summary>
+    /// Keeps the selected row on screen when the panel is long (not when the mouse chose the row: scrolling under the pointer
+    /// would make the next row the one it points at).
+    /// </summary>
+    private void KeepSelectedInView(DrawnRows drawn)
+    {
+        if (drawn.Selected >= 0 && drawn.Selected < drawn.Cells.Count && !_renderingOnHover)
+            drawn.Cells[drawn.Selected].BringIntoView();
+    }
+
+    /// <summary>One row of a list: a heading, or a cell with its switch, radio button or ‹ › arrows.</summary>
+    private FrameworkElement RowCell(StackPanel panel, DrawnRows state, int index)
+    {
+        var row = state.Rows[index];
+
+        if (row.IsHeader)
+            return new TextBlock
+            {
+                Text = row.Text, Foreground = Muted, FontSize = 14,
+                FontWeight = FontWeights.SemiBold, Margin = new Thickness(14, 22, 0, 8)
+            };
+
+        // (the actions of the newest drawing of this panel)
+        DrawnRows Now() => panel.Tag as DrawnRows ?? state;
+
+        var selected = index == state.Selected;
+        var on = row.IsOn?.Invoke() == true;
+
+        var line = new DockPanel();
+        if (row.Adjust is not null && state.Adjust is not null)
+        {
+            // ‹ › on the right: left / right on the controller, a click with the mouse
+            var arrows = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 0, 0, 0) };
+            foreach (var (glyph, step) in new[] { ("", -1), ("", 1) })
+            {
+                var arrow = new Border
+                {
+                    Background = Brushes.Transparent, Padding = new Thickness(10, 4, 10, 4), Cursor = Cursors.Hand,
+                    Child = new TextBlock
+                    {
+                        Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 16,
+                        Foreground = selected ? Dark : TextGrey, VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                arrow.MouseLeftButtonUp += (_, e) =>
+                {
+                    e.Handled = true;   // (not also a click on the row)
+                    Now().Adjust?.Invoke(index, step);
+                };
+                arrows.Children.Add(arrow);
+            }
+
+            DockPanel.SetDock(arrows, Dock.Right);
+            line.Children.Add(arrows);
+        }
+        else if (row.IsOn is not null && !row.IsRadio)
+        {
+            // on / off: the same switch as the settings, on the right
+            var toggle = Switch(on);
+            toggle.Margin = new Thickness(16, 0, 0, 0);
+            DockPanel.SetDock(toggle, Dock.Right);
+            line.Children.Add(toggle);
+        }
+        else if (row.IsOn is not null)
+        {
+            // one of several (sort order, status, screen mode): a radio button, drawn with Windows' own icon font
+            line.Children.Add(new TextBlock
+            {
+                Text = on ? "" : "", FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 20,
+                Foreground = selected ? Dark : on ? Accent : Muted,
+                Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center
+            });
+        }
+
+        line.Children.Add(new TextBlock
+        {
+            Text = row.Text, FontSize = 19, VerticalAlignment = VerticalAlignment.Center,
+            Foreground = selected ? Dark : TextGrey, TextTrimming = TextTrimming.CharacterEllipsis
+        });
+
+        var cell = new Border
+        {
+            Background = selected ? ThemeService.SelectBg : Brushes.Transparent,
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16, 12, 16, 12),
+            Margin = new Thickness(0, 1, 0, 1),
+            Child = line,
+            Cursor = Cursors.Hand
+        };
+
+        cell.MouseEnter += (_, _) =>
+        {
+            if (PointerIsChoosing) Now().Hover(index);   // (not rows that scroll under a hidden pointer)
+        };
+        cell.MouseLeftButtonUp += (_, _) => Now().Activate(index);
+
+        return cell;
     }
 
     // ---------- LT / RT: a page up / down, wherever something is longer than the screen ----------
