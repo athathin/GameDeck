@@ -77,7 +77,7 @@ public partial class BigPictureWindow
         {
             items.Add((Chip(l.Select), "BY GAME", PadButton.Select));
             items.Add((RoundButton(l.Y, onController), "GAME PAGE", PadButton.Y));
-            items.Add((RoundButton(l.X, onController), "SHOW IN FOLDER", PadButton.X));
+            items.Add((onController ? RoundButton(l.X, true) : Chip("Del"), "DELETE", PadButton.X));   // (asks first)
             items.Add((RoundButton(l.Confirm, onController), "VIEW", PadButton.Confirm));
         }
         else if (_tab != StatsTab || _topFocus)

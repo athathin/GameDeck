@@ -39,6 +39,7 @@ public partial class BigPictureWindow
 
     private void CloseGameMenu()
     {
+        SavePending();   // (a rating changed with left / right a moment ago)
         _menuPages.Clear();
         CloseOverlay();
     }
@@ -117,9 +118,41 @@ public partial class BigPictureWindow
     {
         if (SelectedMenuRow?.Adjust is not { } adjust) return;
 
-        adjust(step);
-        ReloadLibrary();
+        adjust(step);      // (shown at once; saved once the presses stop, see SaveSoon)
         RenderGameMenu();
+    }
+
+    // ---- saving a value changed press by press (the rating with left / right) once the presses stop ----
+    // Saving writes the data file and redraws both libraries: done on every press, holding left / right would lag.
+
+    private System.Windows.Threading.DispatcherTimer? _saveTimer;
+    private Action? _pendingSave;
+
+    /// <summary>Saves with <paramref name="save"/> 0.6 s after the last change (a newer change replaces it), or when the menu closes.</summary>
+    private void SaveSoon(Action save)
+    {
+        _pendingSave = save;
+
+        _saveTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(600) };
+        _saveTimer.Tick -= SaveTimer_Tick;
+        _saveTimer.Tick += SaveTimer_Tick;
+        _saveTimer.Stop();
+        _saveTimer.Start();
+    }
+
+    private void SaveTimer_Tick(object? sender, EventArgs e) => SavePending();
+
+    /// <summary>Saves what is waiting (if anything) and shows the library as it is now.</summary>
+    private void SavePending()
+    {
+        _saveTimer?.Stop();
+        if (_pendingSave is not { } save) return;
+
+        _pendingSave = null;
+        save();
+
+        if (!_closing)
+            ReloadLibrary();
     }
 
     private void HandleGameMenu(PadButton button)
@@ -259,7 +292,11 @@ public partial class BigPictureWindow
                              text => actions.SetName(game, text))),
             new($"Rating:  {(game.HasRating ? game.RatingText : "not rated")}",
                 Activate: () => OpenSubmenu("Rate", () => RateRows(game)),
-                Adjust: step => actions.SetRating(game, Math.Clamp(game.Rating + step, 0, 5))),
+                Adjust: step =>
+                {
+                    game.Rating = Math.Clamp(game.Rating + step, 0, 5);   // shown at once...
+                    SaveSoon(() => actions.SetRating(game, game.Rating));  // ...saved once the presses stop
+                }),
             new($"Categories  ({game.Tags.Count})  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
             new($"Where I left off:  {OrNone(game.LeftOff)}", Activate: () =>
             {

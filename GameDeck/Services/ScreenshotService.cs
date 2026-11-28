@@ -36,6 +36,80 @@ public static class ScreenshotService
     /// <summary>The folder GameDeck keeps this game's added screenshots in.</summary>
     public static string FolderOf(Game game) => Path.Combine(Root, SafeName(game.Name));
 
+    /// <summary>Moves a picture to the Recycle Bin (never deletes it for good: it can be restored from there).</summary>
+    /// <returns>False when it couldn't be moved (gone already, in use, on a drive without a Recycle Bin...).</returns>
+    public static bool MoveToRecycleBin(string file)
+    {
+        try
+        {
+            if (!File.Exists(file)) return false;
+
+            var from = Path.GetFullPath(file) + "\0\0";   // (a list ended by two zeros)
+
+            // to the Recycle Bin, without Windows' own question (Big Picture asked already) and without its windows.
+            // FOF_WANTNUKEWARNING: where there is no Recycle Bin (a network drive...) Windows would delete for good: it asks
+            // first instead, so nothing is ever deleted for good without a question
+            const ushort flags = FofAllowUndo | FofNoConfirmation | FofSilent | FofNoErrorUi | FofWantNukeWarning;
+
+            // (Windows packs this structure tighter in 32-bit programs: the x86 build needs its own layout)
+            bool done;
+            if (IntPtr.Size == 8)
+            {
+                var operation = new ShFileOperation { Func = FoDelete, From = from, Flags = flags };
+                done = SHFileOperation(ref operation) == 0 && !operation.AnyOperationsAborted;
+            }
+            else
+            {
+                var operation = new ShFileOperation32 { Func = FoDelete, From = from, Flags = flags };
+                done = SHFileOperation32(ref operation) == 0 && !operation.AnyOperationsAborted;
+            }
+
+            return done && !File.Exists(file);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    private const uint FoDelete = 0x0003;
+    private const ushort FofSilent = 0x0004, FofNoConfirmation = 0x0010, FofAllowUndo = 0x0040, FofNoErrorUi = 0x0400,
+                         FofWantNukeWarning = 0x4000;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private struct ShFileOperation
+    {
+        public IntPtr Hwnd;
+        public uint Func;
+        public string From;
+        public string? To;
+        public ushort Flags;
+        [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        public bool AnyOperationsAborted;
+        public IntPtr NameMappings;
+        public string? ProgressTitle;
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode, Pack = 1)]
+    private struct ShFileOperation32
+    {
+        public IntPtr Hwnd;
+        public uint Func;
+        public string From;
+        public string? To;
+        public ushort Flags;
+        [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        public bool AnyOperationsAborted;
+        public IntPtr NameMappings;
+        public string? ProgressTitle;
+    }
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int SHFileOperation(ref ShFileOperation operation);
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    private static extern int SHFileOperation32(ref ShFileOperation32 operation);
+
     /// <summary>Opens File Explorer on the picture's folder with the picture selected.</summary>
     /// <returns>False when it couldn't be shown (the file is gone, Explorer didn't start).</returns>
     public static bool ShowInFolder(string file)

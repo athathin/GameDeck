@@ -43,7 +43,7 @@ public partial class BigPictureWindow
         if (label == l.LeftTrigger) return PadButton.LeftTrigger;
         if (label == l.RightTrigger) return PadButton.RightTrigger;
 
-        return label switch { "←" or "◀" => PadButton.Left, "→" or "▶" => PadButton.Right, _ => null };
+        return label switch { "←" or "◀" => PadButton.Left, "→" or "▶" => PadButton.Right, "Del" => PadButton.X, _ => null };
     }
 
     /// <summary>A left click that nothing else took: on a hint it presses that hint's button; on the dimmed screen around a panel it closes the panel.</summary>

@@ -239,7 +239,8 @@ public partial class BigPictureWindow
             Key.S when _overlay == Overlay.Details => PadButton.Y,      // the game's screenshots
             Key.Back when _overlay == Overlay.Search => PadButton.X,    // backspace
             Key.F when _overlay == Overlay.Browse => PadButton.X,       // add the picked games
-            Key.F when _overlay == Overlay.Shots => PadButton.X,        // show the picture in its folder
+            Key.Delete or Key.F when _overlay == Overlay.Shots => PadButton.X,   // move the picture to the Recycle Bin (asks first)
+            Key.Delete when _overlay == Overlay.None && _tab == MediaTab => PadButton.X,
             Key.PageUp when _overlay == Overlay.Search => PadButton.LeftTrigger,     // the text cursor one place left
             Key.PageDown when _overlay == Overlay.Search => PadButton.RightTrigger,  // and right
             Key.Tab => PadButton.Select,

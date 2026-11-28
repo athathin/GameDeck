@@ -289,7 +289,7 @@ public partial class BigPictureWindow
                 return true;
 
             case PadButton.Confirm: OpenMediaShot(); return true;
-            case PadButton.X: ShowMediaInFolder(); return true;
+            case PadButton.X: DeleteMediaShot(); return true;
             case PadButton.Y: OpenMediaGame(); return true;
 
             case PadButton.Select: OpenMediaFilter(); return true;   // the game filter
@@ -319,10 +319,12 @@ public partial class BigPictureWindow
         OpenShots(_media.Select(s => s.File).ToList(), _mediaIndex, fromMedia: true);
     }
 
-    private void ShowMediaInFolder()
+    /// <summary>X: the picture full screen with "move it to the Recycle Bin?" (A: yes, Back: no); then back to the tab.</summary>
+    private void DeleteMediaShot()
     {
-        if (SelectedShot is { } shot && !ScreenshotService.ShowInFolder(shot.File))
-            MediaHeader.Text = "Couldn't open that picture's folder.";
+        if (SelectedShot is null) return;
+
+        OpenShots(_media.Select(s => s.File).ToList(), _mediaIndex, fromMedia: true, askDelete: true);
     }
 
     /// <summary>The page of the game the picture belongs to (Back comes back here).</summary>
@@ -332,12 +334,32 @@ public partial class BigPictureWindow
             OpenDetails(game);
     }
 
-    /// <summary>The full-screen picture was closed: the tab shows the picture it ended on.</summary>
-    private void ReturnToMedia(int shotIndex)
+    /// <summary>
+    /// The full-screen picture was closed: the tab shows the picture it ended on. <paramref name="reload"/>: pictures were moved to
+    /// the Recycle Bin, so the tab drops them (the same game filter, the same place).
+    /// </summary>
+    private async void ReturnToMedia(int shotIndex, bool reload = false)
     {
         CloseOverlay();
 
-        if (shotIndex < _mediaCells.Count)
+        if (reload)
+        {
+            _mediaAll = _mediaAll.Where(s => System.IO.File.Exists(s.File)).ToList();
+            await ShowFilteredMediaAsync();
+
+            // (the pictures come a page at a time: the next pages until the one it ended on is there)
+            while (shotIndex >= _mediaCells.Count && _mediaCells.Count < _media.Count && _overlay == Overlay.None && _tab == MediaTab)
+            {
+                var before = _mediaCells.Count;
+                await AddMediaPageAsync(_mediaVersion);
+                if (_mediaCells.Count == before) break;
+            }
+
+            if (_tab != MediaTab) return;   // (another tab was chosen meanwhile)
+            shotIndex = Math.Min(shotIndex, _mediaCells.Count - 1);
+        }
+
+        if (shotIndex >= 0 && shotIndex < _mediaCells.Count)
             SelectMedia(shotIndex);
     }
 }
