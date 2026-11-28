@@ -8,13 +8,17 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 **One library**
 - Finds the games of every launcher above by itself, with their cover art, and notices games you install or uninstall. Add
   any other game by picking its program. DLC and soundtracks that Steam installs separately are kept apart from the games.
-- Favorites, categories, a status (Playing, Completed, Up next, Dropped), ratings and notes for each game.
-- Search, and filter by launcher, category, status, genre, or smart filters: Never played, Played under 1 hour, Recently added.
+- Favorites, categories, a status (Playing, Completed, Up next, Dropped), a five-star rating and notes for each game. Pick
+  several games (Ctrl / Shift + click) to change them all at once.
+- Search, and filter by launcher, category, status, genre, rating, or smart filters: Never played, Played under 1 hour,
+  Recently added.
 - Tabs for All games, Favorites, Recently played, Stats (playtime, sessions, this year in games, your most played games, how
   many games each of your launchers has, the space your games take, with an Uninstall button for each) and Media (every
   game's screenshots in one place). A weekly recap of the week before, if you like.
-- Each game's page: playtime, achievements, size on disk, a calendar of when you played it, and **where you left off** (GameDeck
-  asks when you close a game).
+- Each game's page, like GOG Galaxy's: the game's art behind the whole window, blurring into its colors as you scroll;
+  playtime, achievements, size on disk, a calendar of when you played it, **where you left off** (GameDeck asks when you
+  close a game), and **about the game** (description, developer, publisher, release date, Metacritic score) from the
+  Steam, GOG, Epic and Microsoft stores, or from IGDB with your own free keys.
 - Playtime is counted for the games you start from GameDeck, and the hours Steam, GOG Galaxy and itch.io counted are included.
 
 **Starting games**
@@ -29,7 +33,7 @@ games you add yourself), with a desktop mode and a full-screen, controller-frien
 **Big Picture mode** (F11, the Big Picture button, or the controller's Home button)
 - The whole library full screen, made for the couch: Xbox, PlayStation and Nintendo controllers, or the keyboard and mouse.
 - Its own settings, an on-screen keyboard for search and notes, and a file browser to add games and screenshots with the
-  controller. Launch routines can be set up there too.
+  controller. A game menu to edit, rate, configure and uninstall games, and launch routines, all with the controller.
 - A home row of shelves: Continue playing, Up next, Recently added, Favorites and your categories.
 - **Now Playing**: press Home during a game to resume it or close it.
 - **Controller shortcuts**: hold Home and press a button for volume, songs, Alt + Tab, the on-screen keyboard or a screenshot,
@@ -83,10 +87,12 @@ from it).
 GameDeck has no account, no ads and no tracking. It only contacts:
 
 - **github.com**, to look for and download updates (turn it off in Settings),
-- **Steam, Epic and Microsoft's store**, to fetch cover art (Riot games' from the Epic store) and genres and look up game names (turn it off with
-  "Download cover art from the internet" in Settings),
+- **Steam, GOG, Epic and Microsoft's store**, to fetch cover art, background art and the games' details (Riot games' from
+  the Epic store) and look up game names (turn it off with "Download cover art from the internet" in Settings),
 - **steamgriddb.com**, only if you enter your own SteamGridDB key in Settings: the names of games that have no cover yet
-  are sent there to look for one.
+  are sent there to look for one,
+- **IGDB (Twitch)**, only if you enter your own Twitch app keys in Settings: the names of your games are sent there to fill
+  in what the stores don't have.
 
 Your library, playtime, screenshots and settings never leave your PC.
 

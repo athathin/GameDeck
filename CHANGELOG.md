@@ -3,6 +3,25 @@
 What changed in each version of GameDeck. GameDeck installs new versions by itself when it starts (see the
 [README](README.md#updates)); the newest version is always on the [releases page](https://github.com/athathin/GameDeck/releases/latest).
 
+## 1.6.0 (28 Nov 2026)
+
+New:
+- **Game pages like GOG Galaxy**: the game's art fills the whole window, even behind the title bar, and blurs into its
+  colors as you scroll. Your stats and the play history side by side.
+- **About the game**: description, developer, publisher, release date and Metacritic score from the Steam, GOG, Epic and
+  Microsoft stores. With your own free keys, **IGDB** fills in what the stores don't have (Settings › Library).
+- **Ratings**: five stars per game, shown on the tiles; sort and filter by rating.
+- **Several games at once**: Ctrl / Shift + click, then right-click to change them all.
+- A tidier right-click menu, with **Edit** and **Configure** windows.
+- Big Picture: the same game menu, Edit and Configure with the controller, screenshots deleted to the Recycle Bin (it asks
+  first), "← Library" on a game's page, and every button clickable with the mouse.
+
+Changed and fixed:
+- Big Picture answers the controller faster.
+- Buttons follow your accent color, and everything follows a theme change.
+- Submenus no longer close on the way to them.
+- Double-clicking the title bar no longer opens a game.
+
 ## 1.5.1 (28 Nov 2026)
 
 New:
