@@ -37,6 +37,10 @@ public sealed class GameInfo
 
     public bool IsEmpty => Source.Length == 0;
 
+    /// <summary>Some of it (what the store left empty) is IGDB's (see GameInfoService.Fill); never saved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool FilledFromIgdb { get; init; }
+
     /// <summary>Read before GameDeck kept backgrounds: a store other than Steam is asked again (Steam's needs no answer).</summary>
     public bool IsStale => !IsEmpty && Version < CurrentVersion && Source != "Steam";
 }
@@ -112,8 +116,53 @@ public static class GameInfoService
 
     private static readonly Dictionary<string, string?> _gogIdsByFolder = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>What is known about the game (null: nothing yet: not asked yet, or the stores couldn't be reached).</summary>
+    /// <summary>
+    /// What is known about the game (null: nothing yet: not asked yet, or the stores couldn't be reached). What its store left
+    /// out (no description, developer, release date...) is filled in from IGDB when the user has keys (see <see cref="Fill"/>).
+    /// </summary>
     public static GameInfo? For(Game game)
+    {
+        var store = FromStores(game);
+        return store is { IsEmpty: false } && HasGaps(store) && IgdbKeyOf(game) is { } key &&
+               _info.TryGetValue(key, out var igdb) && !igdb.IsEmpty && !ReferenceEquals(igdb, store)
+            ? Fill(store, igdb)
+            : store;
+    }
+
+    /// <summary>A store's answer that lacks something IGDB could add (Steam's "only genres" answers, pages without a description...).</summary>
+    internal static bool HasGaps(GameInfo info) =>
+        info.Description is null || info.Developers.Count == 0 || info.Released is null || info.Genres.Count == 0;
+
+    /// <summary>
+    /// The store's answer with its empty parts taken from IGDB's; what the store says always wins. (Not the background: Steam's
+    /// is known by the app id alone and is better than IGDB's, so BackgroundService asks IGDB only after every store.)
+    /// </summary>
+    internal static GameInfo Fill(GameInfo store, GameInfo igdb) => new()
+    {
+        Source = store.Source,
+        Version = store.Version,
+        Partial = store.Partial,
+        Background = store.Background,
+        Metacritic = store.Metacritic,
+        Description = store.Description ?? igdb.Description,
+        Developers = store.Developers.Count > 0 ? store.Developers : igdb.Developers,
+        Publishers = store.Publishers.Count > 0 ? store.Publishers : igdb.Publishers,
+        Genres = store.Genres.Count > 0 ? store.Genres : igdb.Genres,
+        Released = store.Released ?? igdb.Released,
+        FilledFromIgdb = true
+    };
+
+    /// <summary>
+    /// The key IGDB's answer about the game is kept under: the name it is searched for ("igdb:Rocket League" for "Rocket
+    /// League®"); null without keys or a name.
+    /// </summary>
+    internal static string? IgdbKeyOf(Game game) =>
+        IgdbService.Configured && IgdbService.SearchName(game.Name) is { Length: > 0 } name && CoverService.Normalize(name).Length > 0
+            ? "igdb:" + name
+            : null;
+
+    /// <summary>What the stores (and, for games no store has, IGDB) say about the game, as it was saved.</summary>
+    private static GameInfo? FromStores(Game game)
     {
         if (!_loaded) Load();
 
@@ -161,8 +210,8 @@ public static class GameInfoService
 
         // last, IGDB (only with the user's own Twitch keys in Settings): it knows games no store has, by their name. The name
         // as it reads ("Clone Hero"), not squashed ("clonehero"): it is what IGDB is searched for, and its search wants words
-        if (IgdbService.Configured && game.Name.Trim() is { Length: > 0 } name && CoverService.Normalize(name).Length > 0)
-            keys.Add("igdb:" + name);
+        if (IgdbKeyOf(game) is { } igdb)
+            keys.Add(igdb);
 
         return keys;
     }
@@ -304,6 +353,24 @@ public static class GameInfoService
 
                     if (!info.IsEmpty) break;
                 }
+            }
+
+            // 4) the games a store has, but with gaps (no description, developer, date or genres): IGDB fills them in
+            foreach (var game in games.Where(g => FromStores(g) is { IsEmpty: false } store && HasGaps(store)).ToList())
+            {
+                if (IgdbKeyOf(game) is not { } key || _info.ContainsKey(key)) continue;   // (no keys, or asked already)
+                if (!SettingsService.OnlineCovers) return;
+
+                var info = await AskAsync(key);
+                if (info is null)   // offline, or IGDB asks to slow down: the rest wait for the next start
+                {
+                    if (fresh > 0) { Write(InfoPath, _info); changed(); }
+                    return;
+                }
+
+                _info[key] = info;
+                if (++fresh % 10 == 0) { Write(InfoPath, _info); changed(); }
+                await Task.Delay(Pause);
             }
 
             if (fresh % 10 != 0) { Write(InfoPath, _info); changed(); }

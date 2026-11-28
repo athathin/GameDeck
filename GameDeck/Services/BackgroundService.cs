@@ -28,7 +28,13 @@ public static class BackgroundService
         return client;
     }
 
-    /// <summary>Where the picture may be, best first: the store's own, then Steam's (by the game's own or found app id).</summary>
+    /// <summary>Stands for IGDB's artwork in the list of candidates: looked up (by the game's name) only when it is its turn.</summary>
+    internal const string IgdbCandidate = "igdb:artwork";
+
+    /// <summary>
+    /// Where the picture may be, best first: the store's own, then Steam's (by the game's own or found app id), last IGDB's
+    /// artwork when the user has keys (any game: also the ones whose stores have no background picture).
+    /// </summary>
     internal static List<string> Candidates(Game game)
     {
         var urls = new List<string>();
@@ -40,8 +46,15 @@ public static class BackgroundService
             urls.Add($"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appId}/page_bg_raw.jpg");
         }
 
+        if (IgdbService.Configured && game.Info?.Source != "IGDB")   // (an IGDB game's artwork is already first)
+            urls.Add(IgdbCandidate);
+
         return urls;
     }
+
+    /// <summary>IGDB's artwork of the game (or a screenshot of it), or null when IGDB has none.</summary>
+    private static async Task<string?> IgdbArtworkAsync(Game game) =>
+        await IgdbService.FindAsync(game.Name) is { ArtworkId: { } artwork } ? IgdbService.ImageUrl(artwork, "1080p") : null;
 
     /// <summary>
     /// The game's background, read in the background (null when it has none, or it can't be downloaded now). Never throws.
@@ -69,9 +82,10 @@ public static class BackgroundService
                     return null;
 
                 var found = false;
-                foreach (var url in candidates)
+                foreach (var candidate in candidates)
                 {
-                    if (await DownloadAsync(url, file)) { found = true; break; }
+                    var url = candidate == IgdbCandidate ? await IgdbArtworkAsync(game) : candidate;
+                    if (url is not null && await DownloadAsync(url, file)) { found = true; break; }
                 }
 
                 if (!found)
@@ -83,7 +97,8 @@ public static class BackgroundService
 
             return await Task.Run(() => Decode(file));
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException or
+                                         System.Text.Json.JsonException or InvalidOperationException)   // (the last two: IGDB)
         {
             return null;   // offline or unreadable: the page simply has no background (tried again next time)
         }

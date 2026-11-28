@@ -71,9 +71,17 @@ public static class IgdbService
         }
     }
 
+    /// <summary>
+    /// The name as IGDB's search wants it: without ™, ® and © ("Rocket League®" finds nothing, "Rocket League" does) and
+    /// without doubled spaces.
+    /// </summary>
+    public static string SearchName(string name) =>
+        System.Text.RegularExpressions.Regex.Replace(name.Replace("™", " ").Replace("®", " ").Replace("©", " ").Replace("℠", " "), @"\s+", " ").Trim();
+
     /// <summary>The game IGDB has under exactly this name (normalized), or null; asked once per name.</summary>
     public static Task<IgdbGame?> FindAsync(string name)
     {
+        name = SearchName(name);
         var key = CoverService.Normalize(name);
         lock (Asked)
         {

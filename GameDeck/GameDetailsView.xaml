@@ -35,49 +35,21 @@
     </UserControl.Resources>
 
     <Grid>
-    <!-- the game's background art (BackgroundService), blended into the page like GOG Galaxy does it: it stays where it is while
-         the page scrolls over it. (1) a heavily blurred copy fills the whole page with the game's colors, (2) the art itself is
-         sharp at the top, fading out downwards and towards the sides; scrolling down turns the sharp art into the blurred one
-         (UpdateBackdropBlend). ShowBackdrop fades the whole frame in. -->
+    <!-- the game's background art (BackgroundService), like GOG Galaxy shows it: ONE picture that stays where it is while the
+         page scrolls over it, sharp at the top, blurry further down, and only its colors at the bottom (and sharp again on the
+         way back up). Three versions of the same picture, laid out exactly alike, cross-faded by UpdateBackdropBlend: the
+         blurred ones are made once from a tiny copy of it (MakeBlurred), so the graphics card never runs a blur effect.
+         Over them a shade in the page's own color (BackdropShade*, made in code) keeps the text readable; no opacity masks
+         (each needs an extra drawing pass of the whole page). ShowBackdrop fades the frame in. -->
     <Grid x:Name="BackdropFrame" Opacity="0" IsHitTestVisible="False" ClipToBounds="True">
-        <!-- (1) the wash of color; the picture reaches past the edges so the blur's soft rim never shows; cached, so the blur
-             is drawn once, not on every frame (its opacity is set in code) -->
-        <Grid x:Name="BackdropGlow" Opacity="0.18">
-            <Grid.CacheMode>
-                <BitmapCache/>
-            </Grid.CacheMode>
-            <Image x:Name="BackdropGlowImage" Stretch="UniformToFill" Margin="-160"
-                   HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Image.Effect>
-                    <BlurEffect Radius="120" KernelType="Gaussian" RenderingBias="Performance"/>
-                </Image.Effect>
-            </Image>
-        </Grid>
-
-        <!-- (2) the art; the fades are on the frames, not the picture: a "fill" picture is bigger than what shows, so a fade on it
-             would end outside the frame and leave a hard edge -->
-        <Grid x:Name="BackdropArt" VerticalAlignment="Top" Height="760" Opacity="0.26">
-            <Grid.OpacityMask>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#FF000000" Offset="0"/>
-                    <GradientStop Color="#CC000000" Offset="0.35"/>
-                    <GradientStop Color="#44000000" Offset="0.72"/>
-                    <GradientStop Color="#00000000" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.OpacityMask>
-            <Grid ClipToBounds="True">
-                <Grid.OpacityMask>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#33000000" Offset="0"/>
-                        <GradientStop Color="#FF000000" Offset="0.22"/>
-                        <GradientStop Color="#FF000000" Offset="0.78"/>
-                        <GradientStop Color="#33000000" Offset="1"/>
-                    </LinearGradientBrush>
-                </Grid.OpacityMask>
-                <Image x:Name="BackdropImage" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
-            </Grid>
-        </Grid>
+        <Image x:Name="BackdropColors" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="Linear"/>
+        <Image x:Name="BackdropBlurred" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="Linear"/>
+        <Image x:Name="BackdropImage" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="Linear"/>
+        <Rectangle x:Name="BackdropShadeDown"/>
+        <Rectangle x:Name="BackdropShadeSides"/>
     </Grid>
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"

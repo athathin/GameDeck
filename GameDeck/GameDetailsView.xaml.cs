@@ -35,6 +35,16 @@ public partial class GameDetailsView : UserControl
         // Until a game is opened, don't inherit the main window as DataContext: the bindings below
         // would look for Game properties on MainWindow and report "property not found".
         DataContext = null;
+
+        // the shade over the background is in the page's color: made again when the theme changes (only while on screen)
+        MakeBackdropShade();
+        Loaded += (_, _) =>
+        {
+            MakeBackdropShade();
+            ThemeService.Changed -= MakeBackdropShade;   // (Loaded can come twice in a row)
+            ThemeService.Changed += MakeBackdropShade;
+        };
+        Unloaded += (_, _) => ThemeService.Changed -= MakeBackdropShade;
     }
 
     /// <summary>Shows one game. The playtime and last-played text keep updating by themselves (they bind to the game).</summary>
@@ -89,44 +99,164 @@ public partial class GameDetailsView : UserControl
     // ---- the background art at the top ----
 
     /// <summary>
-    /// The game's wide background art, blended into the page (a blurred wash of its colors everywhere, the art itself at the top:
-    /// how strong each is, is set in the XAML), fading in once it is read (or downloaded).
+    /// The game's wide background art behind the page (see the XAML): the picture and its two blurred versions, made in the
+    /// background, fading in once ready.
     /// </summary>
     private async void ShowBackdrop(Game game)
     {
         BackdropFrame.BeginAnimation(OpacityProperty, null);
         BackdropFrame.Opacity = 0;
-        BackdropImage.Source = null;
-        BackdropGlowImage.Source = null;
+        BackdropImage.Source = BackdropBlurred.Source = BackdropColors.Source = null;
         UpdateBackdropBlend(0);   // (the page opens at its top)
 
         var image = await BackgroundService.LoadAsync(game);
-        if (image is null || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
+        if (image is not BitmapSource picture || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
 
-        BackdropImage.Source = image;
-        BackdropGlowImage.Source = image;
-        BackdropFrame.BeginAnimation(OpacityProperty,
-            new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
+        BitmapSource? blurred, colors;
+        try
+        {
+            (blurred, colors) = await Task.Run(() => (MakeBlurred(picture, 480, 10, 1.3), MakeBlurred(picture, 240, 22, 2.0)));
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return;   // (an async void must not throw: the page simply has no background)
+        }
+        if (!ReferenceEquals(DataContext, game)) return;
+
+        BackdropImage.Source = picture;
+        BackdropBlurred.Source = blurred;
+        BackdropColors.Source = colors;
+        // (the fade redraws the whole page each step: 20 steps a second instead of 60 look the same here and cost a third)
+        var fade = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300));
+        System.Windows.Media.Animation.Timeline.SetDesiredFrameRate(fade, 20);
+        BackdropFrame.BeginAnimation(OpacityProperty, fade);
     }
 
-    // how strong each layer of the background is: the sharp art at the top of the page, the blurred wash there, and the wash
-    // once the page is scrolled down (stronger then: it is all that is left of the art, as in GOG Galaxy)
-    private const double BackdropArtOpacity = 0.26;
-    private const double BackdropGlowTop = 0.18;
-    private const double BackdropGlowScrolled = 0.30;
-
-    /// <summary>How far (pixels) the page scrolls before the sharp art has turned completely into the blurred one.</summary>
-    private const double BackdropBlendDistance = 300;
+    /// <summary>How far (pixels) the page scrolls before the sharp picture is all blurry, and before that is only colors (less
+    /// on a page that can't scroll that far: see UpdateBackdropBlend).</summary>
+    private const double BackdropBlurDistance = 300;
+    private const double BackdropColorsDistance = 900;
 
     /// <summary>
-    /// The background stays put while the page scrolls over it; the further down, the more the sharp art gives way to its
-    /// blurred copy (a cross-fade: the blur itself is drawn once, so scrolling stays smooth).
+    /// The picture stays put while the page scrolls over it: sharp at the top, then blurry, then only its colors (and back
+    /// again on the way up). A cross-fade of the three versions: cheap, nothing is redrawn but the fade.
     /// </summary>
     private void UpdateBackdropBlend(double offset)
     {
-        var blurred = Math.Clamp(offset / BackdropBlendDistance, 0, 1);
-        BackdropArt.Opacity = BackdropArtOpacity * (1 - blurred);
-        BackdropGlow.Opacity = BackdropGlowTop + (BackdropGlowScrolled - BackdropGlowTop) * blurred;
+        // (a short page reaches the colors at its bottom too: the distances shrink to fit how far it can scroll)
+        var end = Math.Min(BackdropColorsDistance, PageScroll.ScrollableHeight);
+        var blur = Math.Min(BackdropBlurDistance, end / 3);
+        var toBlur = end <= 0 ? 0 : Math.Clamp(offset / blur, 0, 1);
+        var toColors = end <= 0 ? 0 : Math.Clamp((offset - blur) / (end - blur), 0, 1);
+
+        BackdropImage.Opacity = 1 - toBlur;
+        BackdropBlurred.Opacity = 1 - toColors;
+
+        // only the versions that can be seen are drawn: one that is faded out, or fully covered by the one above it, is not
+        // (at the top of the page that leaves just the sharp picture)
+        BackdropImage.Visibility = toBlur < 1 ? Visibility.Visible : Visibility.Hidden;
+        BackdropBlurred.Visibility = toBlur > 0 && toColors < 1 ? Visibility.Visible : Visibility.Hidden;
+        BackdropColors.Visibility = toColors > 0 ? Visibility.Visible : Visibility.Hidden;
+    }
+
+    /// <summary>
+    /// A smaller, blurred copy of the picture (<paramref name="width"/> pixels wide; shown stretched, it is a strong blur),
+    /// its colors made <paramref name="saturation"/> times as strong (blurring mixes them towards gray): made once, by the
+    /// processor, instead of a blur effect the graphics card would run on the whole page.
+    /// </summary>
+    internal static BitmapSource MakeBlurred(BitmapSource picture, int width, int radius, double saturation)
+    {
+        var height = Math.Max(1, (int)Math.Round(width * (double)picture.PixelHeight / picture.PixelWidth));
+        var small = new FormatConvertedBitmap(
+            new TransformedBitmap(picture, new ScaleTransform((double)width / picture.PixelWidth, (double)height / picture.PixelHeight)),
+            PixelFormats.Bgr32, null, 0);
+
+        width = small.PixelWidth;   // (the scaling may round)
+        height = small.PixelHeight;
+        var pixels = new int[width * height];
+        small.CopyPixels(pixels, width * 4, 0);
+
+        for (var pass = 0; pass < 3; pass++)   // (three box blurs in a row look like a soft, even blur)
+        {
+            BoxBlur(pixels, width, height, radius, horizontal: true);
+            BoxBlur(pixels, width, height, radius, horizontal: false);
+        }
+
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var p = pixels[i];
+            double b = p & 0xFF, g = (p >> 8) & 0xFF, r = (p >> 16) & 0xFF;
+            var gray = 0.299 * r + 0.587 * g + 0.114 * b;
+            int Push(double c) => (int)Math.Clamp(gray + (c - gray) * saturation, 0, 255);
+            pixels[i] = unchecked((int)0xFF000000) | (Push(r) << 16) | (Push(g) << 8) | Push(b);
+        }
+
+        var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, null, pixels, width * 4);
+        result.Freeze();
+        return result;
+    }
+
+    /// <summary>
+    /// One box blur along the rows or the columns (a running sum: as quick for a wide blur as a narrow one); the edge pixels
+    /// repeat past the edge, so there is no dark rim.
+    /// </summary>
+    private static void BoxBlur(int[] pixels, int width, int height, int radius, bool horizontal)
+    {
+        var lines = horizontal ? height : width;
+        var length = horizontal ? width : height;
+        var line = new int[length];
+        var size = 2 * radius + 1;
+
+        for (var l = 0; l < lines; l++)
+        {
+            int At(int i) => horizontal ? l * width + i : i * width + l;
+            for (var i = 0; i < length; i++) line[i] = pixels[At(i)];
+            int Pixel(int i) => line[Math.Clamp(i, 0, length - 1)];
+
+            int b = 0, g = 0, r = 0;
+            for (var k = -radius; k <= radius; k++)
+            {
+                var p = Pixel(k);
+                b += p & 0xFF; g += (p >> 8) & 0xFF; r += (p >> 16) & 0xFF;
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                var half = size / 2;   // (rounded, not cut off: cutting off darkens a little with every pass and leaves faint stripes)
+                pixels[At(i)] = unchecked((int)0xFF000000) | ((r + half) / size << 16) | ((g + half) / size << 8) | ((b + half) / size);
+
+                int add = Pixel(i + radius + 1), drop = Pixel(i - radius);   // (the window moves one pixel on)
+                b += (add & 0xFF) - (drop & 0xFF);
+                g += ((add >> 8) & 0xFF) - ((drop >> 8) & 0xFF);
+                r += ((add >> 16) & 0xFF) - ((drop >> 16) & 0xFF);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The shade over the picture, in the page's own color: thin at the top (the picture shows), thicker further down and at
+    /// the sides, so the text on it stays easy to read. Made again when the theme changes.
+    /// </summary>
+    private void MakeBackdropShade()
+    {
+        var page = ThemeService.AppBg.Color;
+        Color With(double alpha) => Color.FromArgb((byte)(alpha * 255), page.R, page.G, page.B);
+
+        var down = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+        down.GradientStops.Add(new GradientStop(With(0.70), 0));
+        down.GradientStops.Add(new GradientStop(With(0.76), 0.45));
+        down.GradientStops.Add(new GradientStop(With(0.80), 1));
+        down.Freeze();
+
+        var sides = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
+        sides.GradientStops.Add(new GradientStop(With(0.6), 0));
+        sides.GradientStops.Add(new GradientStop(With(0), 0.2));
+        sides.GradientStops.Add(new GradientStop(With(0), 0.8));
+        sides.GradientStops.Add(new GradientStop(With(0.6), 1));
+        sides.Freeze();
+
+        BackdropShadeDown.Fill = down;
+        BackdropShadeSides.Fill = sides;
     }
 
     // ---- about the game: from the Steam store or GOG ----
@@ -184,7 +314,7 @@ public partial class GameDetailsView : UserControl
             "EpicLauncher" => "From the Epic Games Launcher",
             "IGDB" => "From IGDB",
             _ => "From the Steam store"
-        };
+        } + (info.FilledFromIgdb ? " and IGDB" : "");
         AboutSource.Visibility = Visibility.Visible;
     }
 
@@ -248,7 +378,8 @@ public partial class GameDetailsView : UserControl
         if (e.ViewportWidthChange != 0)
             UpdateLayoutMode();
 
-        UpdateBackdropBlend(e.VerticalOffset);
+        if (e.VerticalChange != 0 || e.ExtentHeightChange != 0 || e.ViewportHeightChange != 0)   // (scrolled, or the page's length changed)
+            UpdateBackdropBlend(e.VerticalOffset);
     }
 
     /// <summary>
