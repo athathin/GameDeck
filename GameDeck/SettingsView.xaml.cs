@@ -498,6 +498,20 @@ public partial class SettingsView : UserControl
             OnlineCoversChanged?.Invoke(this, EventArgs.Empty);   // the missing details, backgrounds and covers are looked for again
     }
 
+    /// <summary>Opens the page of Twitch's developer console where an app (and so the IGDB keys) is registered.</summary>
+    private void IgdbConsoleButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://dev.twitch.tv/console/apps/create") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            IgdbStatus.Text = "No browser could be opened: go to dev.twitch.tv/console/apps/create yourself.";
+            IgdbStatus.Visibility = Visibility.Visible;
+        }
+    }
+
     private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => CheckUpdatesRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Shows what the update check is doing / found, and keeps the button off while it works.</summary>

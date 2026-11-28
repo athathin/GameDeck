@@ -373,9 +373,8 @@ public partial class MainWindow
             FiltersChanged();
         };
 
-        FilterChips.Children.Add(new Border
+        var chip = new Border
         {
-            Background = ThemeService.Accent,
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(8, 3, 7, 3),
             Margin = new Thickness(0, 0, 6, 6),
@@ -388,7 +387,9 @@ public partial class MainWindow
                     close
                 }
             }
-        });
+        };
+        chip.SetResourceReference(Border.BackgroundProperty, "Accent");   // (follows a change of the accent color)
+        FilterChips.Children.Add(chip);
     }
 
     /// <summary>After a filter was changed from outside the panel (a chip's x): refresh the list, and the panel if it's open.</summary>

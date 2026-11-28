@@ -187,17 +187,25 @@ public partial class MainWindow
     private FrameworkElement MediaCell(ScreenshotService.MediaShot shot, ImageSource? thumbnail)
     {
         var width = MediaCellWidth;
+        // (colors as resource references, not brushes: a theme change puts new brushes under these names, and the cells follow)
+        static TextBlock Themed(TextBlock text, string brush)
+        {
+            text.SetResourceReference(TextBlock.ForegroundProperty, brush);
+            return text;
+        }
+
         var picture = new RoundedClipBorder
         {
-            Width = width, Height = width * 9 / 16, CornerRadius = new CornerRadius(6), Background = (Brush)FindResource("PanelBg"),
+            Width = width, Height = width * 9 / 16, CornerRadius = new CornerRadius(6),
             Child = thumbnail is null
-                ? new TextBlock
+                ? Themed(new TextBlock
                 {
-                    Text = "Can't be shown", Foreground = ThemeService.TextMuted, FontSize = 12,
+                    Text = "Can't be shown", FontSize = 12,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
-                }
+                }, "TextMuted")
                 : new Image { Source = thumbnail, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
         };
+        picture.SetResourceReference(Border.BackgroundProperty, "PanelBg");
 
         var cell = new StackPanel
         {
@@ -206,16 +214,16 @@ public partial class MainWindow
             Children =
             {
                 picture,
-                new TextBlock
+                Themed(new TextBlock
                 {
-                    Text = shot.Game?.DisplayName ?? "Other", Foreground = ThemeService.TextPrimary, FontSize = 13,
+                    Text = shot.Game?.DisplayName ?? "Other", FontSize = 13,
                     FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 7, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis
-                },
-                new TextBlock
+                }, "TextPrimary"),
+                Themed(new TextBlock
                 {
-                    Text = shot.TakenUtc.ToLocalTime().ToString("d MMM yyyy, HH:mm"), Foreground = ThemeService.TextMuted, FontSize = 12,
+                    Text = shot.TakenUtc.ToLocalTime().ToString("d MMM yyyy, HH:mm"), FontSize = 12,
                     Margin = new Thickness(2, 2, 0, 0)
-                }
+                }, "TextMuted")
             }
         };
 

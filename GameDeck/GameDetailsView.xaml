@@ -35,19 +35,51 @@
     </UserControl.Resources>
 
     <Grid>
-    <!-- the game's background art (BackgroundService), behind the top of the page, fading into the page's own color -->
-    <!-- (the fade is on the frame, not the picture: a "fill" picture is bigger than what shows, so a fade on it would end
-         below the frame and leave a hard edge) -->
-    <Grid x:Name="BackdropFrame" VerticalAlignment="Top" Height="560" ClipToBounds="True" Opacity="0" IsHitTestVisible="False">
-        <Grid.OpacityMask>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Color="#FF000000" Offset="0"/>
-                <GradientStop Color="#99000000" Offset="0.4"/>
-                <GradientStop Color="#00000000" Offset="1"/>
-            </LinearGradientBrush>
-        </Grid.OpacityMask>
-        <Image x:Name="BackdropImage" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"
-               RenderOptions.BitmapScalingMode="HighQuality"/>
+    <!-- the game's background art (BackgroundService), blended into the page like GOG Galaxy does it: (1) a heavily blurred
+         copy fills the whole page with the game's colors, (2) the art itself sits at the top, fading out downwards and towards
+         the sides, and scrolls away a little slower than the page. ShowBackdrop fades the whole frame in. -->
+    <Grid x:Name="BackdropFrame" Opacity="0" IsHitTestVisible="False" ClipToBounds="True">
+        <!-- (1) the wash of color; the picture reaches past the edges so the blur's soft rim never shows; cached, so the blur
+             is drawn once, not on every frame -->
+        <Grid Opacity="0.18">
+            <Grid.CacheMode>
+                <BitmapCache/>
+            </Grid.CacheMode>
+            <Image x:Name="BackdropGlowImage" Stretch="UniformToFill" Margin="-160"
+                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Image.Effect>
+                    <BlurEffect Radius="120" KernelType="Gaussian" RenderingBias="Performance"/>
+                </Image.Effect>
+            </Image>
+        </Grid>
+
+        <!-- (2) the art; the fades are on the frames, not the picture: a "fill" picture is bigger than what shows, so a fade on it
+             would end outside the frame and leave a hard edge -->
+        <Grid VerticalAlignment="Top" Height="660" Opacity="0.26">
+            <Grid.RenderTransform>
+                <TranslateTransform x:Name="BackdropShift"/>
+            </Grid.RenderTransform>
+            <Grid.OpacityMask>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#FF000000" Offset="0"/>
+                    <GradientStop Color="#CC000000" Offset="0.35"/>
+                    <GradientStop Color="#44000000" Offset="0.72"/>
+                    <GradientStop Color="#00000000" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.OpacityMask>
+            <Grid ClipToBounds="True">
+                <Grid.OpacityMask>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#33000000" Offset="0"/>
+                        <GradientStop Color="#FF000000" Offset="0.22"/>
+                        <GradientStop Color="#FF000000" Offset="0.78"/>
+                        <GradientStop Color="#33000000" Offset="1"/>
+                    </LinearGradientBrush>
+                </Grid.OpacityMask>
+                <Image x:Name="BackdropImage" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Grid>
+        </Grid>
     </Grid>
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"

@@ -88,23 +88,28 @@ public partial class GameDetailsView : UserControl
 
     // ---- the background art at the top ----
 
-    /// <summary>Opacity of the background once shown: enough to give the page the game's colors, little enough to keep the text easy to read.</summary>
-    private const double BackdropOpacity = 0.32;
-
-    /// <summary>The game's wide background art behind the top of the page, fading in once it is read (or downloaded).</summary>
+    /// <summary>
+    /// The game's wide background art, blended into the page (a blurred wash of its colors everywhere, the art itself at the top:
+    /// how strong each is, is set in the XAML), fading in once it is read (or downloaded).
+    /// </summary>
     private async void ShowBackdrop(Game game)
     {
         BackdropFrame.BeginAnimation(OpacityProperty, null);
         BackdropFrame.Opacity = 0;
         BackdropImage.Source = null;
+        BackdropGlowImage.Source = null;
 
         var image = await BackgroundService.LoadAsync(game);
         if (image is null || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
 
         BackdropImage.Source = image;
+        BackdropGlowImage.Source = image;
         BackdropFrame.BeginAnimation(OpacityProperty,
-            new System.Windows.Media.Animation.DoubleAnimation(0, BackdropOpacity, TimeSpan.FromMilliseconds(350)));
+            new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(350)));
     }
+
+    /// <summary>How much slower than the page the art at the top scrolls away (the color wash stays where it is).</summary>
+    private const double BackdropParallax = 0.5;
 
     // ---- about the game: from the Steam store or GOG ----
 
@@ -133,17 +138,14 @@ public partial class GameDetailsView : UserControl
 
         void Fact(string value, string label)
         {
+            var valueText = new TextBlock { Text = value, FontSize = 15, FontWeight = FontWeights.SemiBold, MaxWidth = 320, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = value };
+            var labelText = new TextBlock { Text = label, FontSize = 12, Margin = new Thickness(0, 2, 0, 0) };
+            valueText.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
+            labelText.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
             var card = new Border
             {
                 CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 10, 16, 10), Margin = new Thickness(0, 0, 10, 10),
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        new TextBlock { Text = value, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextPrimary"), MaxWidth = 320, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = value },
-                        new TextBlock { Text = label, FontSize = 12, Foreground = (Brush)FindResource("TextMuted"), Margin = new Thickness(0, 2, 0, 0) }
-                    }
-                }
+                Child = new StackPanel { Children = { valueText, labelText } }
             };
             card.SetResourceReference(Border.BackgroundProperty, "PanelBg");
             AboutFacts.Children.Add(card);
@@ -187,10 +189,11 @@ public partial class GameDetailsView : UserControl
             var text = new TextBlock
             {
                 Text = filled ? "★" : "☆", FontSize = 22, Margin = new Thickness(2, 0, 2, 0), Cursor = System.Windows.Input.Cursors.Hand,
-                Foreground = filled ? GameSettingsDialog.StarBrush : (Brush)FindResource("TextMuted"),
                 Background = Brushes.Transparent,
                 ToolTip = star == game.Rating ? "Click again to remove the rating" : $"Rate it {star} star{(star == 1 ? "" : "s")}"
             };
+            if (filled) text.Foreground = GameSettingsDialog.StarBrush;
+            else text.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
             text.MouseLeftButtonUp += (_, e) =>
             {
                 e.Handled = true;
@@ -222,8 +225,12 @@ public partial class GameDetailsView : UserControl
     /// </summary>
     private void PageScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (ReferenceEquals(e.OriginalSource, PageScroll) && e.ViewportWidthChange != 0)
+        if (!ReferenceEquals(e.OriginalSource, PageScroll)) return;
+
+        if (e.ViewportWidthChange != 0)
             UpdateLayoutMode();
+
+        BackdropShift.Y = -e.VerticalOffset * BackdropParallax;
     }
 
     /// <summary>
@@ -314,9 +321,6 @@ public partial class GameDetailsView : UserControl
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         var most = Math.Max(1, history.Days.Max(d => d.Seconds));
-        var accent = (Brush)FindResource("Accent");
-        var empty = (Brush)FindResource("RaisedBg");
-
         for (var i = 0; i < history.Days.Count; i++)
         {
             var (day, seconds) = history.Days[i];
@@ -325,10 +329,11 @@ public partial class GameDetailsView : UserControl
             var cell = new Border
             {
                 Width = DayCell, Height = DayCell, CornerRadius = new CornerRadius(3),
-                Background = seconds > 0 ? accent : empty,
                 Opacity = seconds > 0 ? 0.35 + 0.65 * seconds / most : 1,
                 ToolTip = $"{day:ddd d MMM yyyy}: {(seconds > 0 ? Game.FormatPlaytime(seconds) : "not played")}"
             };
+            // (a reference, not the brush itself: a theme change puts new brushes under these names, and the squares follow)
+            cell.SetResourceReference(Border.BackgroundProperty, seconds > 0 ? "Accent" : "RaisedBg");
 
             Grid.SetColumn(cell, i / 7);
             Grid.SetRow(cell, i % 7);
@@ -370,10 +375,11 @@ public partial class GameDetailsView : UserControl
             var border = new RoundedClipBorder
             {
                 Width = 176, Height = 99, CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 0, 10, 10),
-                Cursor = System.Windows.Input.Cursors.Hand, Background = (Brush)FindResource("PanelBg"),
+                Cursor = System.Windows.Input.Cursors.Hand,
                 ToolTip = Path.GetFileName(Shots[i]),
                 Child = new Image { Source = thumbnail, Stretch = Stretch.UniformToFill, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
             };
+            border.SetResourceReference(Border.BackgroundProperty, "PanelBg");
             border.MouseLeftButtonUp += (_, _) => ScreenshotRequested?.Invoke(this, (Shots, index));
             border.ContextMenu = ShotMenu(Shots, index);
             ShotsWrap.Children.Add(border);
