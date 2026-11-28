@@ -88,29 +88,34 @@ public partial class BigPictureWindow
         }
     }
 
-    // on a game's page: false = Play is selected, true = "Add screenshots" (Down moves to it, Up back to Play)
-    private bool _detailsOnAddShots;
+    // the button selected on a game's page, top to bottom: "← Library", Play, "Add screenshots"
+    private enum DetailsButton { Library, Play, AddShots }
+
+    private DetailsButton _detailsButton = DetailsButton.Play;
 
     private void HandleDetails(PadButton button)
     {
         switch (button)
         {
-            case PadButton.Confirm when _detailsOnAddShots:
+            case PadButton.Confirm when _detailsButton == DetailsButton.AddShots:
                 if (DetailsView.DataContext is Game game) OpenShotBrowse(game);   // (the game whose page is open)
                 break;
+            case PadButton.Confirm when _detailsButton == DetailsButton.Library: SavePending(); CloseOverlay(); break;
             case PadButton.Confirm: _ = PressPlayThenLaunch(); break;
 
-            // Down: Play → "Add screenshots" → then the page scrolls (history, sessions...). Up: the page scrolls back until
-            // "Add screenshots" is on screen again, then Play (at the top)
-            case PadButton.Down when !_detailsOnAddShots: SelectDetailsButton(addShots: true); break;
+            // Down: "← Library" → Play → "Add screenshots" → then the page scrolls (history, sessions...). Up: the page
+            // scrolls back until "Add screenshots" is on screen again, then Play (at the top), then "← Library"
+            case PadButton.Down when _detailsButton == DetailsButton.Library: SelectDetailsButton(DetailsButton.Play); break;
+            case PadButton.Down when _detailsButton == DetailsButton.Play: SelectDetailsButton(DetailsButton.AddShots); break;
             case PadButton.Down: ScrollPage(DetailsView.Scroller, 1, part: 1 / 3.0); break;
-            case PadButton.Up when _detailsOnAddShots:
+            case PadButton.Up when _detailsButton == DetailsButton.AddShots:
                 if (DetailsView.AddShotsInView || !ScrollPage(DetailsView.Scroller, -1, part: 1 / 3.0))
                 {
-                    SelectDetailsButton(addShots: false);
+                    SelectDetailsButton(DetailsButton.Play);
                     DetailsView.ScrollToTop();
                 }
                 break;
+            case PadButton.Up when _detailsButton == DetailsButton.Play: SelectDetailsButton(DetailsButton.Library); break;
 
             // the triggers scroll a page at a time, whichever button is selected; the right stick glides
             case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(DetailsView.Scroller, TriggerDirection(button)); break;
@@ -122,14 +127,16 @@ public partial class BigPictureWindow
         }
     }
 
-    private void SelectDetailsButton(bool addShots)
+    private void SelectDetailsButton(DetailsButton selected)
     {
-        _detailsOnAddShots = addShots;
+        _detailsButton = selected;
 
-        if (addShots)
-            DetailsView.SelectAddShots();
-        else
-            DetailsView.SelectPlay();
+        switch (selected)
+        {
+            case DetailsButton.Library: DetailsView.SelectBack(); break;
+            case DetailsButton.AddShots: DetailsView.SelectAddShots(); break;
+            default: DetailsView.SelectPlay(); break;
+        }
 
         FillDetailsHints();
     }
@@ -170,7 +177,7 @@ public partial class BigPictureWindow
         var ranked = _library.Where(g => !g.IsHidden && g.PlaytimeSeconds > 0).OrderByDescending(g => g.PlaytimeSeconds).ToList();
         DetailsView.Show(game, ranked.IndexOf(game) + 1, ranked.Count, _sessions.Recent(8, game), _sessions.History(game),
                          SteamAppInfo.AddOnsOf(_library, game));
-        _detailsOnAddShots = false;
+        _detailsButton = DetailsButton.Play;
         DetailsView.SetPlayLabel(resume: ReferenceEquals(game, NowPlaying));
         DetailsView.SelectPlay();   // the controller has no pointer: show Play as the selected button
 
@@ -181,7 +188,10 @@ public partial class BigPictureWindow
     private void FillDetailsHints()
     {
         var l = Labels();
-        var hints = new List<(string, string)> { (l.Confirm, _detailsOnAddShots ? "Add screenshots" : "Play") };
+        var hints = new List<(string, string)>
+        {
+            (l.Confirm, _detailsButton switch { DetailsButton.AddShots => "Add screenshots", DetailsButton.Library => "Library", _ => "Play" })
+        };
 
         if (DetailsView.Shots.Count > 0)
             hints.Add((l.Y, "Screenshots"));
@@ -209,6 +219,10 @@ public partial class BigPictureWindow
     }
 
     private void DetailsView_BackRequested(object? sender, EventArgs e) => CloseOverlay();
+
+    /// <summary>The page ends just above the hints (they lie over the game's picture, which fills the screen).</summary>
+    private void DetailsHints_SizeChanged(object sender, SizeChangedEventArgs e) =>
+        DetailsView.PageMargin = new Thickness(56, 36, 56, 32 + 16 + DetailsHints.ActualHeight);
 
     /// <summary>A star on the game's page was clicked with the mouse.</summary>
     private void DetailsView_RatingRequested(object? sender, (Game Game, int Rating) e)

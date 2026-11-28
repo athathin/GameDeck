@@ -6,9 +6,67 @@
         Title="GameDeck" Height="720" Width="1200" MinWidth="1000" MinHeight="520"
         Background="{DynamicResource AppBg}"
         PreviewKeyDown="Window_PreviewKeyDown"
-        PreviewMouseDown="Window_PreviewMouseDown">
+        PreviewMouseDown="Window_PreviewMouseDown"
+        StateChanged="Window_StateChanged">
+
+    <!-- GameDeck draws its own title bar (TitleBar below), so a game's picture can show behind it like in GOG Galaxy. Windows
+         still does the rest: dragging the top strip, double-click to maximize, snapping, the resize borders (MainWindow.TitleBar.cs) -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"
+                      UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <!-- the title bar's buttons, drawn like Windows 11's own -->
+        <Style x:Key="CaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#26808080"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#40808080"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CloseCaptionButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#C42B1C"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#B3C42B1C"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <ctl:ScaleConverter x:Key="Scale"/>
 
@@ -22,7 +80,7 @@
 
         <!-- section headings in the filter panel -->
         <Style x:Key="FilterHeader" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#9D6BFF"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentHover}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
@@ -134,7 +192,10 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" Margin="24" Background="Transparent"
+    <!-- (WindowRoot's margin keeps everything on screen while maximized: see Window_StateChanged) -->
+    <Grid x:Name="WindowRoot">
+    <!-- the window's content, 24 around it as before (the top one below the 32 of the title bar) -->
+    <Grid x:Name="RootGrid" Margin="24,56,24,24" Background="Transparent"
           MouseLeftButtonDown="RootGrid_MouseLeftButtonDown">
 
         <!-- ======================= the library ======================= -->
@@ -716,13 +777,29 @@
         </Grid>
 
         <!-- ======================= a game's page (click a tile) ======================= -->
-        <!-- (BackdropBleed: the game's picture reaches out over RootGrid's margin, filling the whole window) -->
-        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed" BackdropBleed="24"
+        <!-- (over RootGrid's margin and the title bar too, so the game's picture fills the whole window, behind the title bar
+             like in GOG Galaxy; the page keeps that margin inside) -->
+        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed" Margin="-24,-56,-24,-24" PageMargin="24,56,24,24"
                                BackRequested="DetailsPanel_BackRequested"
                                PlayRequested="DetailsPanel_PlayRequested"
                                ScreenshotRequested="DetailsPanel_ScreenshotRequested"
                                RatingRequested="DetailsPanel_RatingRequested"/>
 
         <!-- (the settings, opened with the gear, have a window of their own: SettingsWindow) -->
+    </Grid>
+
+    <!-- ======================= the title bar: see-through, over whatever the window shows ======================= -->
+    <Grid x:Name="TitleBar" Height="32" VerticalAlignment="Top">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False">
+            <Image x:Name="TitleIcon" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+            <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}" Margin="8,0,0,1"
+                       FontSize="12" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="MinimizeButton_Click" ToolTip="Minimize"/>
+            <Button x:Name="MaximizeButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="MaximizeButton_Click"/>
+            <Button Style="{StaticResource CloseCaptionButton}" Content="&#xE8BB;" Click="CloseButton_Click" ToolTip="Close"/>
+        </StackPanel>
+    </Grid>
     </Grid>
 </Window>

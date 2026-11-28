@@ -136,7 +136,7 @@ public partial class BigPictureWindow
         _browseShotsFor = null;
         ShowOverlay(Overlay.Details);
         DetailsView.ReloadShots();      // (the hints follow once they are found: ShotsChanged)
-        SelectDetailsButton(addShots: true);
+        SelectDetailsButton(DetailsButton.AddShots);
     }
 
     private void FillBrowseHints()

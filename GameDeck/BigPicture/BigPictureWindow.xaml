@@ -603,15 +603,15 @@
 
         <!-- ======================= a game's page: Play has to be chosen here ======================= -->
         <Grid x:Name="DetailsOverlay" Visibility="Collapsed" Background="{DynamicResource AppBg}">
-            <DockPanel Margin="56,36,56,32">
-                <StackPanel x:Name="DetailsHints" DockPanel.Dock="Bottom" Orientation="Horizontal"
-                            HorizontalAlignment="Center" Margin="0,16,0,0"/>
-                <!-- the very same page the desktop library opens for a game -->
-                <views:GameDetailsView x:Name="DetailsView" Centered="True"
-                                       BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
-                                       ScreenshotRequested="DetailsView_ScreenshotRequested"
-                                       RatingRequested="DetailsView_RatingRequested"/>
-            </DockPanel>
+            <!-- the very same page the desktop library opens for a game, over the whole screen so the game's picture fills it
+                 edge to edge; the page keeps its room (PageMargin: the bottom one follows the hints' height, see
+                 DetailsHints_SizeChanged) -->
+            <views:GameDetailsView x:Name="DetailsView" Centered="True" PageMargin="56,36,56,96"
+                                   BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
+                                   ScreenshotRequested="DetailsView_ScreenshotRequested"
+                                   RatingRequested="DetailsView_RatingRequested"/>
+            <StackPanel x:Name="DetailsHints" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="0,0,0,32" SizeChanged="DetailsHints_SizeChanged"/>
         </Grid>
 
         <!-- ======================= power menu ======================= -->

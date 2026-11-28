@@ -142,6 +142,9 @@ public static class ThemeService
         var accent = Parse(AccentHex);
         brushes["Accent"] = Frozen(accent);
         brushes["AccentBadge"] = Frozen(Color.FromArgb(0xCC, accent.R, accent.G, accent.B));
+        // (a little lighter: the Play button under the mouse)
+        brushes["AccentHover"] = Frozen(Color.FromRgb(Lighter(accent.R), Lighter(accent.G), Lighter(accent.B)));
+        static byte Lighter(byte c) => (byte)Math.Round(c + (255 - c) * 0.18);
 
         _brushes = brushes;
 

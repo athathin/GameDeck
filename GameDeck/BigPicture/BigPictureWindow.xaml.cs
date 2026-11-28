@@ -57,7 +57,12 @@ public partial class BigPictureWindow : Window
 
     private readonly ObservableCollection<Game> _items = [];
     private readonly GamepadService _pad = new();
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    // reads the controllers every 8 ms, ahead of loading work (see InputClock: the DispatcherTimer before it fired every 31 ms,
+    // later still while the screen was busy, so presses showed up late)
+    private readonly InputClock _timer;
+    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    private TimeSpan _lastTick;
+    private TimeSpan _lastSecondly;
 
     // covers this screen asked for -> whether the main window's tile already wanted it (so closing doesn't take it away)
     private readonly Dictionary<Game, bool> _touchedCovers = [];
@@ -92,8 +97,10 @@ public partial class BigPictureWindow : Window
     private ScrollViewer? _scroll;
     private double _targetOffset;
     private int _tab;
-    private int _tick;
     private bool _closing;
+
+    /// <summary>The tiles' glide: after this many milliseconds 63% of the way is done, 95% after three times as long.</summary>
+    private const double GlideTimeConstantMs = 50;
 
     /// <param name="games">The games to show. Hidden games are not passed in, so they never appear here.</param>
     /// <param name="hiddenKeys">Launch targets of the hidden games, so their play sessions stay out of the Stats tab too.</param>
@@ -137,7 +144,7 @@ public partial class BigPictureWindow : Window
         _pad.ControllerChanged += UpdateControllerUi;
         ThemeService.Changed += OnThemeChanged;
         ApplyScale();
-        _timer.Tick += Timer_Tick;
+        _timer = new InputClock(Dispatcher, TimeSpan.FromMilliseconds(8), Timer_Tick);
         _cursorTimer.Tick += (_, _) => HideCursor();
         Loaded += (_, _) =>
         {
@@ -290,7 +297,7 @@ public partial class BigPictureWindow : Window
         _touchedCovers.Clear();
     }
 
-    private void Timer_Tick(object? sender, EventArgs e)
+    private void Timer_Tick()
     {
         var pressed = _pad.Poll();
 
@@ -320,20 +327,26 @@ public partial class BigPictureWindow : Window
             Handle(PadButton.Home);
         }
 
-        // glide towards the selected tile instead of jumping
+        var now = _clock.Elapsed;
+        var elapsed = Math.Min(100, (now - _lastTick).TotalMilliseconds);   // (since the last tick; capped after a pause)
+        _lastTick = now;
+
+        // glide towards the selected tile instead of jumping: by the time passed, not per tick (the ticks' pace varies), most
+        // of the way in about 0.15 s
         if (_scroll is not null)
         {
             var current = _scroll.HorizontalOffset;
             var distance = _targetOffset - current;
 
             if (Math.Abs(distance) > 0.5)
-                _scroll.ScrollToHorizontalOffset(current + distance * 0.25);
+                _scroll.ScrollToHorizontalOffset(current + distance * (1 - Math.Exp(-elapsed / GlideTimeConstantMs)));
             else if (distance != 0)
                 _scroll.ScrollToHorizontalOffset(_targetOffset);
         }
 
-        if (++_tick % 60 == 0)
+        if (now - _lastSecondly >= TimeSpan.FromSeconds(1))
         {
+            _lastSecondly = now;
             UpdateClock();
             UpdateNowPlaying();   // (the game may have been closed meanwhile)
             UpdateBattery();
