@@ -32,10 +32,12 @@ public sealed class GameInfo
 /// <summary>
 /// A game's details from the stores, without any account: the description, developers, publishers, release date, Metacritic
 /// score and genres. From the Steam store first: a Steam game by its app id, another game (Epic, GOG, Ubisoft...) by its name
-/// (an exact name match, the same search the covers use). Then, for GOG games Steam doesn't have, from GOG's public API by the
-/// game's GOG id. Games that are on neither get none (and their page says so). Each game is asked about once, slowly (one
-/// request every 1.5 seconds, far below Steam's limit), and the answers are kept on this PC. Nothing is asked while "Download
-/// cover art from the internet" is off.
+/// (an exact name match, the same search the covers use). For the games Steam doesn't have: the game's own store (GOG's public
+/// API, Microsoft's store catalog, Epic's store page; Riot's games have pages on Epic's store), then Epic's store page by the
+/// game's name for the launchers with no store to ask (EA, Ubisoft, Battle.net, Rockstar, Amazon, itch.io), and for Epic games
+/// last what Epic's launcher keeps on this PC (see <see cref="OtherKeys"/>). Games none of them has get none (and their page
+/// says so). Each game is asked about once, slowly (one request every 1.5 seconds, far below Steam's limit), and the answers
+/// are kept on this PC. Nothing is asked while "Download cover art from the internet" is off.
 /// </summary>
 public static class GameInfoService
 {
@@ -110,10 +112,86 @@ public static class GameInfoService
             steam = found;
         }
 
-        if (GogIdOf(game) is { } gogId && _info.TryGetValue("gog:" + gogId, out var gog) && !gog.IsEmpty)
-            return gog;
+        foreach (var key in OtherKeys(game))
+        {
+            if (_info.TryGetValue(key, out var other) && !other.IsEmpty)
+                return other;
+        }
 
         return steam;
+    }
+
+    // ---------- after Steam: the game's own store, then Epic's store by name ----------
+
+    /// <summary>
+    /// Where else to look when Steam has nothing, in order: the game's own store (GOG, the Microsoft Store, Epic's store page,
+    /// Riot's page on Epic's store), Epic's store page by the game's name for the launchers that have no store of their own to
+    /// ask (EA, Ubisoft, Battle.net, Rockstar, Amazon, itch.io, games added by hand: many of them are sold there), and last,
+    /// for Epic games, what Epic's launcher keeps on this PC. Keys: "gog:{id}", "xbox:{package family}", "epic:{page}",
+    /// "epiclocal:{catalog item}".
+    /// </summary>
+    internal static List<string> OtherKeys(Game game)
+    {
+        var keys = new List<string>();
+
+        if (GogIdOf(game) is { } gogId)
+            keys.Add("gog:" + gogId);
+
+        if (XboxFamilyOf(game) is { } family)
+            keys.Add("xbox:" + family);
+
+        // (Steam games are Steam's; a Steam game the store no longer has isn't looked for elsewhere by its name)
+        if (game.Source != "Steam" && EpicPageOf(game) is { } page)
+            keys.Add("epic:" + page);
+
+        if (EpicItemOf(game) is { } item)
+            keys.Add("epiclocal:" + item);
+
+        return keys;
+    }
+
+    private const string AppsFolderPrefix = @"shell:AppsFolder\";
+
+    /// <summary>An Xbox / Microsoft Store game's package family name (in its launch link), or null.</summary>
+    private static string? XboxFamilyOf(Game game) =>
+        game.LaunchTarget.StartsWith(AppsFolderPrefix, StringComparison.OrdinalIgnoreCase)
+            ? game.LaunchTarget[AppsFolderPrefix.Length..].Split('!')[0] is { Length: > 0 } family ? family : null
+            : null;
+
+    /// <summary>The Epic store page to read: Riot's games have known pages there; any other game its name, store style ("rocket-league").</summary>
+    private static string? EpicPageOf(Game game)
+    {
+        if (game.LaunchTarget.StartsWith(Scanners.RiotScanner.LaunchPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var product = game.LaunchTarget[Scanners.RiotScanner.LaunchPrefix.Length..].Split('/')[0];
+            if (CoverService.RiotStorePages.TryGetValue(product, out var known)) return known;
+        }
+
+        var slug = CoverService.StoreSlug(game.Name);
+        return slug.Length > 0 ? slug : null;
+    }
+
+    /// <summary>An Epic game's catalog item id (in its launch link: apps/{namespace}%3A{item}%3A{app}), or null.</summary>
+    private static string? EpicItemOf(Game game)
+    {
+        if (!game.LaunchTarget.StartsWith(CoverService.EpicPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+
+        var ids = game.LaunchTarget[CoverService.EpicPrefix.Length..].Split('?')[0].Split("%3A");
+        return ids.Length > 1 && ids[1].Length > 0 ? ids[1] : null;
+    }
+
+    /// <summary>Asks the store a key belongs to; null when it couldn't be asked (offline, too many requests).</summary>
+    private static Task<GameInfo?> AskAsync(string key)
+    {
+        var (store, id) = (key[..key.IndexOf(':')], key[(key.IndexOf(':') + 1)..]);
+        return store switch
+        {
+            "gog" => AskGogAsync(id),
+            "xbox" => AskXboxAsync(id),
+            "epic" => AskEpicPageAsync(id),
+            "epiclocal" => Task.Run(() => (GameInfo?)EpicLocal(id)),
+            _ => Task.FromResult<GameInfo?>(new GameInfo())
+        };
     }
 
     /// <summary>
@@ -130,10 +208,9 @@ public static class GameInfoService
             ? game.SteamAppId is null && _names.ContainsKey(game.Name)      // searched by name: not on Steam
             : _info.TryGetValue("steam:" + appId, out var s) && s.IsEmpty && !s.Partial;  // asked: the store has nothing
 
-        var gogId = GogIdOf(game);
-        var gogAsked = gogId is null || (_info.TryGetValue("gog:" + gogId, out var g) && g.IsEmpty);
+        var othersAsked = OtherKeys(game).All(key => _info.TryGetValue(key, out var other) && other.IsEmpty);
 
-        return steamAsked && gogAsked;
+        return steamAsked && othersAsked;
     }
 
     /// <summary>
@@ -179,11 +256,38 @@ public static class GameInfoService
             if (!await AskAllAsync(steamIds.Select(id => ("steam:" + id, (Func<Task<GameInfo?>>)(() => AskSteamAsync(id)))), changed))
                 return;
 
-            // 3) GOG's details of the GOG games Steam has nothing for
-            var gogIds = games.Where(g => For(g) is null or { IsEmpty: true })
-                .Select(GogIdOf).OfType<string>().Distinct()
-                .Where(id => !_info.ContainsKey("gog:" + id)).ToList();
-            await AskAllAsync(gogIds.Select(id => ("gog:" + id, (Func<Task<GameInfo?>>)(() => AskGogAsync(id)))), changed);
+            // 3) the games Steam has nothing for: their other stores in order, until one has them
+            var fresh = 0;
+            foreach (var game in games.Where(g => For(g) is null or { IsEmpty: true }).ToList())
+            {
+                foreach (var key in OtherKeys(game))
+                {
+                    if (_info.TryGetValue(key, out var known))
+                    {
+                        if (known.IsEmpty) continue;   // asked before, nothing there: the next store
+                        break;                         // (found already, under a key another game shares)
+                    }
+
+                    if (!SettingsService.OnlineCovers) return;
+
+                    var info = await AskAsync(key);
+                    if (info is null)   // offline, or a store asks to slow down: the rest wait for the next start
+                    {
+                        if (fresh > 0) { Write(InfoPath, _info); changed(); }
+                        return;
+                    }
+
+                    _info[key] = info;
+                    if (++fresh % 10 == 0) { Write(InfoPath, _info); changed(); }
+
+                    if (!key.StartsWith("epiclocal:", StringComparison.Ordinal))
+                        await Task.Delay(Pause);   // (only the stores on the internet are asked slowly)
+
+                    if (!info.IsEmpty) break;
+                }
+            }
+
+            if (fresh % 10 != 0) { Write(InfoPath, _info); changed(); }
         }
         finally
         {
@@ -353,7 +457,195 @@ public static class GameInfoService
         return null;
     }
 
+    // ---------- the Microsoft Store (Xbox games) ----------
+
+    /// <summary>What Microsoft's store catalog says about the package; an empty GameInfo when nothing; null when it couldn't be asked.</summary>
+    private static async Task<GameInfo?> AskXboxAsync(string family)
+    {
+        try
+        {
+            // (fieldsTemplate=Details: without it the catalog leaves out the description, developer and publisher)
+            using var response = await Http.GetAsync("https://displaycatalog.mp.microsoft.com/v7.0/products/lookup?market=US&languages=en-US" +
+                                                     $"&alternateId=PackageFamilyName&value={Uri.EscapeDataString(family)}&fieldsTemplate=Details");
+            if (response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.Forbidden) return null;
+            if (!response.IsSuccessStatusCode) return new GameInfo();
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var json = await JsonDocument.ParseAsync(stream);
+            return ParseXbox(json.RootElement);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A catalog answer: { "Products": [ { "LocalizedProperties": [ { "ShortDescription", "DeveloperName", ... } ], "MarketProperties": [ { "OriginalReleaseDate" } ], "Properties": { "Categories" } } ] }.</summary>
+    internal static GameInfo ParseXbox(JsonElement root)
+    {
+        if (!root.TryGetProperty("Products", out var products) || products.ValueKind != JsonValueKind.Array ||
+            products.GetArrayLength() == 0)
+            return new GameInfo();
+
+        var product = products[0];
+        var localized = product.TryGetProperty("LocalizedProperties", out var all) && all.ValueKind == JsonValueKind.Array && all.GetArrayLength() > 0
+            ? all[0]
+            : default;
+
+        var description = CleanText(Text(localized, "ShortDescription")) ?? CleanText(Text(localized, "ProductDescription"));
+        var developer = Text(localized, "DeveloperName");
+        var publisher = Text(localized, "PublisherName");
+
+        // (a product with no words about it, like the Minecraft Launcher's, counts as nothing: its page says so)
+        if (description is null && developer is null) return new GameInfo();
+
+        var info = new GameInfo
+        {
+            Source = "Microsoft",
+            Description = description is null ? null : FirstParagraph(description),
+            Developers = developer is null ? [] : [developer],
+            Publishers = publisher is null ? [] : [publisher]
+        };
+
+        if (product.TryGetProperty("MarketProperties", out var markets) && markets.ValueKind == JsonValueKind.Array && markets.GetArrayLength() > 0 &&
+            Text(markets[0], "OriginalReleaseDate") is { } date)
+            info.Released = IsoDate(date);
+
+        if (product.TryGetProperty("Properties", out var properties) && properties.ValueKind == JsonValueKind.Object)
+            info.Genres = Strings(properties, "Categories") is { Count: > 0 } categories ? categories
+                : Text(properties, "Category") is { } category ? [category] : [];
+
+        return info;
+    }
+
+    // ---------- the Epic Games Store (Epic's and Riot's games, and others sold there) ----------
+
+    /// <summary>What a page of the Epic Games Store says; an empty GameInfo when there is no such page; null when it couldn't be asked.</summary>
+    private static async Task<GameInfo?> AskEpicPageAsync(string page)
+    {
+        try
+        {
+            using var response = await Http.GetAsync($"https://store-content-ipv4.ak.epicgames.com/api/en-US/content/products/{Uri.EscapeDataString(page)}");
+            if (response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.Forbidden) return null;
+            if (!response.IsSuccessStatusCode) return new GameInfo();   // (404: no page of that name)
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var json = await JsonDocument.ParseAsync(stream);
+            return ParseEpicPage(json.RootElement);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A store page: { "pages": [ { "data": { "about": { "shortDescription", "developerAttribution", "publisherAttribution" }, "meta": { "releaseDate" } } } ] }.</summary>
+    internal static GameInfo ParseEpicPage(JsonElement root)
+    {
+        if (!root.TryGetProperty("pages", out var pages) || pages.ValueKind != JsonValueKind.Array) return new GameInfo();
+
+        // the game's own page first ("home"): the others are its editions and offers (a car bundle, an Ultimate Edition)
+        var ordered = pages.EnumerateArray()
+            .OrderBy(p => Text(p, "_slug") == "home" || Text(p, "type") == "productHome" ? 0 : 1)
+            .ToList();
+
+        foreach (var page in ordered)
+        {
+            if (!page.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object ||
+                !data.TryGetProperty("about", out var about) || about.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var description = CleanText(Text(about, "shortDescription")) ?? CleanText(Markdown(Text(about, "description")));
+            var developer = Text(about, "developerAttribution");
+            if (description is null && developer is null) continue;
+
+            var info = new GameInfo
+            {
+                Source = "Epic",
+                Description = description is null ? null : FirstParagraph(description),
+                Developers = developer is null ? [] : [developer],
+                Publishers = Text(about, "publisherAttribution") is { } publisher ? [publisher] : []
+            };
+
+            if (data.TryGetProperty("meta", out var meta) && meta.ValueKind == JsonValueKind.Object && Text(meta, "releaseDate") is { } date)
+                info.Released = IsoDate(date);
+
+            return info;
+        }
+
+        return new GameInfo();
+    }
+
+    private static Dictionary<string, (string? Description, string? Developer)>? _epicCatalog;
+
+    /// <summary>
+    /// What Epic's launcher keeps on this PC about an Epic game (its catalog, catcache.bin: base64-encoded JSON): the description
+    /// and developer, for the Epic games whose store page wasn't found. No internet needed.
+    /// </summary>
+    private static GameInfo EpicLocal(string item)
+    {
+        _epicCatalog ??= ReadEpicCatalog();
+        if (!_epicCatalog.TryGetValue(item, out var entry) || (entry.Description is null && entry.Developer is null))
+            return new GameInfo();
+
+        return new GameInfo
+        {
+            Source = "EpicLauncher",
+            Description = entry.Description is null ? null : FirstParagraph(entry.Description),
+            Developers = entry.Developer is null ? [] : [entry.Developer]
+        };
+    }
+
+    private static Dictionary<string, (string? Description, string? Developer)> ReadEpicCatalog()
+    {
+        var catalog = new Dictionary<string, (string?, string?)>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                                    "Epic", "EpicGamesLauncher", "Data", "Catalog", "catcache.bin");
+            if (!File.Exists(file)) return catalog;
+
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(File.ReadAllText(file).Trim())).TrimStart('﻿');
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return catalog;
+
+            foreach (var entry in doc.RootElement.EnumerateArray())
+            {
+                if (Text(entry, "id") is not { } id) continue;
+
+                // (some games' description is only their name again: that's no description)
+                var description = CleanText(Text(entry, "description"));
+                if (description is not null && (description.Length < 40 ||
+                    CoverService.Normalize(description) == CoverService.Normalize(Text(entry, "title"))))
+                    description = null;
+
+                catalog[id] = (description, Text(entry, "developer"));
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or JsonException)
+        {
+            // unreadable: those games just get nothing from it
+        }
+
+        return catalog;
+    }
+
     // ---------- helpers ----------
+
+    /// <summary>The first paragraph of a longer text (the stores' descriptions run on), cut near 450 letters.</summary>
+    private static string FirstParagraph(string text) =>
+        Shorten(text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? text, 450);
+
+    /// <summary>"2020-09-23T22:00:00.000Z" as "23 Sep 2020" (null when it isn't a date).</summary>
+    private static string? IsoDate(string date) =>
+        DateTimeOffset.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+            ? parsed.UtcDateTime.ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+            : null;
+
+    /// <summary>Markdown as plain text: "**Bold**", "# Heading", links and pictures out (Epic's long descriptions are Markdown).</summary>
+    private static string? Markdown(string? text) =>
+        text is null ? null
+            : Regex.Replace(Regex.Replace(Regex.Replace(text, @"!\[[^\]]*\]\([^)]*\)", ""), @"\[([^\]]*)\]\([^)]*\)", "$1"), @"[#*_>`]+", "");
 
     private static string? Text(JsonElement parent, string property) =>
         parent.ValueKind == JsonValueKind.Object && parent.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String &&

@@ -98,7 +98,7 @@ public partial class GameDetailsView : UserControl
         if (game.Info is not { } info)
         {
             AboutPanel.Visibility = game.NoStoreInfo ? Visibility.Visible : Visibility.Collapsed;
-            AboutText.Text = "No store details for this game: it isn't on the Steam store or GOG.";
+            AboutText.Text = "No store details for this game: none of the stores GameDeck asks (Steam, GOG, Epic, Microsoft) has it.";
             AboutSource.Visibility = Visibility.Collapsed;
             return;
         }
@@ -132,7 +132,14 @@ public partial class GameDetailsView : UserControl
         if (info.Metacritic is { } score) Fact(score.ToString(), "Metacritic");
 
         AboutFacts.Visibility = AboutFacts.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AboutSource.Text = info.Source == "GOG" ? "From GOG" : "From the Steam store";
+        AboutSource.Text = info.Source switch
+        {
+            "GOG" => "From GOG",
+            "Microsoft" => "From the Microsoft Store",
+            "Epic" => "From the Epic Games Store",
+            "EpicLauncher" => "From the Epic Games Launcher",
+            _ => "From the Steam store"
+        };
         AboutSource.Visibility = Visibility.Visible;
     }
 

@@ -20,7 +20,7 @@ namespace GameDeck.Services;
 public static class CoverService
 {
     private const string SteamPrefix = "steam://rungameid/";
-    private const string EpicPrefix = "com.epicgames.launcher://apps/";
+    internal const string EpicPrefix = "com.epicgames.launcher://apps/";
 
     private static readonly string CacheDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.DataFolderName, "covers");
@@ -416,7 +416,7 @@ public static class CoverService
     // ---------- Riot (through the Epic Games Store, where Riot's games have pages) ----------
 
     /// <summary>The Epic store page of each Riot product (its folder name in Riot's files); others use their name, store style.</summary>
-    private static readonly Dictionary<string, string> RiotStorePages = new(StringComparer.OrdinalIgnoreCase)
+    internal static readonly Dictionary<string, string> RiotStorePages = new(StringComparer.OrdinalIgnoreCase)
     {
         ["valorant"] = "valorant",
         ["league_of_legends"] = "league-of-legends",
