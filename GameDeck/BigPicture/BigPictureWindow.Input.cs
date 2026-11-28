@@ -17,8 +17,8 @@ public partial class BigPictureWindow
         if (!fromMouse && Mouse.OverrideCursor is null)
             HideCursor();   // a button or a key was used: no pointer needed
 
-        // (scrolling with the right stick is silent: it repeats 20 times a second)
-        if (button is not (PadButton.ScrollUp or PadButton.ScrollDown))
+        // (scrolling with the right stick is silent: it repeats 20 times a second; so is a press against the end of a row)
+        if (button is not (PadButton.ScrollUp or PadButton.ScrollDown) && !AgainstTheEnd(button))
             NavSounds.Play(button switch
             {
                 PadButton.Confirm or PadButton.Start or PadButton.Y => NavSound.Select,
@@ -70,6 +70,29 @@ public partial class BigPictureWindow
             case PadButton.LeftShoulder: SwitchTab(-1); break;
             case PadButton.RightShoulder: SwitchTab(1); break;
         }
+    }
+
+    /// <summary>
+    /// True when the press would move the selection past the end of the row it is in (the games, the Continue playing row,
+    /// the Media tab's pictures): nothing moves, so no tick either. Follows the order Handle passes the press on in.
+    /// </summary>
+    private bool AgainstTheEnd(PadButton button)
+    {
+        if (_overlay != Overlay.None || button is not (PadButton.Left or PadButton.Right or PadButton.Down)) return false;
+
+        static bool AtEnd(PadButton button, int index, int count) =>
+            count == 0 || (button == PadButton.Left && index <= 0) || (button == PadButton.Right && index >= count - 1);
+
+        if (_stripFocus && StripAvailable)
+            return button != PadButton.Down && AtEnd(button, Math.Clamp(_stripIndex, 0, Math.Max(0, _continueItems.Count - 1)), _continueItems.Count);
+        if (_topFocus)
+            return false;   // (the icons at the top have their own ends)
+        if (_tab == MediaTab)
+            return button == PadButton.Down ? _mediaIndex >= _mediaCells.Count - 1 : AtEnd(button, _mediaIndex, _mediaCells.Count);
+        if (IsGamesTab)
+            return button != PadButton.Down && AtEnd(button, Carousel.SelectedIndex, _items.Count);
+
+        return false;
     }
 
     private void HandleOverlay(PadButton button)

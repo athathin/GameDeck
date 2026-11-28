@@ -297,6 +297,13 @@ public partial class BigPictureWindow : Window
         _touchedCovers.Clear();
     }
 
+    /// <summary>
+    /// A held LB / RB repeats (on through the tabs, through the screenshots), except on the on-screen keyboard: there they
+    /// are Shift and Caps, which a repeat would switch on and off again and again.
+    /// </summary>
+    private bool RepeatWanted(PadButton button) =>
+        !_pad.Repeats.Contains(button) || button is not (PadButton.LeftShoulder or PadButton.RightShoulder) || _overlay != Overlay.Search;
+
     private void Timer_Tick()
     {
         var pressed = _pad.Poll();
@@ -316,6 +323,7 @@ public partial class BigPictureWindow : Window
         {
             if (_closing) break;   // an earlier button already closed this screen (launch, exit...): the rest are stale
             if (ControllerShortcuts.Swallows(button)) continue;
+            if (!RepeatWanted(button)) continue;
 
             SetPadInUse(true);
             Handle(button);

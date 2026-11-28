@@ -66,6 +66,7 @@ public sealed class GamepadService : IDisposable
     private static readonly TimeSpan RepeatDelay = TimeSpan.FromMilliseconds(420);
     private static readonly TimeSpan RepeatInterval = TimeSpan.FromMilliseconds(110);
     private static readonly TimeSpan ScrollInterval = TimeSpan.FromMilliseconds(50);   // the right stick: 20 small scroll steps a second
+    private static readonly TimeSpan ShoulderInterval = TimeSpan.FromMilliseconds(200); // LB / RB held: the tabs go round, 5 a second
     private const short StickThreshold = 16000;   // out of 32767: ignores a stick that doesn't rest exactly in the middle
 
     private sealed class Pad
@@ -83,6 +84,13 @@ public sealed class GamepadService : IDisposable
     private readonly Dictionary<PadButton, TimeSpan> _lastRepeat = [];    // when it last fired
     private readonly HashSet<PadButton> _down = [];                       // buffers reused by every Poll
     private readonly HashSet<PadButton> _padDown = [];
+    private readonly HashSet<PadButton> _repeats = [];
+
+    /// <summary>
+    /// Of the presses the last <see cref="Poll"/> returned, those that are a held button repeating (not a fresh press): a
+    /// screen where a button toggles something (LB / RB are Shift and Caps on the on-screen keyboard) ignores these.
+    /// </summary>
+    public IReadOnlySet<PadButton> Repeats => _repeats;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private bool _started;
 
@@ -233,11 +241,13 @@ public sealed class GamepadService : IDisposable
 
     /// <summary>
     /// Call about 60 times a second. Returns the buttons that were pressed since the last call; a held direction
-    /// repeats after a short delay so a long list can be scrolled by holding the stick or the d-pad.
+    /// repeats after a short delay so a long list can be scrolled by holding the stick or the d-pad, and a held LB / RB too
+    /// (see <see cref="Repeats"/>).
     /// </summary>
     public List<PadButton> Poll()
     {
         var pressed = new List<PadButton>();
+        _repeats.Clear();
         if (!_started) return pressed;
 
         try
@@ -280,15 +290,11 @@ public sealed class GamepadService : IDisposable
                     _lastRepeat[button] = now;
                     pressed.Add(button);
                 }
-                else if (IsDirection(button) && now - _heldSince[button] >= RepeatDelay && now - _lastRepeat[button] >= RepeatInterval)
+                else if (FiresAgain(button, now - _heldSince[button], now - _lastRepeat[button]))
                 {
-                    _lastRepeat[button] = now;      // held: repeat
+                    _lastRepeat[button] = now;      // held: pressed again
                     pressed.Add(button);
-                }
-                else if (button is PadButton.ScrollUp or PadButton.ScrollDown && now - _lastRepeat[button] >= ScrollInterval)
-                {
-                    _lastRepeat[button] = now;      // the right stick held: scrolls on and on, without the directions' first pause
-                    pressed.Add(button);
+                    _repeats.Add(button);
                 }
             }
 
@@ -473,5 +479,17 @@ public sealed class GamepadService : IDisposable
         if (Axis(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > StickThreshold) down.Add(PadButton.RightTrigger);
     }
 
-    private static bool IsDirection(PadButton button) => button is PadButton.Up or PadButton.Down or PadButton.Left or PadButton.Right;
+    /// <summary>
+    /// Whether a held button counts as pressed again, held this long and this long after it last fired: the directions after
+    /// a short pause, then about 9 times a second (long lists); LB / RB after the same pause, then 5 times a second (on
+    /// through the tabs, like a held PgUp / PgDn key); the right stick's scrolling 20 times a second, without the pause.
+    /// Other buttons never repeat.
+    /// </summary>
+    internal static bool FiresAgain(PadButton button, TimeSpan heldFor, TimeSpan sinceLast) => button switch
+    {
+        PadButton.Up or PadButton.Down or PadButton.Left or PadButton.Right => heldFor >= RepeatDelay && sinceLast >= RepeatInterval,
+        PadButton.LeftShoulder or PadButton.RightShoulder => heldFor >= RepeatDelay && sinceLast >= ShoulderInterval,
+        PadButton.ScrollUp or PadButton.ScrollDown => sinceLast >= ScrollInterval,
+        _ => false
+    };
 }
