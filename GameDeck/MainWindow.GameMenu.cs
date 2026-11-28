@@ -12,35 +12,62 @@ public partial class MainWindow
 {
     // ---------- right-click menu ----------
 
+    // the icons of the game menu (Segoe MDL2 Assets)
+    private const string PlayIcon = "", EditIcon = "", ManageIcon = "", ConfigureIcon = "",
+                         ShortcutIcon = "", UninstallIcon = "", RemoveIcon = "", FavoriteIcon = "",
+                         UnfavoriteIcon = "", CategoryIcon = "", RateIcon = "", StatusIcon = "",
+                         HideIcon = "", UnhideIcon = "", ClearIcon = "";
+
     /// <summary>
     /// Builds a tile's right-click menu for its game, each time it opens (so it only holds what applies to this game):
     ///   Play · Edit…
     ///   Manage installation › Configure…, Create desktop shortcut, Uninstall, Remove from library (games added by hand)
     ///   Add to favorites · Categories › · Rate › · Status › · Hide game
+    /// With several games selected (Ctrl / Shift + click) and the click on one of them: the menu for all of them.
     /// </summary>
     private void FillGameMenu(ContextMenu menu, Game game)
     {
         menu.Items.Clear();
 
-        menu.Items.Add(MenuEntry(PlayHeader(), () => _ = LaunchGameAsync(game)));
-        menu.Items.Add(MenuEntry("Edit…", false, () => EditGame(game, this)));
+        if (PickedGames(game) is { Count: > 1 } picked)
+        {
+            FillPickedMenu(menu, picked);
+            return;
+        }
+
+        menu.Items.Add(WithIcon(MenuEntry(new TextBlock { Text = "Play", FontWeight = FontWeights.SemiBold },
+                                          () => _ = LaunchGameAsync(game)), PlayIcon));
+        menu.Items.Add(WithIcon(MenuEntry("Edit…", false, () => EditGame(game, this)), EditIcon));
         menu.Items.Add(new Separator());
 
-        var manage = Submenu(new TextBlock { Text = "Manage installation" });
-        manage.Items.Add(MenuEntry("Configure…", false, () => ConfigureGame(game, this)));
-        manage.Items.Add(MenuEntry("Create desktop shortcut", false, () => CreateShortcut(game, this)));
+        var manage = WithIcon(Submenu(new TextBlock { Text = "Manage installation" }), ManageIcon);
+        manage.Items.Add(WithIcon(MenuEntry("Configure…", false, () => ConfigureGame(game, this)), ConfigureIcon));
+        manage.Items.Add(WithIcon(MenuEntry("Create desktop shortcut", false, () => CreateShortcut(game, this)), ShortcutIcon));
         manage.Items.Add(new Separator());
-        manage.Items.Add(MenuEntry("Uninstall", false, () => ProviderActions.Uninstall(game)));
+        manage.Items.Add(WithIcon(MenuEntry("Uninstall", false, () => ProviderActions.Uninstall(game)), UninstallIcon));
         if (game.Source == ManualSource)   // scanned games leave the library by themselves once uninstalled
-            manage.Items.Add(MenuEntry("Remove from library", false, () => RemoveFromLibrary(game, this)));
+            manage.Items.Add(WithIcon(MenuEntry("Remove from library", false, () => RemoveFromLibrary(game, this)), RemoveIcon));
         menu.Items.Add(manage);
         menu.Items.Add(new Separator());
 
-        menu.Items.Add(MenuEntry(game.FavoriteMenuText, false, () => ToggleFavorite(game)));
-        menu.Items.Add(CategoriesMenu(game));
-        menu.Items.Add(RateMenu(game));
-        menu.Items.Add(StatusMenu(game));
-        menu.Items.Add(MenuEntry(game.IsHidden ? "Unhide game" : "Hide game", false, () => ToggleHidden(game)));
+        menu.Items.Add(WithIcon(MenuEntry(game.FavoriteMenuText, false, () => ToggleFavorite(game)),
+                                game.IsFavorite ? UnfavoriteIcon : FavoriteIcon));
+        menu.Items.Add(WithIcon(CategoriesMenu(game), CategoryIcon));
+        menu.Items.Add(WithIcon(RateMenu(game), RateIcon));
+        menu.Items.Add(WithIcon(StatusMenu(game), StatusIcon));
+        menu.Items.Add(WithIcon(MenuEntry(game.IsHidden ? "Unhide game" : "Hide game", false, () => ToggleHidden(game)),
+                                game.IsHidden ? UnhideIcon : HideIcon));
+    }
+
+    /// <summary>Gives a menu entry its icon (a Segoe MDL2 Assets glyph, in the entry's own color).</summary>
+    private static MenuItem WithIcon(MenuItem item, string glyph)
+    {
+        item.Icon = new TextBlock
+        {
+            Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 14,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+        };
+        return item;
     }
 
     /// <summary>A menu entry whose header is more than plain text (a play icon, gold stars, a count).</summary>
@@ -53,22 +80,6 @@ public partial class MainWindow
 
     /// <summary>An entry that opens a submenu (the arrow shows by itself once it holds entries).</summary>
     private static MenuItem Submenu(FrameworkElement header) => new() { Header = header };
-
-    /// <summary>"▶ Play", a little stronger than the rest, like the first entry of a launcher's menu.</summary>
-    private static FrameworkElement PlayHeader()
-    {
-        var panel = new StackPanel { Orientation = Orientation.Horizontal };
-        panel.Children.Add(new TextBlock
-        {
-            Text = "",   // Segoe MDL2 "Play"
-            FontFamily = new FontFamily("Segoe MDL2 Assets"),
-            FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 1, 10, 0)
-        });
-        panel.Children.Add(new TextBlock { Text = "Play", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-        return panel;
-    }
 
     /// <summary>A submenu's name with a small count on its right ("Categories  [2]": how many the game is in).</summary>
     private static FrameworkElement HeaderWithCount(string text, int count)
@@ -270,9 +281,13 @@ public partial class MainWindow
         return parent;
     }
 
+    /// <summary>A star on the game's page was clicked.</summary>
+    private void DetailsPanel_RatingRequested(object? sender, (Game Game, int Rating) e) => SetRating(e.Game, e.Rating);
+
     private void SetRating(Game game, int rating)
     {
         _userData.SetRating(game, rating);
+        DetailsPanel.ShowRating(game);   // (when its page is open)
         Refresh();   // sorted by rating, the game moves
     }
 

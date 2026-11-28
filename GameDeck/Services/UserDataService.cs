@@ -392,8 +392,38 @@ public class UserDataService
         return entry;
     }
 
+    private int _batching;
+    private bool _savePending;
+
+    /// <summary>
+    /// Runs several changes (the same change to many selected games) and writes the file once at the end, instead of once
+    /// per change.
+    /// </summary>
+    public void Batch(Action changes)
+    {
+        _batching++;
+        try
+        {
+            changes();
+        }
+        finally
+        {
+            if (--_batching == 0 && _savePending)
+            {
+                _savePending = false;
+                Save();
+            }
+        }
+    }
+
     private void Save()
     {
+        if (_batching > 0)
+        {
+            _savePending = true;   // (written once, when the batch ends)
+            return;
+        }
+
         try
         {
             AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(_entries, JsonOptions));

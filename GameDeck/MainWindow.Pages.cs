@@ -325,15 +325,19 @@ public partial class MainWindow
             SettingsPanel?.SetGamesStatus(status);
     }
 
+    /// <summary>"Pick a game for me": one of the games marked Up next when the list shows some, otherwise any game shown.</summary>
     private void PickRandomGame()
     {
         var games = RealGames.ToList();
         if (games.Count == 0) return;
 
-        var game = games[Random.Shared.Next(games.Count)];
+        var upNext = games.Where(g => g.Status == GameStatus.UpNext).ToList();
+        var pool = upNext.Count > 0 ? upNext : games;
+
+        var game = pool[Random.Shared.Next(pool.Count)];
         GameList.SelectedItem = game;
         GameList.ScrollIntoView(game);
-        StatusText.Text = $"How about {game.DisplayName}?";
+        StatusText.Text = upNext.Count > 0 ? $"How about {game.DisplayName}? (from your Up next games)" : $"How about {game.DisplayName}?";
     }
 
     /// <summary>The "pick a game for me" tile has no right-click menu.</summary>
@@ -665,6 +669,14 @@ public partial class MainWindow
 
         if (game is null || !ReferenceEquals(game, pressed))
             return;
+
+        // Ctrl + click picks one more game (or drops it), Shift + click a run of games: the list does that itself, and the
+        // right-click menu then works on all of them. No game page opens.
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            ShowPickedCount();
+            return;
+        }
 
         if (game.IsRandomTile)
         {

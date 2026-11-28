@@ -242,6 +242,14 @@
                                             Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}">
                                         <TextBlock Text="★" Foreground="#FFC857" FontSize="17"/>
                                     </Border>
+
+                                    <!-- the rating, bottom right ("4 ★", like the desktop's tiles) -->
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10"
+                                            Background="#99000000" CornerRadius="10" Padding="8,2,8,3"
+                                            Visibility="{Binding HasRating, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="{Binding Rating, StringFormat={}{0} ★}" Foreground="#FFC857" FontSize="15"
+                                                   FontWeight="SemiBold"/>
+                                    </Border>
                                 </Grid>
                                 <DataTemplate.Triggers>
                                     <!-- hidden games (only listed while "Hidden games" is on) are dimmed, like on the desktop -->
@@ -601,7 +609,8 @@
                 <!-- the very same page the desktop library opens for a game -->
                 <views:GameDetailsView x:Name="DetailsView" Centered="True"
                                        BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
-                                       ScreenshotRequested="DetailsView_ScreenshotRequested"/>
+                                       ScreenshotRequested="DetailsView_ScreenshotRequested"
+                                       RatingRequested="DetailsView_RatingRequested"/>
             </DockPanel>
         </Grid>
 

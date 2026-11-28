@@ -1,11 +1,13 @@
 ﻿namespace GameDeck.Models;
 
-/// <summary>Filters worked out from what GameDeck already knows about each game (playtime, when it was added).</summary>
+/// <summary>Filters worked out from what GameDeck already knows about each game (playtime, when it was added, your rating).</summary>
 public enum SmartFilter
 {
     NeverPlayed,
     UnderAnHour,
-    RecentlyAdded
+    RecentlyAdded,
+    RatedHigh,   // 4 or 5 stars
+    NotRated
 }
 
 public static class SmartFilterExtensions
@@ -19,6 +21,8 @@ public static class SmartFilterExtensions
         SmartFilter.NeverPlayed => "Never played",
         SmartFilter.UnderAnHour => "Played under 1 hour",
         SmartFilter.RecentlyAdded => "Recently added",
+        SmartFilter.RatedHigh => "Rated 4 ★ or more",
+        SmartFilter.NotRated => "Not rated yet",
         _ => filter.ToString()
     };
 
@@ -35,6 +39,8 @@ public static class SmartFilterExtensions
             SmartFilter.NeverPlayed => !played,
             SmartFilter.UnderAnHour => played && game.PlaytimeSeconds < 3600,
             SmartFilter.RecentlyAdded => game.AddedUtc is { } added && added > DateTime.MinValue && nowUtc - added <= RecentlyAddedFor,
+            SmartFilter.RatedHigh => game.Rating >= 4,
+            SmartFilter.NotRated => game.Rating == 0,
             _ => false
         };
     }

@@ -116,7 +116,9 @@ public partial class BigPictureWindow
             case PadButton.LeftTrigger or PadButton.RightTrigger: ScrollPage(DetailsView.Scroller, TriggerDirection(button)); break;
             case PadButton.ScrollUp or PadButton.ScrollDown: ScrollSmoothly(DetailsView.Scroller, button); break;
             case PadButton.Y when DetailsView.Shots.Count > 0: OpenShots(DetailsView.Shots, 0); break;
-            case PadButton.Back: CloseOverlay(); break;
+            case PadButton.Left: RateOnDetails(-1); break;
+            case PadButton.Right: RateOnDetails(1); break;
+            case PadButton.Back: SavePending(); CloseOverlay(); break;
         }
     }
 
@@ -184,6 +186,8 @@ public partial class BigPictureWindow
         if (DetailsView.Shots.Count > 0)
             hints.Add((l.Y, "Screenshots"));
 
+        hints.Add((ShownKind == ControllerKind.None ? "← →" : "◀ ▶", "Rate"));
+
         hints.Add((l.Back, "Back"));
         AddScrollHint(hints, Scrollable(DetailsView.Scroller));
         FillHints(DetailsHints, hints.ToArray());
@@ -205,6 +209,23 @@ public partial class BigPictureWindow
     }
 
     private void DetailsView_BackRequested(object? sender, EventArgs e) => CloseOverlay();
+
+    /// <summary>A star on the game's page was clicked with the mouse.</summary>
+    private void DetailsView_RatingRequested(object? sender, (Game Game, int Rating) e)
+    {
+        e.Game.Rating = e.Rating;   // (shown at once; saved a moment later, like left / right)
+        SaveSoon(() => _gameActions.SetRating(e.Game, e.Game.Rating));
+    }
+
+    /// <summary>Left / right on a game's page: one star less / more (shown at once, saved once the presses stop).</summary>
+    private void RateOnDetails(int step)
+    {
+        if (DetailsView.DataContext is not Game game) return;
+
+        game.Rating = Math.Clamp(game.Rating + step, 0, 5);
+        DetailsView.ShowRating(game);
+        SaveSoon(() => _gameActions.SetRating(game, game.Rating));
+    }
 
     private void DetailsView_PlayRequested(object? sender, Game game) => _ = PressPlayThenLaunch();
 
@@ -465,14 +486,16 @@ public partial class BigPictureWindow
         }
     }
 
+    /// <summary>RT: a game at random, one of the Up next games when the row has some (not the one selected now, when there are others).</summary>
     private void PickRandom()
     {
         if (_items.Count == 0) return;
 
-        var index = Random.Shared.Next(_items.Count);
-        if (_items.Count > 1 && index == Carousel.SelectedIndex)
-            index = (index + 1) % _items.Count;
+        var upNext = Enumerable.Range(0, _items.Count).Where(i => _items[i].Status == GameStatus.UpNext).ToList();
+        var pool = upNext.Count > 0 ? upNext : Enumerable.Range(0, _items.Count).ToList();
+        if (pool.Count > 1)
+            pool.Remove(Carousel.SelectedIndex);
 
-        Carousel.SelectedIndex = index;
+        Carousel.SelectedIndex = pool[Random.Shared.Next(pool.Count)];
     }
 }

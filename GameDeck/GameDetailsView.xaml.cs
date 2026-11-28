@@ -49,11 +49,19 @@ public partial class GameDetailsView : UserControl
 
         SessionsList.ItemsSource = sessions;
         SessionsPanel.Visibility = sessions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        ShowHistory(history);
+
+        // the play history (twenty weeks of little squares, each with its own tooltip) is drawn just after the page shows, so
+        // the page comes up first
+        HistoryGrid.Children.Clear();
+        HistoryPanel.Visibility = history is null ? Visibility.Collapsed : Visibility.Visible;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+        {
+            if (ReferenceEquals(DataContext, game))
+                ShowHistory(history);
+        });
 
         RankText.Text = game.PlaytimeSeconds > 0 ? $"#{rank} of {playedCount}" : "-";
-        RatingStarsText.Text = game.RatingText;
-        RatingStarsText.Visibility = game.HasRating ? Visibility.Visible : Visibility.Collapsed;
+        ShowRating(game);
 
         ShowLeftOff(game);
 
@@ -73,6 +81,40 @@ public partial class GameDetailsView : UserControl
 
         UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
         PageScroll.ScrollToTop();
+    }
+
+    // ---- the rating: five stars to click ----
+
+    /// <summary>A star was clicked: the game's new rating (0 = clicking the current rating again takes it away).</summary>
+    public event EventHandler<(Game Game, int Rating)>? RatingRequested;
+
+    /// <summary>The game's rating as five stars (gold up to the rating); clicking one rates the game, the same one again clears it.</summary>
+    public void ShowRating(Game game)
+    {
+        if (!ReferenceEquals(DataContext, game)) return;
+
+        RatingStars.Children.Clear();
+        for (var i = 1; i <= 5; i++)
+        {
+            var star = i;
+            var filled = star <= game.Rating;
+
+            var text = new TextBlock
+            {
+                Text = filled ? "★" : "☆", FontSize = 22, Margin = new Thickness(2, 0, 2, 0), Cursor = System.Windows.Input.Cursors.Hand,
+                Foreground = filled ? GameSettingsDialog.StarBrush : (Brush)FindResource("TextMuted"),
+                Background = Brushes.Transparent,
+                ToolTip = star == game.Rating ? "Click again to remove the rating" : $"Rate it {star} star{(star == 1 ? "" : "s")}"
+            };
+            text.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                RatingRequested?.Invoke(this, (game, game.Rating == star ? 0 : star));
+                ShowRating(game);
+            };
+
+            RatingStars.Children.Add(text);
+        }
     }
 
     // ---- layout: one column, or two on a wide screen ----

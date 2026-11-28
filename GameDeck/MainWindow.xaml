@@ -357,6 +357,7 @@
             <ListBox x:Name="GameList" Grid.Row="3"
                      ItemsSource="{Binding Games}"
                      ItemContainerStyle="{StaticResource TileItem}"
+                     SelectionMode="Extended"
                      Background="Transparent" BorderThickness="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      ScrollViewer.VerticalScrollBarVisibility="Visible"
@@ -439,6 +440,14 @@
                                         Background="#99000000" CornerRadius="10" Padding="6,1" IsHitTestVisible="False"
                                         Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}">
                                     <TextBlock Text="★" Foreground="#FFC857" FontSize="14"/>
+                                </Border>
+
+                                <!-- the rating, bottom right ("4 ★": a number, so it isn't taken for the favorite star) -->
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,7"
+                                        Background="#99000000" CornerRadius="8" Padding="6,1,6,2" IsHitTestVisible="False"
+                                        Visibility="{Binding HasRating, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Rating, StringFormat={}{0} ★}" Foreground="#FFC857" FontSize="12"
+                                               FontWeight="SemiBold"/>
                                 </Border>
 
                                 <Border x:Name="Highlight" BorderBrush="{DynamicResource Accent}" BorderThickness="2"
@@ -710,7 +719,8 @@
         <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed"
                                BackRequested="DetailsPanel_BackRequested"
                                PlayRequested="DetailsPanel_PlayRequested"
-                               ScreenshotRequested="DetailsPanel_ScreenshotRequested"/>
+                               ScreenshotRequested="DetailsPanel_ScreenshotRequested"
+                               RatingRequested="DetailsPanel_RatingRequested"/>
 
         <!-- (the settings, opened with the gear, have a window of their own: SettingsWindow) -->
     </Grid>

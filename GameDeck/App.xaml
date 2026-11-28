@@ -394,20 +394,24 @@
                         <Grid>
                             <Border x:Name="bd" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}"
                                     SnapsToDevicePixels="True">
-                                <!-- the text first, then (on the right) the tick of the chosen entry and a submenu's arrow -->
+                                <!-- an icon (when the entry has one: the game menu's), the text, then (on the right) the tick of
+                                     the chosen entry and a submenu's arrow -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                                    <ContentPresenter x:Name="icon" ContentSource="Icon" Width="18" Margin="4,0,8,0"
+                                                      VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
                                                       VerticalAlignment="Center" Margin="4,0,24,0"/>
-                                    <Path x:Name="tick" Grid.Column="1" Data="M1,5 L4.5,8.5 L11,1.5" Visibility="Collapsed"
+                                    <Path x:Name="tick" Grid.Column="2" Data="M1,5 L4.5,8.5 L11,1.5" Visibility="Collapsed"
                                           Stroke="{DynamicResource Accent}" StrokeThickness="2"
                                           VerticalAlignment="Center" Margin="0,0,4,0"
                                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
-                                    <Path x:Name="arrow" Grid.Column="2" Data="M0,0 L4,4 L0,8" Visibility="Collapsed"
+                                    <Path x:Name="arrow" Grid.Column="3" Data="M0,0 L4,4 L0,8" Visibility="Collapsed"
                                           Stroke="{DynamicResource TextMuted}" StrokeThickness="1.5" VerticalAlignment="Center"
                                           Margin="0,0,4,0"/>
                                 </Grid>
@@ -424,6 +428,10 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="Role" Value="SubmenuHeader">
                                 <Setter TargetName="arrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <!-- no icon: no room kept for one (every other menu) -->
+                            <Trigger Property="Icon" Value="{x:Null}">
+                                <Setter TargetName="icon" Property="Visibility" Value="Collapsed"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="tick" Property="Visibility" Value="Visible"/>

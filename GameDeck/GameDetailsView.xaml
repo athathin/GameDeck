@@ -120,7 +120,8 @@
                         </Border>
                     </WrapPanel>
 
-                    <TextBlock x:Name="RatingStarsText" Foreground="#FFC857" FontSize="22" Margin="2,10,0,0"/>
+                    <!-- the rating: five stars to click (GameDetailsView.xaml.cs › ShowRating) -->
+                    <StackPanel x:Name="RatingStars" Orientation="Horizontal" Margin="0,10,0,0"/>
 
                     <TextBlock x:Name="CategoriesText" Foreground="{DynamicResource TextMuted}" FontSize="14" TextWrapping="Wrap"
                                Margin="2,4,0,0"/>
