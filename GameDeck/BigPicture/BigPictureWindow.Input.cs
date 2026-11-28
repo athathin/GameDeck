@@ -220,9 +220,12 @@ public partial class BigPictureWindow
 
     private void DetailsView_BackRequested(object? sender, EventArgs e) => CloseOverlay();
 
-    /// <summary>The page ends just above the hints (they lie over the game's picture, which fills the screen).</summary>
+    /// <summary>
+    /// The page ends just above the hints (they lie over the game's picture, which fills the screen). (The page has 24 of its
+    /// own around it, room for a selected button's glow: 56 / 36 from the screen's edges, 16 above the hints, as before.)
+    /// </summary>
     private void DetailsHints_SizeChanged(object sender, SizeChangedEventArgs e) =>
-        DetailsView.PageMargin = new Thickness(56, 36, 56, 32 + 16 + DetailsHints.ActualHeight);
+        DetailsView.PageMargin = new Thickness(32, 12, 32, 32 + 16 + DetailsHints.ActualHeight - 24);
 
     /// <summary>A star on the game's page was clicked with the mouse.</summary>
     private void DetailsView_RatingRequested(object? sender, (Game Game, int Rating) e)

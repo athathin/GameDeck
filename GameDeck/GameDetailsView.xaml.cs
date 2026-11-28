@@ -74,7 +74,7 @@ public partial class GameDetailsView : UserControl
         // the play history (twenty weeks of little squares, each with its own tooltip) is drawn just after the page shows, so
         // the page comes up first
         HistoryGrid.Children.Clear();
-        HistoryPanel.Visibility = history is null ? Visibility.Collapsed : Visibility.Visible;
+        HistoryPanel.Visibility = Visibility.Visible;   // (always: an empty history when GameDeck has no sessions of it)
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
         {
             if (ReferenceEquals(DataContext, game))
@@ -103,7 +103,7 @@ public partial class GameDetailsView : UserControl
         ShowAbout(game);
         ShowBackdrop(game);
 
-        UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
+        UpdateLayoutMode();
         PageScroll.ScrollToTop();
     }
 
@@ -392,25 +392,27 @@ public partial class GameDetailsView : UserControl
     }
 
     /// <summary>
-    /// Wide (and something to put there): the cover, the game's info and screenshots, then a column with the play history and the
-    /// sessions. Otherwise everything in one column under the name, as before.
+    /// Wide: the cover, the name and Play, then two columns from the same row on: the game's info and screenshots, and the play
+    /// history and sessions (always there: an empty history rather than an empty half of the screen). Otherwise everything in
+    /// one column under the name.
     /// </summary>
     private void UpdateLayoutMode()
     {
         var space = PageScroll.ViewportWidth > 0 ? PageScroll.ViewportWidth : PageScroll.ActualWidth;
-        var sideHasContent = HistoryPanel.Visibility == Visibility.Visible || SessionsPanel.Visibility == Visibility.Visible;
-        var wide = space >= WideWidth && sideHasContent;
+        var wide = space >= WideWidth;
 
         // (the page's width is set when wide: sized by its content, the two columns wouldn't share it evenly)
+        var room = PageRoot.Margin.Left + PageRoot.Margin.Right;
         PageRoot.MaxWidth = wide ? WideMaxWidth : 900;
-        PageRoot.Width = wide ? Math.Min(space - 16, WideMaxWidth) : double.NaN;
+        PageRoot.Width = wide ? Math.Min(space - room, WideMaxWidth) : double.NaN;
 
         GapColumn.Width = new GridLength(wide ? 48 : 0);
         SideColumn.Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
 
-        Grid.SetColumn(SidePanel, wide ? 3 : 1);
-        Grid.SetRow(SidePanel, wide ? 0 : 1);
-        SidePanel.Margin = new Thickness(0, wide ? -22 : 0, 0, 0);   // (level with the name: each section has room above it)
+        Grid.SetColumn(SidePanel, wide ? 2 : 0);
+        Grid.SetRow(SidePanel, wide ? 1 : 2);
+        // (wide: "Play history" level with "Your stats", which has 30 above it; the history's own room above it is 22)
+        SidePanel.Margin = new Thickness(0, wide ? 30 - 22 : 0, 0, 0);
     }
 
     // ---- scrolling with a controller (Big Picture) ----
@@ -457,19 +459,18 @@ public partial class GameDetailsView : UserControl
         HistoryGrid.ColumnDefinitions.Clear();
         HistoryGrid.RowDefinitions.Clear();
 
-        if (history is null)
-        {
-            HistoryPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-
+        // never played through GameDeck: the same twenty weeks, empty, with a word on why (rather than nothing at all)
+        history ??= SessionLog.EmptyHistory();
         HistoryPanel.Visibility = Visibility.Visible;
 
         var sessions = history.Sessions == 1 ? "1 session" : $"{history.Sessions} sessions";
         var days = history.DaysPlayed == 1 ? "1 day" : $"{history.DaysPlayed} days";
-        HistorySummary.Text = history.Sessions == 1
-            ? $"{sessions}  ·  {Game.FormatPlaytime(history.LongestSeconds)}"
-            : $"{sessions} on {days}  ·  average {Game.FormatPlaytime(history.AverageSeconds)}  ·  longest {Game.FormatPlaytime(history.LongestSeconds)}";
+        HistorySummary.Text = history.Sessions switch
+        {
+            0 => "No sessions recorded yet: GameDeck notes each one from the next time you play.",
+            1 => $"{sessions}  ·  {Game.FormatPlaytime(history.LongestSeconds)}",
+            _ => $"{sessions} on {days}  ·  average {Game.FormatPlaytime(history.AverageSeconds)}  ·  longest {Game.FormatPlaytime(history.LongestSeconds)}"
+        };
 
         var weeks = history.Days.Count / 7;
         for (var w = 0; w < weeks; w++)

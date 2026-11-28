@@ -778,8 +778,9 @@
 
         <!-- ======================= a game's page (click a tile) ======================= -->
         <!-- (over RootGrid's margin and the title bar too, so the game's picture fills the whole window, behind the title bar
-             like in GOG Galaxy; the page keeps that margin inside) -->
-        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed" Margin="-24,-56,-24,-24" PageMargin="24,56,24,24"
+             like in GOG Galaxy. The page starts below the title bar; with the page's own 24 around it, its text sits where the
+             library's does, and the scroll bar is at the window's edge) -->
+        <views:GameDetailsView x:Name="DetailsPanel" Visibility="Collapsed" Margin="-24,-56,-24,-24" PageMargin="8,32,0,0"
                                BackRequested="DetailsPanel_BackRequested"
                                PlayRequested="DetailsPanel_PlayRequested"
                                ScreenshotRequested="DetailsPanel_ScreenshotRequested"

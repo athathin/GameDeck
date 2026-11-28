@@ -344,6 +344,13 @@ public class SessionLog
         return new GameHistory(mine.Count, total / mine.Count, mine.Max(s => s.Seconds), perDay.Count(p => p.Value > 0), days);
     }
 
+    /// <summary>The same weeks as <see cref="History"/>, without a single session (a game GameDeck hasn't seen played yet).</summary>
+    public static GameHistory EmptyHistory(int weeks = 20, DateTime? now = null)
+    {
+        var firstMonday = MondayOf(DateOnly.FromDateTime(now ?? DateTime.Now)).AddDays(-7 * (weeks - 1));
+        return new GameHistory(0, 0, 0, 0, Enumerable.Range(0, weeks * 7).Select(i => (firstMonday.AddDays(i), 0L)).ToList());
+    }
+
     /// <summary>For tests: the sessions to work with, instead of the saved file.</summary>
     internal void UseSessions(List<Session> sessions)
     {

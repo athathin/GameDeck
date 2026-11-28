@@ -606,7 +606,7 @@
             <!-- the very same page the desktop library opens for a game, over the whole screen so the game's picture fills it
                  edge to edge; the page keeps its room (PageMargin: the bottom one follows the hints' height, see
                  DetailsHints_SizeChanged) -->
-            <views:GameDetailsView x:Name="DetailsView" Centered="True" PageMargin="56,36,56,96"
+            <views:GameDetailsView x:Name="DetailsView" Centered="True" PageMargin="32,12,32,72"
                                    BackRequested="DetailsView_BackRequested" PlayRequested="DetailsView_PlayRequested"
                                    ScreenshotRequested="DetailsView_ScreenshotRequested"
                                    RatingRequested="DetailsView_RatingRequested"/>

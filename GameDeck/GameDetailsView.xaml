@@ -54,29 +54,26 @@
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                   ScrollChanged="PageScroll_ScrollChanged">
-        <StackPanel x:Name="PageRoot" Margin="8,0,8,0" MaxWidth="900" HorizontalAlignment="Left">
+        <!-- (its margin leaves room for the glow of a button selected with the controller: the scroller cuts off what is
+             outside it) -->
+        <StackPanel x:Name="PageRoot" Margin="24" MaxWidth="900" HorizontalAlignment="Left">
 
             <!-- back button -->
             <Button x:Name="BackButton" Style="{StaticResource PillButton}" Margin="0,0,0,22" Padding="14,8"
                     HorizontalAlignment="Left" Content="←  Library" FontSize="14"
                     Click="BackButton_Click" ToolTip="Back to the library (Esc)"/>
 
-            <!-- narrow: one column (the screenshots, history and sessions under the rest); wide: those in a column of their
-                 own on the right (UpdateLayoutMode moves SidePanel) -->
+            <!-- the cover on the left; next to it the name and Play across, and under them two columns starting at the same
+                 row, like GOG Galaxy: the game's info, and (wide) the play history and sessions. Narrow: one column, the
+                 history under the rest (UpdateLayoutMode moves SidePanel). (Nested grids, no row spanning: a cover spanning
+                 rows made WPF hand part of its height to rows that had nothing in them.) -->
             <Grid x:Name="PageGrid">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition x:Name="GapColumn" Width="0"/>
-                    <ColumnDefinition x:Name="SideColumn" Width="0"/>
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
 
-                <!-- cover (2:3 poster). Only in the first row: spanning both, WPF gave half its height to the second row even
-                     when that row is empty (no history or sessions), so such pages could scroll a little for nothing -->
+                <!-- cover (2:3 poster) -->
                 <Border Width="200" Height="300" CornerRadius="6" Margin="0,0,32,0" VerticalAlignment="Top"
                         Background="{Binding PlaceholderBrush}">
                     <Grid>
@@ -92,13 +89,29 @@
                     </Grid>
                 </Border>
 
-                <StackPanel x:Name="InfoPanel" Grid.Column="1">
+                <Grid x:Name="MainGrid" Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition x:Name="GapColumn" Width="0"/>
+                        <ColumnDefinition x:Name="SideColumn" Width="0"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                <!-- the header: across both columns -->
+                <StackPanel x:Name="HeaderPanel" Grid.ColumnSpan="3">
                     <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="SemiBold"
                                TextWrapping="Wrap"/>
                     <TextBlock Text="{Binding SourceText}" Foreground="{DynamicResource TextMuted}" FontSize="15" Margin="0,4,0,0"/>
 
                     <Button x:Name="PlayButton" Content="▶  Play" Style="{StaticResource PlayButton}"
                             HorizontalAlignment="Left" Margin="0,22,0,0" Click="PlayButton_Click"/>
+                </StackPanel>
+
+                <StackPanel x:Name="InfoPanel" Grid.Row="1">
 
                     <TextBlock Text="YOUR STATS" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
                                Margin="2,30,0,10"/>
@@ -190,8 +203,8 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- history and sessions: under the rest (narrow), or in the right-hand column (wide) -->
-                <StackPanel x:Name="SidePanel" Grid.Column="1" Grid.Row="1">
+                <!-- history and sessions: under the rest (narrow), or in the right-hand column (wide), level with "Your stats" -->
+                <StackPanel x:Name="SidePanel" Grid.Row="2">
                     <!-- play history: a square per day of the last weeks, darker the more was played (sessions from GameDeck) -->
                     <StackPanel x:Name="HistoryPanel" Margin="0,22,0,0">
                         <TextBlock Text="PLAY HISTORY" Foreground="{DynamicResource TextMuted}" FontSize="12" FontWeight="SemiBold"
@@ -208,6 +221,7 @@
                         <ItemsControl x:Name="SessionsList" ItemTemplate="{StaticResource SessionRowTemplate}"/>
                     </StackPanel>
                 </StackPanel>
+                </Grid>
             </Grid>
         </StackPanel>
     </ScrollViewer>
