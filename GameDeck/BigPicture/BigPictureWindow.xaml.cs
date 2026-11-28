@@ -294,8 +294,12 @@ public partial class BigPictureWindow : Window
     {
 #if BETA
         LagTick();   // (the Beta logs slow controller input: BigPictureWindow.LagLog.cs)
+        var pollStarted = LagNow;
 #endif
         var pressed = _pad.Poll();
+#if BETA
+        LagPoll(pollStarted);
+#endif
 
         // Home + a button is a shortcut (volume, Alt + Tab...): those buttons aren't presses here. Home's own job (the Power
         // menu) happens when it is let go without a shortcut.

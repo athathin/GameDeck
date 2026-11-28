@@ -1,4 +1,7 @@
 ﻿using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using GameDeck.Services;
 using static GameDeck.Views.BigPictureLook;
@@ -33,6 +36,7 @@ public partial class BigPictureWindow
         _shotFiles = [.. files];
         _shotIndex = Math.Clamp(index, 0, files.Count - 1);
         _shotAskingDelete = askDelete;
+        _shotDeleteChoice = 0;
         _shotDeleteOnly = askDelete;
         _shotsDeleted = false;
         ShowOverlay(Overlay.Shots);
@@ -46,7 +50,7 @@ public partial class BigPictureWindow
 
         if (_shotAskingDelete)
         {
-            FillHints(ShotHints, (l.Confirm, "Move to the Recycle Bin"), (l.Back, "Cancel"));
+            FillHints(ShotDeleteHints, (l.Confirm, "Choose"), (l.Back, "Cancel"));
             return;
         }
 
@@ -75,9 +79,75 @@ public partial class BigPictureWindow
             ShotImage.Source = null;   // (the caption still says which file it was)
         }
 
-        ShotCaption.Text = _shotAskingDelete
-            ? $"Move {Path.GetFileName(file)} to the Recycle Bin?   (it can be restored from there)"
-            : $"{_shotIndex + 1} / {_shotFiles.Count}   {Path.GetFileName(file)}";
+        ShotCaption.Text = $"{_shotIndex + 1} / {_shotFiles.Count}   {Path.GetFileName(file)}";
+        ShowDeleteCard();
+    }
+
+    // ---- the "delete this screenshot?" card ----
+
+    private int _shotDeleteChoice;   // 0 = Move to the Recycle Bin, 1 = Cancel
+
+    /// <summary>Shows the card over the picture while the question is asked (hides it otherwise), with its two buttons.</summary>
+    private void ShowDeleteCard()
+    {
+        ShotDeleteCard.Visibility = _shotAskingDelete ? Visibility.Visible : Visibility.Collapsed;
+        ShotHints.Visibility = _shotAskingDelete ? Visibility.Collapsed : Visibility.Visible;
+        if (!_shotAskingDelete) return;
+
+        ShotDeleteThumb.Source = ShotImage.Source;
+        ShotDeleteText.Text = $"{Path.GetFileName(_shotFiles[_shotIndex])} goes to the Recycle Bin. You can restore it from there.";
+
+        ShotDeleteButtons.Children.Clear();
+        string[] buttons = ["Move to the Recycle Bin", "Cancel"];
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var index = i;
+            var selected = i == _shotDeleteChoice;
+
+            var cell = new Border
+            {
+                Background = selected ? ThemeService.SelectBg : KeyBackground, CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(20, 13, 20, 13), Margin = new Thickness(0, 0, 0, 8), Cursor = Cursors.Hand,
+                Child = new TextBlock
+                {
+                    Text = buttons[i], FontSize = 19, HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = selected ? Dark : ThemeService.TextPrimary
+                }
+            };
+
+            // the mouse: pointing selects (like the stick), a click chooses
+            cell.MouseEnter += (_, _) =>
+            {
+                if (!PointerIsChoosing || _shotDeleteChoice == index) return;
+                _shotDeleteChoice = index;
+                ShowDeleteCard();
+            };
+            cell.MouseLeftButtonUp += (_, e) =>
+            {
+                e.Handled = true;
+                _shotDeleteChoice = index;
+                ChooseInDeleteCard();
+            };
+
+            ShotDeleteButtons.Children.Add(cell);
+        }
+    }
+
+    private void ChooseInDeleteCard()
+    {
+        if (_shotDeleteChoice == 0)
+            DeleteShot();
+        else
+            AnswerDelete();   // no: the picture stays
+    }
+
+    private void ShotDeleteCard_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        // a click on the dimmed picture around the card: Cancel
+        if (!ReferenceEquals(e.OriginalSource, ShotDeleteCard)) return;
+
+        e.Handled = true;
+        AnswerDelete();
     }
 
     private void HandleShots(PadButton button)
@@ -86,8 +156,10 @@ public partial class BigPictureWindow
         {
             switch (button)
             {
-                case PadButton.Confirm: DeleteShot(); break;
-                case PadButton.Back: AnswerDelete(); break;   // no: the picture stays
+                case PadButton.Up or PadButton.Left: _shotDeleteChoice = 0; ShowDeleteCard(); break;
+                case PadButton.Down or PadButton.Right: _shotDeleteChoice = 1; ShowDeleteCard(); break;
+                case PadButton.Confirm: ChooseInDeleteCard(); break;
+                case PadButton.Back or PadButton.X: AnswerDelete(); break;   // no: the picture stays
             }
             return;
         }
@@ -105,7 +177,8 @@ public partial class BigPictureWindow
     private void AskDeleteShot()
     {
         _shotAskingDelete = true;
-        ShowShot();
+        _shotDeleteChoice = 0;   // (A right away moves it: X then A, as asked; Back or Cancel keeps it)
+        ShowDeleteCard();
         FillShotHints();
     }
 

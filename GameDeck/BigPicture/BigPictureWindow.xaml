@@ -572,6 +572,25 @@
             <TextBlock x:Name="ShotCaption" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,66"
                        Foreground="#C8D0DC" FontSize="18"/>
             <StackPanel x:Name="ShotHints" VerticalAlignment="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,22"/>
+
+            <!-- "delete this screenshot?": a card over the dimmed picture (X opens it; BigPictureWindow.Shots.cs) -->
+            <Grid x:Name="ShotDeleteCard" Visibility="Collapsed" Background="{DynamicResource ScrimStrong}"
+                  MouseLeftButtonUp="ShotDeleteCard_MouseLeftButtonUp">
+                <Border Width="560" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{DynamicResource PanelBg}"
+                        CornerRadius="12" Padding="0,26,0,18">
+                    <StackPanel>
+                        <Border CornerRadius="8" HorizontalAlignment="Center" ClipToBounds="True" Margin="32,0,32,0">
+                            <Image x:Name="ShotDeleteThumb" MaxHeight="200" MaxWidth="496" Stretch="Uniform"/>
+                        </Border>
+                        <TextBlock Text="Delete this screenshot?" Foreground="{DynamicResource TextPrimary}" FontSize="26"
+                                   FontWeight="SemiBold" HorizontalAlignment="Center" Margin="32,20,32,0"/>
+                        <TextBlock x:Name="ShotDeleteText" Foreground="{DynamicResource TextSecondary}" FontSize="17" TextWrapping="Wrap"
+                                   TextAlignment="Center" Margin="32,8,32,18"/>
+                        <StackPanel x:Name="ShotDeleteButtons" Margin="20,0,20,0"/>
+                        <StackPanel x:Name="ShotDeleteHints" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- ======================= a game's page: Play has to be chosen here ======================= -->
