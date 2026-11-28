@@ -22,6 +22,8 @@ public partial class MainWindow
     private const int WmNcMouseLeave = 0x02A2;
     private const int HtMaxButton = 9;
 
+    private bool _pressedInside;   // the left button went down on the window's content (not its title bar)
+
     private static readonly Brush MaxHover = Frozen(Color.FromArgb(0x26, 0x80, 0x80, 0x80));
     private static readonly Brush MaxPressed = Frozen(Color.FromArgb(0x40, 0x80, 0x80, 0x80));
 
@@ -39,6 +41,16 @@ public partial class MainWindow
 
         TitleIcon.Source = SmallIcon();
         UpdateTitleBar();
+
+        // A press on the title bar belongs to Windows (drag, double-click to maximize), but its release reaches whatever is
+        // under the mouse by then: after a double-click the window has grown under the pointer, and the release "clicked" a
+        // Continue playing card. A release only counts when its press started inside the window.
+        AddHandler(PreviewMouseLeftButtonDownEvent, new System.Windows.Input.MouseButtonEventHandler((_, _) => _pressedInside = true), handledEventsToo: true);
+        AddHandler(PreviewMouseLeftButtonUpEvent, new System.Windows.Input.MouseButtonEventHandler((_, e) =>
+        {
+            if (!_pressedInside) e.Handled = true;   // (a press that began on the title bar or in another window)
+            _pressedInside = false;
+        }), handledEventsToo: true);
         Activated += (_, _) => TitleBar.Opacity = 1;
         Deactivated += (_, _) => TitleBar.Opacity = 0.6;   // (like Windows' own: a window in the background has a paler title)
     }
