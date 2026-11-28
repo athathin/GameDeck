@@ -143,14 +143,24 @@ public static class ThemeService
         brushes["Accent"] = Frozen(accent);
         brushes["AccentBadge"] = Frozen(Color.FromArgb(0xCC, accent.R, accent.G, accent.B));
         // (a little lighter: the Play button under the mouse)
-        brushes["AccentHover"] = Frozen(Color.FromRgb(Lighter(accent.R), Lighter(accent.G), Lighter(accent.B)));
-        static byte Lighter(byte c) => (byte)Math.Round(c + (255 - c) * 0.18);
+        brushes["AccentHover"] = Frozen(AccentShade(accent, 0.18));
 
         _brushes = brushes;
 
         // (replacing a resource tells every {DynamicResource} user to look it up again)
         foreach (var (key, brush) in brushes)
             _app!.Resources[key] = brush;
+    }
+
+    /// <summary>The accent mixed with white (<paramref name="amount"/> &gt; 0: lighter) or black (&lt; 0: darker).</summary>
+    public static Color AccentShade(double amount) => AccentShade(Parse(AccentHex), amount);
+
+    private static Color AccentShade(Color accent, double amount)
+    {
+        var towards = amount > 0 ? 255.0 : 0.0;
+        var share = Math.Abs(amount);
+        byte Mix(byte c) => (byte)Math.Round(c + (towards - c) * share);
+        return Color.FromRgb(Mix(accent.R), Mix(accent.G), Mix(accent.B));
     }
 
     public static SolidColorBrush AppBg => _brushes["AppBg"];

@@ -110,8 +110,6 @@ public partial class BigPictureWindow
     /// </summary>
     private void BuildOverlayHints()
     {
-        var l = Labels();
-
         UpdateKeyboardSelection();   // the keys' buttons follow the controller in use
         ShowCaretHints();            // (and the text cursor's)
         FillFilterHints();

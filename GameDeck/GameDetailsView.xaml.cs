@@ -216,25 +216,27 @@ public partial class GameDetailsView : UserControl
         var line = new int[length];
         var size = 2 * radius + 1;
 
+        var half = size / 2;   // (sums rounded, not cut off: cutting off darkens a little with every pass and leaves faint stripes)
+        var step = horizontal ? 1 : width;   // from one pixel of a line to the next
+
         for (var l = 0; l < lines; l++)
         {
-            int At(int i) => horizontal ? l * width + i : i * width + l;
-            for (var i = 0; i < length; i++) line[i] = pixels[At(i)];
-            int Pixel(int i) => line[Math.Clamp(i, 0, length - 1)];
+            var start = horizontal ? l * width : l;
+            for (var i = 0; i < length; i++) line[i] = pixels[start + i * step];
 
             int b = 0, g = 0, r = 0;
             for (var k = -radius; k <= radius; k++)
             {
-                var p = Pixel(k);
+                var p = line[Math.Clamp(k, 0, length - 1)];
                 b += p & 0xFF; g += (p >> 8) & 0xFF; r += (p >> 16) & 0xFF;
             }
 
             for (var i = 0; i < length; i++)
             {
-                var half = size / 2;   // (rounded, not cut off: cutting off darkens a little with every pass and leaves faint stripes)
-                pixels[At(i)] = unchecked((int)0xFF000000) | ((r + half) / size << 16) | ((g + half) / size << 8) | ((b + half) / size);
+                pixels[start + i * step] = unchecked((int)0xFF000000) | ((r + half) / size << 16) | ((g + half) / size << 8) | ((b + half) / size);
 
-                int add = Pixel(i + radius + 1), drop = Pixel(i - radius);   // (the window moves one pixel on)
+                // (the window moves one pixel on)
+                int add = line[Math.Min(i + radius + 1, length - 1)], drop = line[Math.Max(i - radius, 0)];
                 b += (add & 0xFF) - (drop & 0xFF);
                 g += ((add >> 8) & 0xFF) - ((drop >> 8) & 0xFF);
                 r += ((add >> 16) & 0xFF) - ((drop >> 16) & 0xFF);
@@ -578,18 +580,13 @@ public partial class GameDetailsView : UserControl
     // ---- controller look (Big Picture): nobody can hover or focus the button, so it shows it is selected / pressed itself ----
 
     // the selected and the pressed button: the accent color the user chose (Settings › Appearance), a little lighter / darker
-    private static Brush PlaySelected => AccentShade(0.18);
-    private static Brush PlayPressed => AccentShade(-0.25);
+    // (the selected one is the Play button's hover color, "AccentHover")
+    private static Brush PlaySelected => FrozenBrush(ThemeService.AccentShade(0.18));
+    private static Brush PlayPressed => FrozenBrush(ThemeService.AccentShade(-0.25));
 
-    /// <summary>The accent color mixed with white (<paramref name="amount"/> &gt; 0) or black (&lt; 0).</summary>
-    private static Brush AccentShade(double amount)
+    private static Brush FrozenBrush(Color color)
     {
-        var accent = ThemeService.AccentColor;
-        var towards = amount > 0 ? (byte)255 : (byte)0;
-        var share = Math.Abs(amount);
-        byte Mix(byte c) => (byte)Math.Round(c + (towards - c) * share);
-
-        var brush = new SolidColorBrush(Color.FromRgb(Mix(accent.R), Mix(accent.G), Mix(accent.B)));
+        var brush = new SolidColorBrush(color);
         brush.Freeze();
         return brush;
     }
