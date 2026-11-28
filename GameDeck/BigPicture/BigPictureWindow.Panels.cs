@@ -96,7 +96,10 @@ public partial class BigPictureWindow
 
         var cell = RowCell(panel, drawn, index);
         drawn.Cells[index] = cell;
-        panel.Children[index] = cell;
+
+        // (WPF can't put an element over another in place: the old one goes out first)
+        panel.Children.RemoveAt(index);
+        panel.Children.Insert(index, cell);
     }
 
     /// <summary>

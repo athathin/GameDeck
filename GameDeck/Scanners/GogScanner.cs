@@ -39,6 +39,7 @@ public class GogScanner : IGameScanner
                 Source = "GOG",
                 LaunchTarget = exe,
                 InstallDir = path,
+                GogId = id.All(char.IsDigit) ? id : null,   // (the registry key is the product id: for its details from GOG)
                 UninstallCommand = uninstaller is null ? null : $"\"{uninstaller}\""
             });
         }

@@ -79,8 +79,61 @@ public partial class GameDetailsView : UserControl
         GenresText.Text = game.Genres.Count > 0 ? "Genres: " + string.Join(", ", game.Genres) : "";
         GenresText.Visibility = game.Genres.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        ShowAbout(game);
+
         UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
         PageScroll.ScrollToTop();
+    }
+
+    // ---- about the game: from the Steam store or GOG ----
+
+    /// <summary>
+    /// The store's description, then small cards with the developer, publisher, release date and Metacritic score. A game
+    /// neither store has says so; nothing is shown while its details may still come.
+    /// </summary>
+    private void ShowAbout(Game game)
+    {
+        AboutFacts.Children.Clear();
+
+        if (game.Info is not { } info)
+        {
+            AboutPanel.Visibility = game.NoStoreInfo ? Visibility.Visible : Visibility.Collapsed;
+            AboutText.Text = "No store details for this game: it isn't on the Steam store or GOG.";
+            AboutSource.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AboutPanel.Visibility = Visibility.Visible;
+        AboutText.Text = info.Description ?? "";
+        AboutText.Visibility = info.Description is null ? Visibility.Collapsed : Visibility.Visible;
+
+        void Fact(string value, string label)
+        {
+            var card = new Border
+            {
+                CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 10, 16, 10), Margin = new Thickness(0, 0, 10, 10),
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock { Text = value, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("TextPrimary"), MaxWidth = 320, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = value },
+                        new TextBlock { Text = label, FontSize = 12, Foreground = (Brush)FindResource("TextMuted"), Margin = new Thickness(0, 2, 0, 0) }
+                    }
+                }
+            };
+            card.SetResourceReference(Border.BackgroundProperty, "PanelBg");
+            AboutFacts.Children.Add(card);
+        }
+
+        if (info.Developers.Count > 0) Fact(string.Join(", ", info.Developers), info.Developers.Count == 1 ? "developer" : "developers");
+        if (info.Publishers.Count > 0 && !info.Publishers.SequenceEqual(info.Developers, StringComparer.OrdinalIgnoreCase))
+            Fact(string.Join(", ", info.Publishers), info.Publishers.Count == 1 ? "publisher" : "publishers");
+        if (info.Released is { } released) Fact(released, "released");
+        if (info.Metacritic is { } score) Fact(score.ToString(), "Metacritic");
+
+        AboutFacts.Visibility = AboutFacts.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        AboutSource.Text = info.Source == "GOG" ? "From GOG" : "From the Steam store";
+        AboutSource.Visibility = Visibility.Visible;
     }
 
     // ---- the rating: five stars to click ----

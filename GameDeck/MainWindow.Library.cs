@@ -23,7 +23,11 @@ public partial class MainWindow
             foreach (var game in _library.Games)
             {
                 _userData.Apply(game);
-                game.Genres = GenreService.For(game);
+
+                var info = GameInfoService.For(game);   // (the stores' details: description, developers, genres...)
+                game.Info = info is { IsEmpty: false } ? info : null;
+                game.Genres = game.Info?.Genres ?? [];
+                game.NoStoreInfo = GameInfoService.NothingFound(game);
             }
 
             DiskUsage.ApplySaved(_library.Games);   // the sizes measured before (new games are measured in the background)
@@ -463,7 +467,7 @@ public partial class MainWindow
             }));
         }
 
-        // genres (Steam games: from the Steam store, see GenreService)
+        // genres (from the Steam store or GOG, see GameInfoService)
         GenreList.Children.Clear();
         var genres = _library.Games.SelectMany(g => g.Genres).Distinct(StringComparer.CurrentCultureIgnoreCase)
             .OrderBy(g => g, StringComparer.CurrentCultureIgnoreCase).ToList();

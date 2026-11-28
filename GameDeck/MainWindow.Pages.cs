@@ -412,8 +412,8 @@ public partial class MainWindow
         FetchGenres();                  // and the genres
     }
 
-    /// <summary>Asks the Steam store, in the background, for the genres of the games that have none yet (see GenreService).</summary>
-    private void FetchGenres() => _ = GenreService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
+    /// <summary>Asks the Steam store and GOG, in the background, for the details of the games that have none yet (see GameInfoService).</summary>
+    private void FetchGenres() => _ = GameInfoService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
 
     private void SettingsPanel_PlaytimeSourcesChanged(object? sender, EventArgs e) => _ = LoadLauncherPlaytimeAsync();
 

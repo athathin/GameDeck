@@ -99,10 +99,9 @@
                 <TextBlock Text="Title" Style="{StaticResource RowLabel}"/>
                 <TextBox x:Name="NameBox" Grid.Column="1" Style="{StaticResource DarkTextBox}"/>
 
-                <TextBlock Grid.Row="1" Text="Genres" Style="{StaticResource RowLabel}" Margin="0,14,16,0"
-                           x:Name="GenresLabel"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GenresText" Foreground="{DynamicResource TextMuted}" FontSize="13"
-                           TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,14,0,0"/>
+                <!-- from the Steam store or GOG, shown and not changed: genres, developers, publishers, release date
+                     (rows made in GameSettingsDialog.xaml.cs, only those that are known) -->
+                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" x:Name="StoreFacts"/>
 
                 <TextBlock Grid.Row="2" Text="Rating" Style="{StaticResource RowLabel}" Margin="0,14,16,0"/>
                 <StackPanel Grid.Row="2" Grid.Column="1" x:Name="StarsPanel" Orientation="Horizontal" Margin="0,14,0,0"/>

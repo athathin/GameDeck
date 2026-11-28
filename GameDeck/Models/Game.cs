@@ -40,6 +40,17 @@ public class Game : INotifyPropertyChanged
     /// <summary>The game's install folder. Used to recognise the running game for playtime tracking.</summary>
     public string? InstallDir { get; set; }
 
+    /// <summary>A GOG game's product id (from GOG's registry entry), for its details from GOG. Null for other games.</summary>
+    public string? GogId { get; set; }
+
+    /// <summary>What the Steam store or GOG says about the game (description, developers...); null when nothing is known.</summary>
+    [JsonIgnore]
+    public Services.GameInfo? Info { get; set; }
+
+    /// <summary>True when the stores were asked and neither has the game (its page says so).</summary>
+    [JsonIgnore]
+    public bool NoStoreInfo { get; set; }
+
     /// <summary>True for the special "pick a game for me" tile at the start of the grid (it is not a real game).</summary>
     [JsonIgnore]
     public bool IsRandomTile { get; init; }
@@ -106,7 +117,7 @@ public class Game : INotifyPropertyChanged
     [JsonIgnore]
     public List<string> Tags { get; set; } = [];
 
-    /// <summary>The game's genres from the Steam store (see GenreService); empty when it isn't on Steam.</summary>
+    /// <summary>The game's genres from the Steam store or GOG (see GameInfoService); empty when neither has it.</summary>
     [JsonIgnore]
     public List<string> Genres { get; set; } = [];
 

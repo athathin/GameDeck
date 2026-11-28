@@ -57,16 +57,44 @@ public partial class GameSettingsDialog : Window
         Rating = game.Rating;
         BuildStars();
 
-        // genres come from the Steam store and can't be changed: shown only when there are some
-        if (game.Genres.Count > 0)
-            GenresText.Text = string.Join(", ", game.Genres);
-        else
-            GenresLabel.Visibility = GenresText.Visibility = Visibility.Collapsed;
+        ShowStoreFacts(game);
 
         ShowCover();
 
         NameBox.Focus();
         NameBox.SelectAll();
+    }
+
+    /// <summary>
+    /// What the Steam store or GOG says (genres, developers, publishers, release date): shown dimmed, as it can't be changed
+    /// here. Only the rows that are known.
+    /// </summary>
+    private void ShowStoreFacts(Game game)
+    {
+        var rows = new List<(string Label, string Value)>();
+        if (game.Genres.Count > 0) rows.Add(("Genres", string.Join(", ", game.Genres)));
+        if (game.Info is { } info)
+        {
+            if (info.Developers.Count > 0) rows.Add((info.Developers.Count == 1 ? "Developer" : "Developers", string.Join(", ", info.Developers)));
+            if (info.Publishers.Count > 0) rows.Add((info.Publishers.Count == 1 ? "Publisher" : "Publishers", string.Join(", ", info.Publishers)));
+            if (info.Released is { } released) rows.Add(("Release date", released));
+        }
+
+        foreach (var (label, value) in rows)
+        {
+            var line = new Grid { Margin = new Thickness(0, 14, 0, 0) };
+            line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            line.ColumnDefinitions.Add(new ColumnDefinition());
+
+            var name = new TextBlock { Text = label, Style = (Style)FindResource("RowLabel") };
+            var text = new TextBlock { Text = value, FontSize = 13, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
+            text.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
+            Grid.SetColumn(text, 1);
+
+            line.Children.Add(name);
+            line.Children.Add(text);
+            StoreFacts.Children.Add(line);
+        }
     }
 
     /// <summary>The cover shown now, or the one already on this PC when the tile hasn't loaded it (null when there is none).</summary>

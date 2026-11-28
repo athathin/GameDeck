@@ -316,8 +316,16 @@ public partial class BigPictureWindow
                 Activate: () => GameAction(() => actions.ToggleHidden(game), closeMenu: false))
         };
 
-        if (game.Genres.Count > 0)   // (from the Steam store: shown, not changed)
-            rows.Insert(2, new FilterRow($"Genres:  {string.Join(", ", game.Genres)}"));
+        // from the Steam store or GOG: shown, not changed
+        var facts = new List<FilterRow>();
+        if (game.Genres.Count > 0) facts.Add(new($"Genres:  {string.Join(", ", game.Genres)}"));
+        if (game.Info is { } info)
+        {
+            if (info.Developers.Count > 0) facts.Add(new($"Developer:  {string.Join(", ", info.Developers)}"));
+            if (info.Publishers.Count > 0) facts.Add(new($"Publisher:  {string.Join(", ", info.Publishers)}"));
+            if (info.Released is { } released) facts.Add(new($"Release date:  {released}"));
+        }
+        rows.InsertRange(2, facts);
 
         rows.Add(new("MEDIA", IsHeader: true));
         rows.Add(new(game.HasCustomCover ? "Cover:  your own picture. Choose another…" : "Cover:  found by GameDeck. Choose a picture…",
