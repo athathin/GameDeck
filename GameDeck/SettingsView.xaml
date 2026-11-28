@@ -168,8 +168,23 @@
                                 <TextBlock Text="SteamGridDB key (optional)" Style="{StaticResource SettingTitle}"/>
                                 <TextBlock Style="{StaticResource SettingNote}"
                                            Text="For games that no other source has a cover for. Create a free account on steamgriddb.com, copy your API key from its preferences and paste it here. The key is saved on this PC, and the names of the games without a cover are sent to steamgriddb.com. Leave it empty to not use it."/>
-                                <TextBox x:Name="GridKeyBox" Style="{StaticResource DarkTextBox}" MaxWidth="420" HorizontalAlignment="Stretch"
-                                         Margin="0,12,0,0" LostFocus="GridKeyBox_LostFocus"/>
+                                <TextBox x:Name="GridKeyBox" Style="{StaticResource DarkTextBox}" Width="420" HorizontalAlignment="Left"
+                                         Background="{DynamicResource AppBg}" Margin="0,12,0,0" LostFocus="GridKeyBox_LostFocus"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="IGDB keys (optional)" Style="{StaticResource SettingTitle}"/>
+                                <TextBlock Style="{StaticResource SettingNote}"
+                                           Text="For the games no store knows: their description, background art and cover from IGDB. On dev.twitch.tv, sign in, choose Applications › Register Your Application (any name, OAuth redirect http://localhost, category Application Integration, client type Confidential), then copy its Client ID and make a New Secret. The keys are saved on this PC, and the names of the games are sent to IGDB. Leave them empty to not use it."/>
+                                <TextBlock Text="Client ID" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,12,0,4"/>
+                                <TextBox x:Name="IgdbIdBox" Style="{StaticResource DarkTextBox}" Width="420" HorizontalAlignment="Left"
+                                         Background="{DynamicResource AppBg}" LostFocus="IgdbKeys_LostFocus"/>
+                                <TextBlock Text="Client Secret" Foreground="{DynamicResource TextSecondary}" FontSize="13" Margin="0,10,0,4"/>
+                                <PasswordBox x:Name="IgdbSecretBox" Style="{StaticResource DarkPasswordBox}" Width="420" HorizontalAlignment="Left"
+                                             Background="{DynamicResource AppBg}" LostFocus="IgdbKeys_LostFocus"/>
+                                <TextBlock x:Name="IgdbStatus" Style="{StaticResource SettingNote}" Margin="0,10,0,0" Visibility="Collapsed"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

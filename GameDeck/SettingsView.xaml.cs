@@ -64,6 +64,8 @@ public partial class SettingsView : UserControl
         BuildAccentChoices();
 
         GridKeyBox.Text = SettingsService.SteamGridDbKey ?? "";
+        IgdbIdBox.Text = SettingsService.IgdbClientId ?? "";
+        IgdbSecretBox.Password = SettingsService.IgdbClientSecret ?? "";
 
         AutoUpdateCheckBox.IsChecked = SettingsService.AutoUpdate;
         VersionText.Text = $"You have GameDeck {UpdateService.CurrentVersionText}. New versions come from github.com/athathin/GameDeck.";
@@ -464,6 +466,36 @@ public partial class SettingsView : UserControl
         SettingsService.SteamGridDbKey = GridKeyBox.Text;
         CoverService.ResetKeyCheck();
         OnlineCoversChanged?.Invoke(this, EventArgs.Empty);   // covers that were missing are looked for again
+    }
+
+    /// <summary>
+    /// The IGDB keys were changed: saved, checked with Twitch (the line under them says whether they work), and once they do,
+    /// the games without details, background or cover are looked for again.
+    /// </summary>
+    private async void IgdbKeys_LostFocus(object sender, RoutedEventArgs e)
+    {
+        var id = IgdbIdBox.Text.Trim();
+        var secret = IgdbSecretBox.Password.Trim();
+        if (_updating || (id == (SettingsService.IgdbClientId ?? "") && secret == (SettingsService.IgdbClientSecret ?? ""))) return;
+
+        SettingsService.IgdbClientId = id;
+        SettingsService.IgdbClientSecret = secret;
+
+        if (id.Length == 0 && secret.Length == 0)
+        {
+            IgdbService.Reset();
+            IgdbStatus.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        IgdbStatus.Text = "Checking the keys with Twitch…";
+        IgdbStatus.Visibility = Visibility.Visible;
+
+        var problem = await IgdbService.CheckKeysAsync();
+        IgdbStatus.Text = problem ?? "The keys work: GameDeck asks IGDB for the games the stores don't know.";
+
+        if (problem is null)
+            OnlineCoversChanged?.Invoke(this, EventArgs.Empty);   // the missing details, backgrounds and covers are looked for again
     }
 
     private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => CheckUpdatesRequested?.Invoke(this, EventArgs.Empty);

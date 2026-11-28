@@ -80,9 +80,30 @@ public partial class GameDetailsView : UserControl
         GenresText.Visibility = game.Genres.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         ShowAbout(game);
+        ShowBackdrop(game);
 
         UpdateLayoutMode();     // (a game without history has nothing for the right-hand column)
         PageScroll.ScrollToTop();
+    }
+
+    // ---- the background art at the top ----
+
+    /// <summary>Opacity of the background once shown: enough to give the page the game's colors, little enough to keep the text easy to read.</summary>
+    private const double BackdropOpacity = 0.32;
+
+    /// <summary>The game's wide background art behind the top of the page, fading in once it is read (or downloaded).</summary>
+    private async void ShowBackdrop(Game game)
+    {
+        BackdropFrame.BeginAnimation(OpacityProperty, null);
+        BackdropFrame.Opacity = 0;
+        BackdropImage.Source = null;
+
+        var image = await BackgroundService.LoadAsync(game);
+        if (image is null || !ReferenceEquals(DataContext, game)) return;   // (none, or another game's page meanwhile)
+
+        BackdropImage.Source = image;
+        BackdropFrame.BeginAnimation(OpacityProperty,
+            new System.Windows.Media.Animation.DoubleAnimation(0, BackdropOpacity, TimeSpan.FromMilliseconds(350)));
     }
 
     // ---- about the game: from the Steam store or GOG ----
@@ -98,7 +119,10 @@ public partial class GameDetailsView : UserControl
         if (game.Info is not { } info)
         {
             AboutPanel.Visibility = game.NoStoreInfo ? Visibility.Visible : Visibility.Collapsed;
-            AboutText.Text = "No store details for this game: none of the stores GameDeck asks (Steam, GOG, Epic, Microsoft) has it.";
+            AboutText.Text = IgdbService.Configured
+                ? "No details for this game: none of the stores GameDeck asks (Steam, GOG, Epic, Microsoft) or IGDB has it."
+                : "No store details for this game: none of the stores GameDeck asks (Steam, GOG, Epic, Microsoft) has it. " +
+                  "IGDB knows more games: add your own keys in Settings › Library.";
             AboutSource.Visibility = Visibility.Collapsed;
             return;
         }
@@ -138,6 +162,7 @@ public partial class GameDetailsView : UserControl
             "Microsoft" => "From the Microsoft Store",
             "Epic" => "From the Epic Games Store",
             "EpicLauncher" => "From the Epic Games Launcher",
+            "IGDB" => "From IGDB",
             _ => "From the Steam store"
         };
         AboutSource.Visibility = Visibility.Visible;

@@ -26,7 +26,19 @@ public sealed class GameInfo
     /// <summary>Only the genres are known (kept from before GameDeck fetched the rest): asked again for the rest.</summary>
     public bool Partial { get; set; }
 
+    /// <summary>A wide picture of the game (the store's hero / background art), for the top of its page. Steam's is known by
+    /// the app id alone (see BackgroundService), so Steam answers leave it empty.</summary>
+    public string? Background { get; set; }
+
+    /// <summary>What GameDeck read from the store: 1 = before backgrounds were read (asked again once), 2 = with them.</summary>
+    public int Version { get; set; }
+
+    public const int CurrentVersion = 2;
+
     public bool IsEmpty => Source.Length == 0;
+
+    /// <summary>Read before GameDeck kept backgrounds: a store other than Steam is asked again (Steam's needs no answer).</summary>
+    public bool IsStale => !IsEmpty && Version < CurrentVersion && Source != "Steam";
 }
 
 /// <summary>
@@ -68,7 +80,7 @@ public static class GameInfoService
     }
 
     /// <summary>The game's Steam app id: its own (a Steam game), or the one its name was found under (null: none, or not yet).</summary>
-    private static string? AppIdOf(Game game) =>
+    internal static string? AppIdOf(Game game) =>
         game.SteamAppId ?? (_names.TryGetValue(game.Name, out var id) && id.Length > 0 ? id : null);
 
     /// <summary>A GOG game's product id: from the scan, or from the goggame-{id}.info file GOG puts in the game's folder.</summary>
@@ -147,6 +159,10 @@ public static class GameInfoService
         if (EpicItemOf(game) is { } item)
             keys.Add("epiclocal:" + item);
 
+        // last, IGDB (only with the user's own Twitch keys in Settings): it knows games no store has, by their name
+        if (IgdbService.Configured && CoverService.Normalize(game.Name) is { Length: > 0 } name)
+            keys.Add("igdb:" + name);
+
         return keys;
     }
 
@@ -190,6 +206,7 @@ public static class GameInfoService
             "xbox" => AskXboxAsync(id),
             "epic" => AskEpicPageAsync(id),
             "epiclocal" => Task.Run(() => (GameInfo?)EpicLocal(id)),
+            "igdb" => IgdbService.InfoAsync(id),
             _ => Task.FromResult<GameInfo?>(new GameInfo())
         };
     }
@@ -258,11 +275,12 @@ public static class GameInfoService
 
             // 3) the games Steam has nothing for: their other stores in order, until one has them
             var fresh = 0;
-            foreach (var game in games.Where(g => For(g) is null or { IsEmpty: true }).ToList())
+            // (and those read before GameDeck kept backgrounds: their store once more)
+            foreach (var game in games.Where(g => For(g) is null or { IsEmpty: true } or { IsStale: true }).ToList())
             {
                 foreach (var key in OtherKeys(game))
                 {
-                    if (_info.TryGetValue(key, out var known))
+                    if (_info.TryGetValue(key, out var known) && !known.IsStale)
                     {
                         if (known.IsEmpty) continue;   // asked before, nothing there: the next store
                         break;                         // (found already, under a key another game shares)
@@ -360,6 +378,7 @@ public static class GameInfoService
         var info = new GameInfo
         {
             Source = "Steam",
+            Version = GameInfo.CurrentVersion,
             Description = CleanText(Text(data, "short_description")),
             Developers = Strings(data, "developers"),
             Publishers = Strings(data, "publishers"),
@@ -412,10 +431,12 @@ public static class GameInfoService
         var info = new GameInfo
         {
             Source = "GOG",
+            Version = GameInfo.CurrentVersion,
             Description = GogSummary(Text(root, "description")),
             Developers = Names(embedded, "developers"),
             Publishers = embedded.TryGetProperty("publisher", out var publisher) && Text(publisher, "name") is { } name ? [name] : [],
-            Genres = Names(embedded, "tags").Take(3).ToList()   // (GOG's first tags are its genres: "Role-playing, Adventure, Fantasy")
+            Genres = Names(embedded, "tags").Take(3).ToList(),   // (GOG's first tags are its genres: "Role-playing, Adventure, Fantasy")
+            Background = Link(root, "galaxyBackgroundImage") ?? Link(root, "backgroundImage")
         };
 
         if (embedded.TryGetProperty("product", out var product) && Text(product, "globalReleaseDate") is { } date &&
@@ -440,7 +461,7 @@ public static class GameInfoService
         // paragraphs: block ends become line breaks, then every tag goes
         var text = Regex.Replace(html, @"<\s*(br|/p|/div|hr|/h\d|/li)[^>]*>", "\n", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, "<[^>]+>", "");
-        text = WebUtility.HtmlDecode(text).Replace(' ', ' ');
+        text = WebUtility.HtmlDecode(text).Replace('\u00A0', ' ');
 
         static bool Promo(string p) => GogPromo.Any(w => p.Contains(w, StringComparison.OrdinalIgnoreCase));
 
@@ -502,9 +523,11 @@ public static class GameInfoService
         var info = new GameInfo
         {
             Source = "Microsoft",
+            Version = GameInfo.CurrentVersion,
             Description = description is null ? null : FirstParagraph(description),
             Developers = developer is null ? [] : [developer],
-            Publishers = publisher is null ? [] : [publisher]
+            Publishers = publisher is null ? [] : [publisher],
+            Background = XboxImage(localized, "SuperHeroArt", "TitledHeroArt", "Hero")
         };
 
         if (product.TryGetProperty("MarketProperties", out var markets) && markets.ValueKind == JsonValueKind.Array && markets.GetArrayLength() > 0 &&
@@ -562,9 +585,11 @@ public static class GameInfoService
             var info = new GameInfo
             {
                 Source = "Epic",
+                Version = GameInfo.CurrentVersion,
                 Description = description is null ? null : FirstParagraph(description),
                 Developers = developer is null ? [] : [developer],
-                Publishers = Text(about, "publisherAttribution") is { } publisher ? [publisher] : []
+                Publishers = Text(about, "publisherAttribution") is { } publisher ? [publisher] : [],
+                Background = data.TryGetProperty("hero", out var hero) ? Text(hero, "backgroundImageUrl") : null
             };
 
             if (data.TryGetProperty("meta", out var meta) && meta.ValueKind == JsonValueKind.Object && Text(meta, "releaseDate") is { } date)
@@ -576,7 +601,32 @@ public static class GameInfoService
         return new GameInfo();
     }
 
-    private static Dictionary<string, (string? Description, string? Developer)>? _epicCatalog;
+    /// <summary>GOG's links: { "_links": { "galaxyBackgroundImage": { "href": "https://..." } } }.</summary>
+    private static string? Link(JsonElement root, string name) =>
+        root.TryGetProperty("_links", out var links) && links.ValueKind == JsonValueKind.Object &&
+        links.TryGetProperty(name, out var link) && Text(link, "href") is { } href && href.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? href
+            : null;
+
+    /// <summary>The first of the store's pictures with one of these purposes (in that order), 1920 pixels wide.</summary>
+    private static string? XboxImage(JsonElement localized, params string[] purposes)
+    {
+        if (localized.ValueKind != JsonValueKind.Object || !localized.TryGetProperty("Images", out var images) || images.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var purpose in purposes)
+        {
+            foreach (var image in images.EnumerateArray())
+            {
+                if (Text(image, "ImagePurpose") != purpose || Text(image, "Uri") is not { } uri) continue;
+                return (uri.StartsWith("//") ? "https:" + uri : uri) + "?w=1920";   // (the store resizes it)
+            }
+        }
+
+        return null;
+    }
+
+    private static Dictionary<string, (string? Description, string? Developer, string? Wide)>? _epicCatalog;
 
     /// <summary>
     /// What Epic's launcher keeps on this PC about an Epic game (its catalog, catcache.bin: base64-encoded JSON): the description
@@ -591,21 +641,23 @@ public static class GameInfoService
         return new GameInfo
         {
             Source = "EpicLauncher",
+            Version = GameInfo.CurrentVersion,
             Description = entry.Description is null ? null : FirstParagraph(entry.Description),
-            Developers = entry.Developer is null ? [] : [entry.Developer]
+            Developers = entry.Developer is null ? [] : [entry.Developer],
+            Background = entry.Wide
         };
     }
 
-    private static Dictionary<string, (string? Description, string? Developer)> ReadEpicCatalog()
+    private static Dictionary<string, (string? Description, string? Developer, string? Wide)> ReadEpicCatalog()
     {
-        var catalog = new Dictionary<string, (string?, string?)>(StringComparer.OrdinalIgnoreCase);
+        var catalog = new Dictionary<string, (string?, string?, string?)>(StringComparer.OrdinalIgnoreCase);
         try
         {
             var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                                     "Epic", "EpicGamesLauncher", "Data", "Catalog", "catcache.bin");
             if (!File.Exists(file)) return catalog;
 
-            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(File.ReadAllText(file).Trim())).TrimStart('﻿');
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(File.ReadAllText(file).Trim())).TrimStart('\uFEFF');
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return catalog;
 
@@ -619,7 +671,13 @@ public static class GameInfoService
                     CoverService.Normalize(description) == CoverService.Normalize(Text(entry, "title"))))
                     description = null;
 
-                catalog[id] = (description, Text(entry, "developer"));
+                // the store's wide picture of the game, for the top of its page
+                string? wide = null;
+                if (entry.TryGetProperty("keyImages", out var images) && images.ValueKind == JsonValueKind.Array)
+                    foreach (var type in new[] { "DieselStoreFrontWide", "OfferImageWide", "DieselGameBox" })
+                        wide ??= images.EnumerateArray().Where(i => Text(i, "type") == type).Select(i => Text(i, "url")).FirstOrDefault(u => u is not null);
+
+                catalog[id] = (description, Text(entry, "developer"), wide);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException or JsonException)

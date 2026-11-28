@@ -127,7 +127,7 @@ public partial class MainWindow : Window
         _ = LoadLauncherPlaytimeAsync();   // the hours Steam, GOG Galaxy and itch counted (read in the background)
         _ = LoadAchievementsAsync();       // and the achievements Steam (and GOG Galaxy) keep
         _ = LoadSteamAppsAsync();          // and which Steam apps are DLC or soundtracks, not games
-        FetchGenres();                  // the Steam games' genres not asked for yet
+        FetchGameInfo();                // the games' details not asked for yet
         // each game's size on disk (in the background, sizes older than a few days), once start-up is over: also in the tray
         _sizesTimer.Tick += SizesTimer_Tick;
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(MeasureSizes));

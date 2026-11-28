@@ -245,7 +245,7 @@ public partial class MainWindow
         _ = LoadLauncherPlaytimeAsync();            // (newly found games get their hours too)
         _ = LoadAchievementsAsync();                // (and their achievements)
         _ = LoadSteamAppsAsync();                   // (and which are DLC or soundtracks)
-        FetchGenres();                           // (and their genres)
+        FetchGameInfo();                         // (and their details)
         MeasureSizes();                          // (and their size on disk)
         _bigPicture?.LibraryChanged();
     }
@@ -409,11 +409,11 @@ public partial class MainWindow
 
         CoverService.ClearMisses();
         _ = LoadVisibleCoversAsync();   // fetch covers that were skipped while offline
-        FetchGenres();                  // and the genres
+        FetchGameInfo();                // and the games' details
     }
 
     /// <summary>Asks the Steam store and GOG, in the background, for the details of the games that have none yet (see GameInfoService).</summary>
-    private void FetchGenres() => _ = GameInfoService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
+    private void FetchGameInfo() => _ = GameInfoService.FetchMissingAsync(_library.Games.ToList(), () => Refresh());
 
     private void SettingsPanel_PlaytimeSourcesChanged(object? sender, EventArgs e) => _ = LoadLauncherPlaytimeAsync();
 

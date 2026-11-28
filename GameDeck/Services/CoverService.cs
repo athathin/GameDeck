@@ -153,6 +153,11 @@ public static class CoverService
             if (gridUrl is not null && await DownloadAsync(gridUrl, file))
                 return file;
 
+            // 6) IGDB, only with the user's own Twitch keys in Settings (its covers are a little wider than the tiles: 3:4)
+            if (IgdbService.Configured && await IgdbService.FindAsync(game.Name) is { CoverId: { } coverId } &&
+                await DownloadAsync(IgdbService.ImageUrl(coverId, "cover_big_2x"), file))
+                return file;
+
             File.WriteAllText(miss, "2");   // remember "nothing found" for a week (the "2": see the check above)
             return null;
         }

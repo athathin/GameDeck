@@ -92,6 +92,9 @@ public static class SettingsService
 
         public string? SteamGridDbKey { get; set; }
 
+        public string? IgdbClientId { get; set; }
+        public string? IgdbClientSecret { get; set; }
+
         public bool QuickLaunchEnabled { get; set; } = true;
 
         // Ctrl + Alt + G: modifier bits as in GlobalHotkey, and a Windows virtual-key code (0x47 = G)
@@ -371,6 +374,28 @@ public static class SettingsService
         set
         {
             Current.SteamGridDbKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            Save();
+        }
+    }
+
+    /// <summary>The user's own Twitch app's Client ID (dev.twitch.tv), for IGDB: with the secret, IGDB is asked too.</summary>
+    public static string? IgdbClientId
+    {
+        get => Current.IgdbClientId;
+        set
+        {
+            Current.IgdbClientId = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            Save();
+        }
+    }
+
+    /// <summary>The user's own Twitch app's Client Secret, for IGDB. Saved on this PC only.</summary>
+    public static string? IgdbClientSecret
+    {
+        get => Current.IgdbClientSecret;
+        set
+        {
+            Current.IgdbClientSecret = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
             Save();
         }
     }
