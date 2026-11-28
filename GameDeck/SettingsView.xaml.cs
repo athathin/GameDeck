@@ -543,11 +543,8 @@ public partial class SettingsView : UserControl
         SectionTitle.Text = name;
         var chosen = FindName(name.Replace(" ", "") + "Section");
 
-        foreach (var panel in new FrameworkElement[]
-                 {
-                     GeneralSection, LibrarySection, AppearanceSection, ControllerSection, SoundSection, ScreenshotsSection,
-                     QuicklaunchSection, SystemSection
-                 })
+        // (every section panel sits in the same grid: a new section needs no line here)
+        foreach (var panel in ((Panel)GeneralSection.Parent).Children.OfType<FrameworkElement>())
             panel.Visibility = ReferenceEquals(panel, chosen) ? Visibility.Visible : Visibility.Collapsed;
 
         SectionScroll.ScrollToTop();

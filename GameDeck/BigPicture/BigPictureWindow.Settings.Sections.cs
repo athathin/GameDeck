@@ -233,6 +233,17 @@ public partial class BigPictureWindow
         return rows;
     }
 
+    /// <summary>Support: a donation through PayPal, opened in the browser (the same as the desktop's Support section).</summary>
+    private List<SettingRow> SupportSettings() =>
+    [
+        Heading("Enjoying GameDeck?"),
+        ActionButton("Donate with PayPal",
+            "GameDeck is free, with no ads, no account and no tracking. A donation helps keep it going. Opens paypal.me/athathin",
+            "Donate", () => Task.FromResult<string?>(AppInfo.OpenWebPage(AppInfo.DonateUrl)
+                ? "PayPal is open in your browser. Thank you!"
+                : "No browser could be opened: the page is " + AppInfo.DonateUrl), changesLibrary: false)
+    ];
+
     private List<SettingRow> SystemRows() =>
     [
         Heading("Updates"),
@@ -240,10 +251,6 @@ public partial class BigPictureWindow
         Toggle("Install updates automatically", "When GameDeck starts, from github.com/athathin/GameDeck",
             () => SettingsService.AutoUpdate, on => SettingsService.AutoUpdate = on),
         ActionButton("Check for updates", null, "Check now", () => _actions.CheckForUpdates(ShowSettingsStatus), changesLibrary: false),
-        ActionButton("Support GameDeck", "GameDeck is free. If you enjoy it, buy its maker a coffee through PayPal", "Donate",
-            () => Task.FromResult<string?>(AppInfo.OpenWebPage(AppInfo.DonateUrl)
-                ? "PayPal is open in your browser"
-                : "No browser could be opened: the page is " + AppInfo.DonateUrl), changesLibrary: false),
 
         Heading("Backup"),
         ActionButton("Export backup", "Favorites, playtime, categories and settings in one file", "Export", () =>

@@ -26,7 +26,8 @@ public partial class BigPictureWindow
         new("Sound", "", SoundSettings),
         new("Screenshots", "", ScreenshotSettings),
         new("Quick launch", "", QuickLaunchSettings),
-        new("System", "", SystemSettings)
+        new("System", "", SystemSettings),
+        new("Support", "\uEB51", SupportSettings)   // (a heart)
     ];
 
     /// <param name="keepPlace">Back from a screen opened in here (the controller's file browser): the same section and setting.</param>

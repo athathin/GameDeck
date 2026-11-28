@@ -9,6 +9,29 @@
         <Style x:Key="CardButton" TargetType="Button" BasedOn="{StaticResource PillButton}">
             <Setter Property="Background" Value="{DynamicResource AppBg}"/>
         </Style>
+
+        <!-- the Donate button: filled with the accent color, a little lighter under the mouse -->
+        <Style x:Key="DonateButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="22,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{DynamicResource Accent}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource AppBg}">
@@ -32,6 +55,7 @@
                         <RadioButton Style="{StaticResource SettingsNavItem}" Content="Screenshots" Tag="&#xE722;" Checked="SectionNav_Checked"/>
                         <RadioButton Style="{StaticResource SettingsNavItem}" Content="Quick launch" Tag="&#xE765;" Checked="SectionNav_Checked"/>
                         <RadioButton Style="{StaticResource SettingsNavItem}" Content="System" Tag="&#xE770;" Checked="SectionNav_Checked"/>
+                        <RadioButton Style="{StaticResource SettingsNavItem}" Content="Support" Tag="&#xEB51;" Checked="SectionNav_Checked"/>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>
@@ -386,19 +410,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- a small donation button (PayPal, AppInfo.DonateUrl): opens the page in the browser -->
-                        <Border Style="{StaticResource SettingCard}">
-                            <DockPanel>
-                                <Button x:Name="DonateButton" DockPanel.Dock="Right" Content="♥  Donate" Style="{StaticResource CardButton}"
-                                        Margin="20,0,0,0" VerticalAlignment="Center" Click="DonateButton_Click"
-                                        ToolTip="Opens PayPal in your browser"/>
-                                <StackPanel>
-                                    <TextBlock Text="Support GameDeck" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock x:Name="DonateText" Style="{StaticResource SettingNote}"
-                                               Text="GameDeck is free. If you enjoy it, you can buy its maker a coffee through PayPal."/>
-                                </StackPanel>
-                            </DockPanel>
-                        </Border>
 
                         <TextBlock Text="Backup" Style="{StaticResource SettingHeading}"/>
                         <Border Style="{StaticResource SettingCard}">
@@ -436,6 +447,21 @@
                                                Text="Removes GameDeck's program file. You choose whether to keep your library, favorites, playtime, categories, settings and covers, or delete them too. Your games are not touched."/>
                                 </StackPanel>
                             </DockPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Support: a donation through PayPal (AppInfo.DonateUrl), opened in the browser -->
+                    <StackPanel x:Name="SupportSection" Visibility="Collapsed">
+                        <Border Style="{StaticResource SettingCard}" Padding="24,22,24,22">
+                            <StackPanel>
+                                <TextBlock Text="Enjoying GameDeck?" Foreground="{DynamicResource TextPrimary}" FontSize="20" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource SettingNote}" FontSize="14" Margin="0,8,0,0"
+                                           Text="GameDeck is free, with no ads, no account and no tracking. If it makes your gaming a little nicer, a donation helps keep it going: new features, fixes and more launchers."/>
+                                <Button x:Name="DonateButton" Content="♥  Donate with PayPal" Style="{StaticResource DonateButtonStyle}"
+                                        HorizontalAlignment="Left" Margin="0,18,0,0" Click="DonateButton_Click"/>
+                                <TextBlock x:Name="DonateText" Style="{StaticResource SettingNote}" Margin="0,12,0,0"
+                                           Text="Opens paypal.me/athathin in your browser. Any amount is welcome, and thank you!"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                 </Grid>

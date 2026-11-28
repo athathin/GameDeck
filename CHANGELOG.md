@@ -15,7 +15,7 @@ New:
 - A tidier right-click menu, with **Edit** and **Configure** windows.
 - Big Picture: the same game menu, Edit and Configure with the controller, screenshots deleted to the Recycle Bin (it asks
   first), "← Library" on a game's page, and every button clickable with the mouse.
-- **Support GameDeck**: a small Donate button in Settings › System.
+- **Support GameDeck**: a Support section in Settings (and Big Picture's), with a Donate button.
 
 Changed and fixed:
 - Big Picture answers the controller faster; holding LB / RB goes on through the tabs, and the end of a row is silent.
