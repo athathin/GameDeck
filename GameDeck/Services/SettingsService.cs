@@ -19,7 +19,8 @@ public enum SortMode
     Playtime,
     LastPlayed,
     Source,
-    Size   // the most space on disk first (see DiskUsage)
+    Size,   // the most space on disk first (see DiskUsage)
+    Rating  // the highest rated first, unrated games last
 }
 
 /// <summary>Small app settings, saved in %AppData%\GameDeck\settings.json.</summary>

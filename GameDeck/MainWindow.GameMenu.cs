@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using GameDeck.Models;
 using GameDeck.Services;
 using GameDeck.Views;
@@ -12,10 +13,87 @@ public partial class MainWindow
 {
     // ---------- right-click menu ----------
 
-    private void FavoriteMenuItem_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Builds a tile's right-click menu for its game, each time it opens (so it only holds what applies to this game):
+    ///   Play · Edit…
+    ///   Manage installation › Configure…, Create desktop shortcut, Uninstall, Remove from library (games added by hand)
+    ///   Add to favorites · Categories › · Rate › · Status › · Hide game
+    /// </summary>
+    private void FillGameMenu(ContextMenu menu, Game game)
     {
-        if (sender is not MenuItem { DataContext: Game game }) return;
+        menu.Items.Clear();
 
+        menu.Items.Add(MenuEntry(PlayHeader(), () => _ = LaunchGameAsync(game)));
+        menu.Items.Add(MenuEntry("Edit…", false, () => EditGame(game, this)));
+        menu.Items.Add(new Separator());
+
+        var manage = Submenu(new TextBlock { Text = "Manage installation" });
+        manage.Items.Add(MenuEntry("Configure…", false, () => ConfigureGame(game, this)));
+        manage.Items.Add(MenuEntry("Create desktop shortcut", false, () => CreateShortcut(game, this)));
+        manage.Items.Add(new Separator());
+        manage.Items.Add(MenuEntry("Uninstall", false, () => ProviderActions.Uninstall(game)));
+        if (game.Source == ManualSource)   // scanned games leave the library by themselves once uninstalled
+            manage.Items.Add(MenuEntry("Remove from library", false, () => RemoveFromLibrary(game, this)));
+        menu.Items.Add(manage);
+        menu.Items.Add(new Separator());
+
+        menu.Items.Add(MenuEntry(game.FavoriteMenuText, false, () => ToggleFavorite(game)));
+        menu.Items.Add(CategoriesMenu(game));
+        menu.Items.Add(RateMenu(game));
+        menu.Items.Add(StatusMenu(game));
+        menu.Items.Add(MenuEntry(game.IsHidden ? "Unhide game" : "Hide game", false, () => ToggleHidden(game)));
+    }
+
+    /// <summary>A menu entry whose header is more than plain text (a play icon, gold stars, a count).</summary>
+    private static MenuItem MenuEntry(FrameworkElement header, Action onClick, bool isChecked = false)
+    {
+        var item = new MenuItem { Header = header, IsChecked = isChecked };
+        item.Click += (_, _) => onClick();
+        return item;
+    }
+
+    /// <summary>An entry that opens a submenu (the arrow shows by itself once it holds entries).</summary>
+    private static MenuItem Submenu(FrameworkElement header) => new() { Header = header };
+
+    /// <summary>"▶ Play", a little stronger than the rest, like the first entry of a launcher's menu.</summary>
+    private static FrameworkElement PlayHeader()
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal };
+        panel.Children.Add(new TextBlock
+        {
+            Text = "",   // Segoe MDL2 "Play"
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 1, 10, 0)
+        });
+        panel.Children.Add(new TextBlock { Text = "Play", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        return panel;
+    }
+
+    /// <summary>A submenu's name with a small count on its right ("Categories  [2]": how many the game is in).</summary>
+    private static FrameworkElement HeaderWithCount(string text, int count)
+    {
+        var panel = new DockPanel();
+
+        var badge = new Border
+        {
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 0, 6, 1),
+            Margin = new Thickness(14, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock { Text = count.ToString(), FontSize = 11 }
+        };
+        badge.SetResourceReference(Border.BackgroundProperty, "AppBg");   // (darker than the menu, also while the entry is highlighted)
+        DockPanel.SetDock(badge, Dock.Right);
+
+        panel.Children.Add(badge);
+        panel.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
+        return panel;
+    }
+
+    private void ToggleFavorite(Game game)
+    {
         _userData.SetFavorite(game, !game.IsFavorite);
 
         if (_view == "Favorites")
@@ -25,33 +103,36 @@ public partial class MainWindow
     // The game actions below are used by the right-click menu here and by the Menu button's game menu in Big Picture.
     // Each takes the window its dialogs belong to.
 
+    /// <summary>"Edit…": the game's details (Info tab) and cover (Media tab). Nothing changes unless OK is pressed.</summary>
     private void EditGame(Game game, Window owner)
     {
         var dialog = new GameSettingsDialog(game) { Owner = owner };
         if (dialog.ShowDialog() != true) return;
 
-        _userData.SaveGameSettings(game, dialog.GameName, dialog.Arguments, dialog.RunAsAdmin, dialog.Tags, dialog.Rating, dialog.Notes);
-        Refresh();   // the new name can change the order, new categories show up in the Category menu
+        _userData.SaveGameSettings(game, dialog.GameName, dialog.Tags, dialog.Rating, dialog.Notes);
+
+        // only when it was changed, so an untouched note keeps the date it was written
+        if (dialog.LeftOff != (game.LeftOff ?? "").Trim())
+            SetLeftOff(game, dialog.LeftOff);
+
+        if (dialog.Hidden != game.IsHidden)
+            _userData.SetHidden(game, dialog.Hidden);
+
+        if (dialog.RemoveCover)
+            _ = CoverService.RemoveCustomCoverAsync(game);
+        else if (dialog.NewCoverFile is { } file && !CoverService.SetCustomCover(game, file))
+            MessageDialog.Show(owner, "That file couldn't be read as an image. Try a .jpg, .png or .bmp.", "Couldn't use that image");
+
+        Refresh();   // the new name can change the order, new categories show up in the Category menu, hidden games leave
     }
 
-    private void EditMenuItem_Click(object sender, RoutedEventArgs e)
+    /// <summary>Manage installation › "Configure…": launch arguments, run as administrator, and the launch routine.</summary>
+    private void ConfigureGame(Game game, Window owner)
     {
-        if (sender is MenuItem { DataContext: Game game })
-            EditGame(game, this);
-    }
-
-    private void EditLaunchRoutine(Game game, Window owner)
-    {
-        var dialog = new LaunchRoutineDialog(game) { Owner = owner };
+        var dialog = new ConfigureGameDialog(game, profile => _userData.SetProfile(game, profile)) { Owner = owner };
         if (dialog.ShowDialog() != true) return;
 
-        _userData.SetProfile(game, dialog.Result);
-    }
-
-    private void RoutineMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            EditLaunchRoutine(game, this);
+        _userData.SetLaunchOptions(game, dialog.Arguments, dialog.RunAsAdmin);
     }
 
     /// <summary>Asked by a launch routine before it closes programs. Yes = close and start, No = start without closing, Cancel = don't start.</summary>
@@ -79,28 +160,28 @@ public partial class MainWindow
         .OrderBy(t => t, StringComparer.CurrentCultureIgnoreCase)
         .ToList();
 
-    /// <summary>Fills the Categories submenu: every category (ticked if the game is in it), then New / Manage.</summary>
-    private void CategoriesMenu_SubmenuOpened(object sender, RoutedEventArgs e)
+    /// <summary>The Categories submenu: New category… first, then every category (ticked if the game is in it), then Manage.</summary>
+    private MenuItem CategoriesMenu(Game game)
     {
-        if (!ReferenceEquals(e.OriginalSource, sender) || sender is not MenuItem { DataContext: Game game } parent) return;
+        var parent = Submenu(HeaderWithCount("Categories", game.Tags.Count));
 
-        parent.Items.Clear();
+        parent.Items.Add(MenuEntry("New category…", false, () => AddToNewCategory(game, this)));
 
         var categories = AllCategories();
+        if (categories.Count == 0)
+            return parent;   // nothing to tick or manage until a category exists
+
+        parent.Items.Add(new Separator());
+
         foreach (var category in categories)
         {
             var chosen = category;
             parent.Items.Add(MenuEntry(chosen, HasTag(game, chosen), () => ToggleCategory(game, chosen)));
         }
 
-        if (categories.Count > 0)
-            parent.Items.Add(new Separator());
-
-        parent.Items.Add(MenuEntry("New category…", false, () => AddToNewCategory(game, this)));
-
-        // nothing to manage until at least one category exists, so the option isn't shown at all
-        if (categories.Count > 0)
-            parent.Items.Add(MenuEntry("Manage categories…", false, () => ManageCategories(this)));
+        parent.Items.Add(new Separator());
+        parent.Items.Add(MenuEntry("Manage categories…", false, () => ManageCategories(this)));
+        return parent;
     }
 
     private void ToggleCategory(Game game, string category)
@@ -161,14 +242,37 @@ public partial class MainWindow
         dialog.ShowDialog();
     }
 
+    // ---------- rating (right-click > Rate) ----------
+
+    /// <summary>The Rate submenu: five stars down to one, then No rating; the game's current rating is ticked.</summary>
+    private MenuItem RateMenu(Game game)
+    {
+        var parent = Submenu(new TextBlock { Text = "Rate" });
+
+        for (var stars = 5; stars >= 1; stars--)
+        {
+            var chosen = stars;
+            var header = new TextBlock { Text = new string('★', stars), Foreground = GameSettingsDialog.StarBrush, FontSize = 15 };
+            parent.Items.Add(MenuEntry(header, () => SetRating(game, chosen), game.Rating == chosen));
+        }
+
+        parent.Items.Add(new Separator());
+        parent.Items.Add(MenuEntry("No rating", game.Rating == 0, () => SetRating(game, 0)));
+        return parent;
+    }
+
+    private void SetRating(Game game, int rating)
+    {
+        _userData.SetRating(game, rating);
+        Refresh();   // sorted by rating, the game moves
+    }
+
     // ---------- status (right-click > Status) ----------
 
-    /// <summary>Fills the Status submenu: None, then each status, ticked for the game's current one.</summary>
-    private void StatusMenu_SubmenuOpened(object sender, RoutedEventArgs e)
+    /// <summary>The Status submenu: No status, then each status, ticked for the game's current one.</summary>
+    private MenuItem StatusMenu(Game game)
     {
-        if (!ReferenceEquals(e.OriginalSource, sender) || sender is not MenuItem { DataContext: Game game } parent) return;
-
-        parent.Items.Clear();
+        var parent = Submenu(new TextBlock { Text = "Status" });
 
         foreach (var status in Enum.GetValues<GameStatus>())
         {
@@ -182,6 +286,8 @@ public partial class MainWindow
             if (chosen == GameStatus.None)
                 parent.Items.Add(new Separator());
         }
+
+        return parent;
     }
 
     private void ToggleHidden(Game game)
@@ -190,12 +296,7 @@ public partial class MainWindow
         Refresh();
     }
 
-    private void HideMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            ToggleHidden(game);
-    }
-
+    /// <summary>Big Picture's "Add cover art…" (on the desktop the cover is chosen in Edit › Media).</summary>
     private void AddCover(Game game, Window owner)
     {
         var dialog = new OpenFileDialog
@@ -210,18 +311,6 @@ public partial class MainWindow
             MessageDialog.Show(owner, "That file couldn't be read as an image. Try a .jpg, .png or .bmp.", "Couldn't use that image");
     }
 
-    private void AddCoverMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            AddCover(game, this);
-    }
-
-    private async void RemoveCoverMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            await CoverService.RemoveCustomCoverAsync(game);
-    }
-
     // ---------- desktop shortcuts ----------
 
     /// <summary>Puts a shortcut on the desktop that starts the game through GameDeck (playtime, launch routine and all).</summary>
@@ -231,12 +320,6 @@ public partial class MainWindow
             GameToastWindow.ShowMessage("Shortcut created", game.DisplayName, "On the desktop: " + Path.GetFileName(file));
         else
             MessageDialog.Show(owner, $"The shortcut for {game.DisplayName} couldn't be put on the desktop.", "Couldn't create the shortcut");
-    }
-
-    private void ShortcutMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            CreateShortcut(game, this);
     }
 
     /// <summary>A game's desktop shortcut was opened: start that game, wherever GameDeck is (tray, window, Big Picture).</summary>
@@ -256,26 +339,13 @@ public partial class MainWindow
         _ = LaunchGameAsync(game);
     }
 
-    /// <summary>Right-click › "Where I left off…": write, change or clear the note shown on the game's page and in Continue playing.</summary>
-    private void LeftOffMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            EditLeftOff(game, "A few words for next time. Leave it empty to remove the note.");
-    }
-
-    private void UninstallMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            ProviderActions.Uninstall(game);
-    }
-
     private void RemoveFromLibrary(Game game, Window owner)
     {
-        if (game.Source != "Manual")
+        if (game.Source != ManualSource)
         {
             MessageDialog.Show(owner, "Only games you added manually can be removed.\n" +
                                       "Scanned games disappear on their own when they're uninstalled.\n" +
-                                      "To just get a game out of the way, use \"Hide from library\".", "Can't remove this game");
+                                      "To just get a game out of the way, use \"Hide game\".", "Can't remove this game");
             return;
         }
 
@@ -283,15 +353,10 @@ public partial class MainWindow
         Refresh();
     }
 
-    private void RemoveMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { DataContext: Game game })
-            RemoveFromLibrary(game, this);
-    }
-
     /// <summary>What the game menu in Big Picture (the controller's Menu button) can ask of the main window.</summary>
     private BigPictureGameActions BigPictureGameMenu() => new(
         Edit: EditGame,
+        Configure: ConfigureGame,
         SaveRoutine: (game, profile) => _userData.SetProfile(game, profile),
         AllCategories: AllCategories,
         ToggleCategory: ToggleCategory,
@@ -302,6 +367,7 @@ public partial class MainWindow
             _userData.SetStatus(game, status);
             Refresh();
         },
+        SetRating: SetRating,
         SetNotes: (game, notes) => _userData.SetNotes(game, notes),
         ToggleHidden: ToggleHidden,
         AddCover: AddCover,

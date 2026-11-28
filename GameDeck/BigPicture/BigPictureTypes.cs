@@ -23,6 +23,7 @@ public record BigPictureSettingsActions(
 /// <summary>What the game menu (the controller's Menu button, the right-click menu of the desktop library) can ask of the main window.</summary>
 public record BigPictureGameActions(
     Action<Game, Window> Edit,
+    Action<Game, Window> Configure,
     Action<Game, LaunchProfile?> SaveRoutine,
     Func<IReadOnlyList<string>> AllCategories,
     Action<Game, string> ToggleCategory,
@@ -30,6 +31,7 @@ public record BigPictureGameActions(
     Action<Game, Window> NewCategory,
     Action<Window> ManageCategories,
     Action<Game, GameStatus> SetStatus,
+    Action<Game, int> SetRating,
     Action<Game> ToggleHidden,
     Action<Game, Window> AddCover,
     Func<Game, Task> RemoveCover,

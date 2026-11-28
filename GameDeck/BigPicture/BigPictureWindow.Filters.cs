@@ -86,7 +86,8 @@ public partial class BigPictureWindow
         foreach (var (text, mode) in new[]
                  {
                      ("Name (A–Z)", SortMode.Name), ("Most played", SortMode.Playtime),
-                     ("Recently played", SortMode.LastPlayed), ("Launcher", SortMode.Source), ("Largest first", SortMode.Size)
+                     ("Recently played", SortMode.LastPlayed), ("Launcher", SortMode.Source), ("Largest first", SortMode.Size),
+                     ("Highest rated", SortMode.Rating)
                  })
         {
             var chosen = mode;

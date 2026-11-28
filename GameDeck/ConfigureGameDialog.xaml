@@ -1,0 +1,86 @@
+﻿<Window x:Class="GameDeck.Views.ConfigureGameDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configure game" Width="500" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource AppBg}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <Style x:Key="RowLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel>
+        <!-- header: the game's picture, 'Configuring "Name"' and where it comes from -->
+        <Border Background="{DynamicResource PanelBg}" Padding="24,18">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="44" Height="44" CornerRadius="22" Background="{DynamicResource RaisedBg}">
+                    <Border.Clip>
+                        <EllipseGeometry Center="22,22" RadiusX="22" RadiusY="22"/>
+                    </Border.Clip>
+                    <Image x:Name="HeaderImage" Stretch="UniformToFill"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="HeaderTitle" Foreground="{DynamicResource TextPrimary}" FontSize="17" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" MaxWidth="380"/>
+                    <TextBlock x:Name="HeaderSource" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,3,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border BorderBrush="{DynamicResource RaisedBg}" BorderThickness="0,0,0,1" Padding="24,18,24,0">
+            <StackPanel HorizontalAlignment="Left">
+                <TextBlock Text="LAUNCH" Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <Border Height="2" CornerRadius="1" Background="{DynamicResource Accent}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Margin="24,20,24,22">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Launch arguments" Style="{StaticResource RowLabel}"/>
+            <TextBox x:Name="ArgsBox" Grid.Column="1" Style="{StaticResource DarkTextBox}"/>
+
+            <TextBlock Grid.Row="1" Text="Administrator" Style="{StaticResource RowLabel}" Margin="0,16,16,0"/>
+            <CheckBox Grid.Row="1" Grid.Column="1" x:Name="AdminCheckBox" Style="{StaticResource DarkCheckBox}"
+                      Content="Run as administrator" Margin="0,16,0,0"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LaunchHint" Foreground="{DynamicResource TextHint}" FontSize="12"
+                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+            <TextBlock Grid.Row="3" Text="Launch routine" Style="{StaticResource RowLabel}" VerticalAlignment="Top" Margin="0,24,16,0"/>
+            <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,20,0,0">
+                <TextBlock x:Name="RoutineText" Foreground="{DynamicResource TextPrimary}" FontSize="13" TextWrapping="Wrap"/>
+                <Button Content="Edit routine…" Style="{StaticResource PillButton}" Margin="0,10,0,0" HorizontalAlignment="Left"
+                        Click="RoutineButton_Click"/>
+                <TextBlock Text="Apps to start or close, power plan and display, around the game. Saved from its own window."
+                           Foreground="{DynamicResource TextHint}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Cancel / OK -->
+        <Border BorderBrush="{DynamicResource RaisedBg}" BorderThickness="0,1,0,0" Padding="24,16">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" IsCancel="True"
+                        Style="{StaticResource DialogButton}" Background="{DynamicResource RaisedBg}" Foreground="{DynamicResource TextPrimary}"/>
+                <Button Content="OK" IsDefault="True" Click="OkButton_Click"
+                        Style="{StaticResource DialogButton}" Background="{DynamicResource Accent}" Foreground="White"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</Window>

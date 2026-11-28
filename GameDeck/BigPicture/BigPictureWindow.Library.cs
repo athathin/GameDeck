@@ -128,6 +128,7 @@ public partial class BigPictureWindow
         SortMode.LastPlayed => games.OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.Source => games.OrderBy(g => g.Source, StringComparer.CurrentCultureIgnoreCase).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         SortMode.Size => games.OrderByDescending(g => g.SizeBytes ?? -1).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
+        SortMode.Rating => games.OrderByDescending(g => g.Rating).ThenBy(ByName, StringComparer.CurrentCultureIgnoreCase),
         _ => games.OrderBy(ByName, StringComparer.CurrentCultureIgnoreCase)
     };
 

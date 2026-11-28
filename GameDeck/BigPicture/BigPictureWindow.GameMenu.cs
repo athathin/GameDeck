@@ -154,12 +154,14 @@ public partial class BigPictureWindow
                 CloseGameMenu();
             }),
             new("Edit game…", Activate: () => GameAction(() => actions.Edit(game, this))),
+            new("Launch options…", Activate: () => GameAction(() => actions.Configure(game, this))),
             new(game.HasNotes ? "Edit notes…  (type with the on-screen keyboard)" : "Add a note…  (type with the on-screen keyboard)",
                 Activate: () => { CloseGameMenu(); OpenNote(game); }),
             new(game.HasLeftOff ? "Where I left off: change…" : "Where I left off…",
                 Activate: () => { CloseGameMenu(); OpenNote(game, leftOff: true); }),
             new("Launch routine  ›", Activate: () => OpenSubmenu("Launch routine", () => RoutineRows(game))),
             new("Categories  ›", Activate: () => OpenSubmenu("Categories", () => CategoryRows(game))),
+            new("Rate  ›", Activate: () => OpenSubmenu("Rate", () => RateRows(game))),
             new("Status  ›", Activate: () => OpenSubmenu("Status", () => StatusRows(game))),
             new(game.HideMenuText, Activate: () => GameAction(() => actions.ToggleHidden(game))),
             new("Add cover art…", Activate: () => GameAction(() => actions.AddCover(game, this)))
@@ -276,6 +278,19 @@ public partial class BigPictureWindow
         if (categories.Count > 0)   // nothing to manage until a category exists
             rows.Add(new("Manage categories…", Activate: () => GameAction(() => actions.ManageCategories(this), closeMenu: false)));
 
+        return rows;
+    }
+
+    /// <summary>Five stars down to one, then No rating (like the desktop's Rate menu).</summary>
+    private List<FilterRow> RateRows(Game game)
+    {
+        var rows = Enumerable.Range(1, 5).Reverse()
+            .Select(stars => new FilterRow(new string('★', stars), IsOn: () => game.Rating == stars, IsRadio: true,
+                Activate: () => GameAction(() => _gameActions.SetRating(game, stars))))
+            .ToList();
+
+        rows.Add(new("No rating", IsOn: () => game.Rating == 0, IsRadio: true,
+            Activate: () => GameAction(() => _gameActions.SetRating(game, 0))));
         return rows;
     }
 

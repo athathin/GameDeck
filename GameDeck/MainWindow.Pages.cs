@@ -339,8 +339,15 @@ public partial class MainWindow
     /// <summary>The "pick a game for me" tile has no right-click menu.</summary>
     private void Tile_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is Game { IsRandomTile: true })
+        var tile = (FrameworkElement)sender;
+
+        if (tile.DataContext is not Game { IsRandomTile: false } game || tile.ContextMenu is not { } menu)
+        {
             e.Handled = true;
+            return;
+        }
+
+        FillGameMenu(menu, game);
     }
 
     /// <summary>

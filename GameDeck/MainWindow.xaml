@@ -380,29 +380,9 @@
                                 <Grid.Clip>
                                     <RectangleGeometry Rect="0,0,160,240" RadiusX="4" RadiusY="4"/>
                                 </Grid.Clip>
+                                <!-- its entries are built each time it opens (Tile_ContextMenuOpening › FillGameMenu) -->
                                 <Grid.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="{Binding FavoriteMenuText}" Click="FavoriteMenuItem_Click"/>
-                                        <MenuItem Header="Edit game…" Click="EditMenuItem_Click"/>
-                                        <MenuItem Header="Where I left off…" Click="LeftOffMenuItem_Click"/>
-                                        <MenuItem Header="Launch routine…" Click="RoutineMenuItem_Click"/>
-                                        <!-- the items inside are built when it opens (CategoriesMenu_SubmenuOpened); the placeholder makes it a submenu -->
-                                        <MenuItem Header="Categories" SubmenuOpened="CategoriesMenu_SubmenuOpened">
-                                            <MenuItem Header="…"/>
-                                        </MenuItem>
-                                        <MenuItem Header="Status" SubmenuOpened="StatusMenu_SubmenuOpened">
-                                            <MenuItem Header="…"/>
-                                        </MenuItem>
-                                        <MenuItem Header="{Binding HideMenuText}" Click="HideMenuItem_Click"/>
-                                        <Separator/>
-                                        <MenuItem Header="Add cover art" Click="AddCoverMenuItem_Click"/>
-                                        <MenuItem Header="Remove cover art" Click="RemoveCoverMenuItem_Click"
-                                                  Visibility="{Binding HasCustomCover, Converter={StaticResource BoolToVis}}"/>
-                                        <MenuItem Header="Create desktop shortcut" Click="ShortcutMenuItem_Click"/>
-                                        <MenuItem Header="Uninstall" Click="UninstallMenuItem_Click"/>
-                                        <Separator/>
-                                        <MenuItem Header="Remove from library" Click="RemoveMenuItem_Click"/>
-                                    </ContextMenu>
+                                    <ContextMenu/>
                                 </Grid.ContextMenu>
 
                                 <!-- shown until (or unless) a cover exists -->

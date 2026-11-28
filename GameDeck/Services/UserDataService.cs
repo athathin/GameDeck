@@ -184,18 +184,35 @@ public class UserDataService
     }
 
     /// <summary>Saves what was entered in "Edit game". Empty values mean "back to the default".</summary>
-    public void SaveGameSettings(Game game, string? customName, string? arguments, bool runAsAdmin, List<string> tags,
-                                 int rating, string? notes)
+    public void SaveGameSettings(Game game, string? customName, List<string> tags, int rating, string? notes)
     {
         var entry = GetEntry(game);
 
         customName = customName?.Trim();
         entry.CustomName = string.IsNullOrEmpty(customName) || customName == game.Name ? null : customName;
-        entry.Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments.Trim();
-        entry.RunAsAdmin = runAsAdmin;
         entry.Tags = tags.Count == 0 ? null : tags;
         entry.Rating = Math.Clamp(rating, 0, 5);
         entry.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+        Save();
+        Apply(game);
+    }
+
+    /// <summary>Saves what was entered in "Configure" (Manage installation): the launch arguments and "run as administrator".</summary>
+    public void SetLaunchOptions(Game game, string? arguments, bool runAsAdmin)
+    {
+        var entry = GetEntry(game);
+        entry.Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments.Trim();
+        entry.RunAsAdmin = runAsAdmin;
+
+        Save();
+        Apply(game);
+    }
+
+    /// <summary>The right-click "Rate" menu: 0 (no rating) to 5 stars.</summary>
+    public void SetRating(Game game, int rating)
+    {
+        GetEntry(game).Rating = Math.Clamp(rating, 0, 5);
 
         Save();
         Apply(game);
